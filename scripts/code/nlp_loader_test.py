@@ -145,9 +145,9 @@ def train(args):
 
     # As training data we use hard-negatives that have been mined using various systems
     hard_negatives_filepath = os.path.join(data_folder, 'msmarco-hard-negatives.jsonl.gz')
-    if not os.path.exists(hard_negatives_filepath):
-        logging.info("Download cross-encoder scores file")
-        util.http_get('https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives/resolve/main/msmarco-hard-negatives.jsonl.gz', hard_negatives_filepath)
+    # if not os.path.exists(hard_negatives_filepath):
+    #     logging.info("Download cross-encoder scores file")
+    #     util.http_get('https://huggingface.co/datasets/sentence-transformers/msmarco-hard-negatives/resolve/main/msmarco-hard-negatives.jsonl.gz', hard_negatives_filepath)
 
 
     # In[12]:
