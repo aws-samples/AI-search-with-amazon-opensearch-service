@@ -27,13 +27,4 @@ def predict_fn(data, model_and_tokenizer):
     sentences = data.pop("inputs", data)
     encoded_input = tokenizer(sentences, padding=True, truncation=True, return_tensors='pt')["input_ids"]
 
-
-
-    # Perform pooling
-    #sentence_embeddings = mean_pooling(model_output, encoded_input['attention_mask'])
-
-    # Normalize embeddings
-    #sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
-    
-    # return dictonary, which will be json serializable
     return {"vectors": model(encoded_input)["pooler_output"].tolist()}
