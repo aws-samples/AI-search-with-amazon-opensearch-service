@@ -161,7 +161,7 @@ def train(args):
         "Return first n items of the iterable as a list"
         return dict(islice(iterable, n))
 
-    n_items = take_(1000, ce_scores.items())
+    n_items = take_(args.sample_queries, ce_scores.items())
 
     def f(x):
         return math.trunc(x)
@@ -275,6 +275,13 @@ def parse_args():
         default=0.001,
         metavar="LR",
         help="learning rate (default: 0.01)",
+    )
+    parser.add_argument(
+        "--sample_queries",
+        type=int,
+        default=1000,
+        metavar="number_of_queries",
+        help="number of queries to train: 1000",
     )
 
 
