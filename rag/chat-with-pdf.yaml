@@ -429,6 +429,14 @@ Resources:
     UpdateReplacePolicy: Retain
     DeletionPolicy: Retain
 
+  LLMurl:
+    Type: AWS::Lambda::Url
+    Properties: 
+      AuthType: NONE
+      Cors: 
+        Cors
+      InvokeMode: RESPONSE_STREAM
+      TargetFunctionArn: !GetAtt "LLMAppFunction.Arn"
 
   LLMAppFunction:
     Type: AWS::Lambda::Function
@@ -560,25 +568,28 @@ Resources:
       IamInstanceProfile: !Ref Ec2InstanceProfile
       UserData:
         Fn::Base64: 
-          !Sub |
-            #!/bin/bash
-            cd /home/ec2-user
-            sudo yum install awscli
-            sudo yum install zip
-            sudo yum -y install git
-            mkdir /home/ec2-user/semantic-search-with-amazon-opensearch
-            git clone https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search/ /home/ec2-user/semantic-search-with-amazon-opensearch
-            aws s3 cp /home/ec2-user/semantic-search-with-amazon-opensearch/rag/ s3://${s3BucketTraining} --recursive
-            aws s3 cp s3://${s3BucketTraining}/webapp.zip /home/ec2-user
-            unzip /home/ec2-user/webapp.zip -d /home/ec2-user
-            sudo chmod -R 0777 /home/ec2-user/pdfs
-            sed -i 's/API_URL_TO_BE_REPLACED/${ApiGatewayRestApi}/g' /home/ec2-user/api.py
-            sed -i 's/pdf-repo-uploads/${s3BucketTraining}/g' /home/ec2-user/app.py
-            python3 -m venv /home/ec2-user/.env
-            source /home/ec2-user/.env/bin/activate
-            pip install streamlit
-            pip install boto3
-            streamlit run app.py
+          Fn::Sub:
+            - |
+              #!/bin/bash
+              cd /home/ec2-user
+              sudo yum install awscli
+              sudo yum install zip
+              sudo yum -y install git
+              mkdir /home/ec2-user/semantic-search-with-amazon-opensearch
+              git clone https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search/ /home/ec2-user/semantic-search-with-amazon-opensearch
+              aws s3 cp /home/ec2-user/semantic-search-with-amazon-opensearch/rag/ s3://${s3Bucket} --recursive
+              aws s3 cp s3://${s3Bucket}/webapp.zip /home/ec2-user
+              unzip /home/ec2-user/webapp.zip -d /home/ec2-user
+              sudo chmod -R 0777 /home/ec2-user/pdfs
+              sed -i 's/API_URL_TO_BE_REPLACED/${appurl}/g' /home/ec2-user/api.py
+              sed -i 's/pdf-repo-uploads/${s3Bucket}/g' /home/ec2-user/app.py
+              python3 -m venv /home/ec2-user/.env
+              source /home/ec2-user/.env/bin/activate
+              pip install streamlit
+              pip install boto3
+              streamlit run app.py
+            - appurl: !GetAtt LLMurl.FunctionUrl
+              s3Bucket: s3BucketTraining
 
   DemoSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
