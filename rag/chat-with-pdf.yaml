@@ -1,6 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Template to provision OpenSearch cluster and SageMaker Notebook for semantic search
-
+Description: Template to provision RAG stack with OpenSearch as vector DB
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -434,9 +433,24 @@ Resources:
     Properties: 
       AuthType: NONE
       Cors: 
-        Cors
+          AllowCredentials: True
+          AllowMethods: 
+            - '*'
+          AllowOrigins: 
+            - '*'
+          MaxAge: 60000
+
       InvokeMode: RESPONSE_STREAM
       TargetFunctionArn: !GetAtt "LLMAppFunction.Arn"
+
+  LLMPermissions:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunctionUrl
+      FunctionName: !Ref LLMAppFunction
+      FunctionUrlAuthType: 'NONE'
+      Principal: '*'
+      
 
   LLMAppFunction:
     Type: AWS::Lambda::Function
@@ -445,8 +459,8 @@ Resources:
       Description: Lambda function for providing an LLM app (text generation, RAG) endpoint.
       Runtime: python3.9
       Code:
-        S3Bucket: !Ref s3BucketTraining
-        S3Key: lambda.zip
+        S3Bucket: ws-assets-prod-iad-r-iad-ed304a55c2ca1aee
+        S3Key: df655552-1e61-4a6b-9dc4-c03eb94c6f75/assets/lambda.zip
       Handler: main.handler
       MemorySize: 10240
       Timeout: 600
@@ -477,8 +491,8 @@ Resources:
       Description: Lambda function for ingesting data into opensearch.
       Runtime: python3.9
       Code:
-        S3Bucket: !Ref s3BucketTraining
-        S3Key: lambda_s3.zip
+        S3Bucket: ws-assets-prod-iad-r-iad-ed304a55c2ca1aee
+        S3Key: df655552-1e61-4a6b-9dc4-c03eb94c6f75/assets/lambda_s3.zip
       Handler: main_s3.handler
       MemorySize: 10240
       Timeout: 600
@@ -588,8 +602,10 @@ Resources:
               pip install streamlit
               pip install boto3
               streamlit run app.py
-            - appurl: !GetAtt LLMurl.FunctionUrl
-              s3Bucket: s3BucketTraining
+            - appurl: !Join
+                        - '\/'
+                        - !Split [ "/", !GetAtt LLMurl.FunctionUrl]
+              s3Bucket: !Ref s3BucketTraining
 
   DemoSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
