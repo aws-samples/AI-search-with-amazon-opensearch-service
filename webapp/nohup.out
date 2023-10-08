@@ -1,0 +1,4 @@
+Usage: streamlit [OPTIONS] COMMAND [ARGS]...
+Try 'streamlit --help' for help.
+
+Error: No such command 'app.py'.
