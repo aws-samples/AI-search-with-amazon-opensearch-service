@@ -1724,7 +1724,7 @@ class Configuration:
 
             [variables]
             pkgname=numpy.core
-            pkgdir=/build/arm-linux-gnueabi/sysroot/usr/lib/python3.7/site-packages/numpy/core
+            pkgdir=/build/arm-linux-gnueabi/sysroot/usr/lib/python3.10/site-packages/numpy/core
             prefix=${pkgdir}
             libdir=${prefix}/lib
             includedir=${prefix}/include
