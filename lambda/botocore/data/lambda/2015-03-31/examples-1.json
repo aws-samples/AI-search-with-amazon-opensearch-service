@@ -142,7 +142,7 @@
           "MemorySize": 256,
           "Publish": true,
           "Role": "arn:aws:iam::123456789012:role/lambda-role",
-          "Runtime": "nodejs12.x",
+          "Runtime": "nodejs16.x",
           "Tags": {
             "DEPARTMENT": "Assets"
           },
@@ -170,7 +170,7 @@
           "MemorySize": 256,
           "RevisionId": "b75dcd81-xmpl-48a8-a75a-93ba8b5b9727",
           "Role": "arn:aws:iam::123456789012:role/lambda-role",
-          "Runtime": "nodejs12.x",
+          "Runtime": "nodejs16.x",
           "State": "Active",
           "Timeout": 15,
           "TracingConfig": {
@@ -428,7 +428,7 @@
             "MemorySize": 256,
             "RevisionId": "b75dcd81-xmpl-48a8-a75a-93ba8b5b9727",
             "Role": "arn:aws:iam::123456789012:role/lambda-role",
-            "Runtime": "nodejs12.x",
+            "Runtime": "nodejs16.x",
             "State": "Active",
             "Timeout": 15,
             "TracingConfig": {
@@ -495,7 +495,7 @@
           "MemorySize": 256,
           "RevisionId": "b75dcd81-xmpl-48a8-a75a-93ba8b5b9727",
           "Role": "arn:aws:iam::123456789012:role/lambda-role",
-          "Runtime": "nodejs12.x",
+          "Runtime": "nodejs16.x",
           "State": "Active",
           "Timeout": 15,
           "TracingConfig": {
@@ -1059,7 +1059,7 @@
               "MemorySize": 256,
               "RevisionId": "850ca006-2d98-4ff4-86db-8766e9d32fe9",
               "Role": "arn:aws:iam::123456789012:role/lambda-role",
-              "Runtime": "nodejs12.x",
+              "Runtime": "nodejs16.x",
               "Timeout": 15,
               "TracingConfig": {
                 "Mode": "Active"
@@ -1084,7 +1084,7 @@
               "MemorySize": 256,
               "RevisionId": "b75dcd81-xmpl-48a8-a75a-93ba8b5b9727",
               "Role": "arn:aws:iam::123456789012:role/lambda-role",
-              "Runtime": "nodejs12.x",
+              "Runtime": "nodejs16.x",
               "Timeout": 5,
               "TracingConfig": {
                 "Mode": "Active"
@@ -1173,7 +1173,7 @@
           "MemorySize": 256,
           "RevisionId": "b75dcd81-xmpl-48a8-a75a-93ba8b5b9727",
           "Role": "arn:aws:iam::123456789012:role/lambda-role",
-          "Runtime": "nodejs12.x",
+          "Runtime": "nodejs16.x",
           "State": "Active",
           "Timeout": 5,
           "TracingConfig": {
@@ -1422,7 +1422,7 @@
           "MemorySize": 128,
           "RevisionId": "873282ed-xmpl-4dc8-a069-d0c647e470c6",
           "Role": "arn:aws:iam::123456789012:role/lambda-role",
-          "Runtime": "nodejs12.x",
+          "Runtime": "nodejs16.x",
           "Timeout": 3,
           "TracingConfig": {
             "Mode": "PassThrough"
@@ -1457,7 +1457,7 @@
           "MemorySize": 256,
           "RevisionId": "873282ed-xmpl-4dc8-a069-d0c647e470c6",
           "Role": "arn:aws:iam::123456789012:role/lambda-role",
-          "Runtime": "nodejs12.x",
+          "Runtime": "nodejs16.x",
           "Timeout": 3,
           "TracingConfig": {
             "Mode": "PassThrough"
