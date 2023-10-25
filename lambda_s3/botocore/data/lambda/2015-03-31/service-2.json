@@ -5203,7 +5203,7 @@
         "nodejs6.10",
         "nodejs8.10",
         "nodejs10.x",
-        "nodejs12.x",
+        "nodejs16.x",
         "nodejs14.x",
         "nodejs16.x",
         "java8",
