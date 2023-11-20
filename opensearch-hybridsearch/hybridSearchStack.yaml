@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Template to provision OpenSearch cluster and SageMaker Notebook for semantic search
+Description: Template to provision OpenSearch cluster and SageMaker Notebook for hybrid search
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -8,58 +8,32 @@ Metadata:
           default: Required Parameters
         Parameters:
           - AppName
-          - OpenSearchUsername
-          - OpenSearchPassword
     ParameterLabels:
       AppName:
         default: Name of the overall application
-      OpenSearchUsername:
-        default: OpenSearch cluster username
-      OpenSearchPassword:
-        default: OpenSearch cluster password
       SageMakerNotebookName:
         default: Name of SageMaker Notebook Instance
       
 Parameters:
-  OpenSearchUsername:
-    AllowedPattern: '^[a-zA-Z0-9]+$'
-    Default: master
-    Description: User name for the account that will be added to the OpenSearch cluster.
-    MaxLength: '25'
-    MinLength: '5'
-    Type: String
-  OpenSearchPassword:
-    AllowedPattern: '(?=^.{8,32}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*'
-    Description: Password for the account named above. Must be at least 8 characters containing letters, numbers and symbols
-    MaxLength: '32'
-    MinLength: '8'
-    NoEcho: 'true'
-    Type: String
-    Default: Semantic123!
   SageMakerIAMRole:
     Description: Name of IAM role that will be created by this cloud formation template. The role name must _not_ already exist in your AWS account.
     Type: String
-    Default: "LLMAppsIAMRole"  
+    Default: "HybridSearchIAMRole"  
   AppName:
-    Default: opensearch-gen-ai
+    Default: opensearch-hybrid-search
     Type: String
-    AllowedValues: [opensearch-gen-ai]
+    AllowedValues: [opensearch-hybrid-search]
     Description: Name of the overall application, this is used while creating the ML model endpoint.
 
 Resources:
 
-  OpenSearchSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Name: !Sub OpenSearchSecret-${AWS::StackName}
-      Description: OpenSearch username and password
-      SecretString: !Sub '{ "username" : "${OpenSearchUsername}", "password" : "${OpenSearchPassword}" }'
+
 
   CodeRepository:
     Type: AWS::SageMaker::CodeRepository
     Properties:
       GitConfig:
-        RepositoryUrl: https://github.com/aws-samples/semantic-search-with-amazon-opensearch
+        RepositoryUrl: https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search
 
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
@@ -120,11 +94,6 @@ Resources:
                   - "*"
               - Effect: Allow
                 Action:
-                  - "secretsmanager:GetSecretValue"
-                Resource:
-                  - !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*
-              - Effect: Allow
-                Action:
                   - "iam:PassRole"
                 Resource:
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/opensearch-sagemaker-role
@@ -157,11 +126,6 @@ Resources:
                   - "es:ESHttp*"
                 Resource:
                   - !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
-              - Sid: ReadSecretFromSecretsManager
-                Effect: Allow
-                Action:
-                  - "secretsmanager:GetSecretValue"
-                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
               - Sid: ReadWriteFromECR
                 Effect: Allow
                 Action:
@@ -238,7 +202,8 @@ Resources:
         AnonymousAuthEnabled: False
         Enabled: True
         InternalUserDatabaseEnabled: False
-        MasterUserARN: !GetAtt NBRole.Arn
+        MasterUserOptions:
+          MasterUserARN: !GetAtt NBRole.Arn
       NodeToNodeEncryptionOptions:
         Enabled: True
       EncryptionAtRestOptions:
@@ -334,6 +299,4 @@ Outputs:
     Value: !GetAtt EmbeddingEndpoint.EndpointName
 
    
-  OpenSearchSecret:
-    Description: Name of the OpenSearch secret in Secrets Manager
-    Value: !Ref OpenSearchSecret
+
