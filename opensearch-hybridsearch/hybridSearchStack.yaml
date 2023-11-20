@@ -25,9 +25,67 @@ Parameters:
     AllowedValues: [opensearch-hybrid-search]
     Description: Name of the overall application, this is used while creating the ML model endpoint.
 
+Mappings: 
+  RegionMap: 
+    us-east-1:
+      HVM64: ami-041feb57c611358bd
+    us-west-2:
+      HVM64: ami-07d07d65c47e5aa90
+    eu-west-1:
+      HVM64: ami-0b9fd8b55a6e3c9d5
+
 Resources:
+  DemoInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties: 
+      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
+      InstanceType: !Ref InstanceType
+      SecurityGroups: 
+        - !Ref DemoSecurityGroup
+      IamInstanceProfile: !Ref Ec2InstanceProfile
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            cd /home/ec2-user
+            sudo yum install awscli
+            sudo yum install zip
+            sudo yum -y install git
 
 
+  DemoSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SG to allow web access 
+      
+  Ec2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties: 
+      InstanceProfileName: Webserver
+      Roles: 
+        - !Ref Ec2IAMRole
+  Ec2IAMRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Action:
+              - "sts:AssumeRole"
+            Effect: "Allow"
+            Principal:
+              Service:
+                - "ec2.amazonaws.com"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+        - arn:aws:iam::aws:policy/AmazonSSMPatchAssociation
 
   CodeRepository:
     Type: AWS::SageMaker::CodeRepository
@@ -297,6 +355,10 @@ Outputs:
   EmbeddingEndpointName:
     Description: Name of the LLM endpoint
     Value: !GetAtt EmbeddingEndpoint.EndpointName
+
+  SecurityGroupID:
+    Description: ID of the Security group of the ec2 instance
+    Value: !GetAtt DemoSecurityGroup.GroupId
 
    
 
