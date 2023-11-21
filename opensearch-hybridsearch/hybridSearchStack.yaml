@@ -135,7 +135,7 @@ Resources:
     Type: AWS::SageMaker::CodeRepository
     Properties:
       GitConfig:
-        RepositoryUrl: https://github.com/aws-samples/semantic-search-with-amazon-opensearch
+        RepositoryUrl: https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search
 
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
