@@ -89,7 +89,7 @@ def handle_input():
         'search_type':inputs['searchType'],
         'id': len(st.session_state.questions)
     })
-    st.session_state.input_text=""
+    #st.session_state.input_text=""
     #st.session_state.input_searchType=st.session_state.input_searchType
 
 def write_top_bar():
@@ -172,7 +172,7 @@ def write_user_message(md):
     with col2:
         #st.warning(md['question'])
 
-        st.markdown("<div style='padding:3px 7px 3px 7px;borderWidth: 0px;background:#fffee0;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>"+md['question']+"</div>", unsafe_allow_html = True)
+        st.markdown("<div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;background:#fffee0;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>"+md['question']+"</div>", unsafe_allow_html = True)
        
 
 
@@ -185,17 +185,19 @@ def render_answer(answer,search_type,index):
         
     #     x.image(answer[i]['image_url'],width = 100,caption=answer[i]['desc'])#caption=ans['desc']
 
-    col_1, col_2= st.columns([90,10])
+    col_1, col_2, col_3 = st.columns([60,10,30])
     i = 0
     for ans in answer:
         urllib.request.urlretrieve( ans['image_url'], str(i)+".png") 
         img = Image.open(str(i)+".png")
-        newsize = (100, 100)
+        newsize = (200, 200)
         im1 = img.resize(newsize)#((int(img.size[0]*0.2),int(img.size[1]*0.2)))
         with col_1:
             st.image(im1, caption=ans['desc'])
         i = i+1
     with col_2:
+        st.write("")
+    with col_3:
         if(index == len(st.session_state.questions)):
 
             rdn_key = ''.join([random.choice(string.ascii_letters)
