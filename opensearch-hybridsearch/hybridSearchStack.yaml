@@ -13,8 +13,14 @@ Metadata:
         default: Name of the overall application
       SageMakerNotebookName:
         default: Name of SageMaker Notebook Instance
+      LambdaFunctionName:
+        default: Lambda function name
       
 Parameters:
+  InstanceType:
+    Type: String
+    Description: Choosing c5.large
+    Default: c5.large 
   SageMakerIAMRole:
     Description: Name of IAM role that will be created by this cloud formation template. The role name must _not_ already exist in your AWS account.
     Type: String
@@ -24,6 +30,11 @@ Parameters:
     Type: String
     AllowedValues: [opensearch-hybrid-search]
     Description: Name of the overall application, this is used while creating the ML model endpoint.
+  LambdaFunctionName:
+    Default: OpenSearchHybridSearch
+    Type: String
+    AllowedPattern: '[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+'
+    Description: Name of the Lambda function for LLM Apps  
 
 Mappings: 
   RegionMap: 
@@ -45,12 +56,44 @@ Resources:
       IamInstanceProfile: !Ref Ec2InstanceProfile
       UserData:
         Fn::Base64: 
-          !Sub |
-            #!/bin/bash
-            cd /home/ec2-user
-            sudo yum install awscli
-            sudo yum install zip
-            sudo yum -y install git
+          Fn::Sub:
+            - |
+              #!/bin/bash
+              cd /home/ec2-user
+              sudo yum install awscli
+              sudo yum install zip
+              sudo yum -y install git
+              git clone https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search
+              aws s3 cp /home/ec2-user/amazon-sagemaker-bert-finetuning-for-search/opensearch-hybridsearch/hybridsearch.zip s3://${s3Bucket} 
+            - s3Bucket: !Ref s3BucketHosting
+  
+  HybridSearchFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Ref LambdaFunctionName
+      Description: Lambda function to execute hybrid search in opensearch.
+      Runtime: python3.9
+      Code:
+        S3Bucket: !Ref s3BucketHosting
+        S3Key: hybridsearch.zip
+      Handler: handler.handler
+      MemorySize: 10240
+      Timeout: 600
+      Role: !GetAtt NBRole.Arn
+      Tags: 
+        -
+          Key: Project
+          Value: !Ref AppName
+        -
+          Key: Version
+          Value: v3
+      Environment:
+        Variables:
+          OPENSEARCH_DOMAIN_ENDPOINT: !GetAtt OpenSearchServiceDomain.DomainEndpoint
+          REGION: !Ref AWS::Region
+          
+
+
 
 
   DemoSecurityGroup:
@@ -76,6 +119,7 @@ Resources:
             Principal:
               Service:
                 - "ec2.amazonaws.com"
+        
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
         - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
@@ -91,7 +135,7 @@ Resources:
     Type: AWS::SageMaker::CodeRepository
     Properties:
       GitConfig:
-        RepositoryUrl: https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search
+        RepositoryUrl: https://github.com/aws-samples/semantic-search-with-amazon-opensearch
 
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
@@ -155,10 +199,30 @@ Resources:
                   - "iam:PassRole"
                 Resource:
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/opensearch-sagemaker-role
+        - PolicyName: lambda-ssm-full-access 
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "lambda:*"
+                Resource:
+                  - "*"
+              - Effect: Allow
+                Action:
+                  - "ssm:*"
+                Resource:
+                  - "*"
       ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
         - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
         - arn:aws:iam::aws:policy/TranslateReadOnly
+        - arn:aws:iam::aws:policy/AmazonEC2FullAccess
+        - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
+        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
+        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+        - arn:aws:iam::aws:policy/IAMFullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -166,6 +230,12 @@ Resources:
             Principal:
               Service:
               - sagemaker.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
             Action:
               - 'sts:AssumeRole'
 
@@ -214,16 +284,6 @@ Resources:
               - sagemaker.amazonaws.com
             Action:
               - 'sts:AssumeRole'
-
-  s3BucketTraining:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: "AES256"
-      VersioningConfiguration:
-        Status: Enabled
 
   s3BucketHosting:
     Type: AWS::S3::Bucket
@@ -327,9 +387,6 @@ Outputs:
     Description: Deployed Region
     Value: !Ref AWS::Region
 
-  s3BucketTraining:
-    Description: S3 bucket name for training
-    Value: !Ref s3BucketTraining
 
   s3BucketHostingBucketName:
     Description: S3 bucket name for frontend hosting
@@ -359,6 +416,10 @@ Outputs:
   SecurityGroupID:
     Description: ID of the Security group of the ec2 instance
     Value: !GetAtt DemoSecurityGroup.GroupId
+
+  LambdaFunction:
+    Description: OpenSearch HybridSearch Lambda Function Function
+    Value: !Ref HybridSearchFunction
 
    
 

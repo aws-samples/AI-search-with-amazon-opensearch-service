@@ -38,15 +38,26 @@ def signing_headers(method, url_string, body):
 
 def call(prompt: str, session_id: str):
     body = json.dumps({
-        "prompt": prompt,
+        "inputs": prompt,
         "session_id": session_id
     })
+    print(body)
     method = "post"
-    url = "API_URL_TO_BE_REPLACED"
+    url = "https://i3zd4ecqrt7nzrtnf6itvg2dzq0uqgqb.lambda-url.us-west-2.on.aws/" #API_URL_TO_BE_REPLACED
     #https://$query_invoke_URL_cmd.execute-api.us-east-1.amazonaws.com/prod/lambda
     r = requests.post(url, headers= signing_headers(method,url,body), data=body)
+
+    print("*********")
+    print(r.text)
+
     #{"Content-Type": "application/json; charset=utf-8"}
     #signing_headers(method,url,body)
-    response = json.loads(r.text)
-    print(response)
-    return response
+    response_ = json.loads(json.loads(r.text))
+    print(response_.keys())
+    docs = response_['hits']['hits']
+    print(docs)
+    arr = []
+    for doc in docs:
+        arr.append({"desc":doc['_source']['description'],"image_url":doc['_source']['image_s3_url']})
+
+    return arr
