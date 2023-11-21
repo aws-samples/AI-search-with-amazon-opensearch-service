@@ -43,7 +43,7 @@ def call(prompt: str, session_id: str):
     })
     print(body)
     method = "post"
-    url = "https://i3zd4ecqrt7nzrtnf6itvg2dzq0uqgqb.lambda-url.us-west-2.on.aws/" #API_URL_TO_BE_REPLACED
+    url = "API_URL_TO_BE_REPLACED" #API_URL_TO_BE_REPLACED
     #https://$query_invoke_URL_cmd.execute-api.us-east-1.amazonaws.com/prod/lambda
     r = requests.post(url, headers= signing_headers(method,url,body), data=body)
 
