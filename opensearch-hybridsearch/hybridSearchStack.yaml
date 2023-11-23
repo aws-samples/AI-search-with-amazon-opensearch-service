@@ -140,7 +140,7 @@ Resources:
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
     Properties:
-      NotebookInstanceName: semantic-search-nb
+      NotebookInstanceName: hybrid-search-nb
       InstanceType: ml.m5d.2xlarge
       RoleArn: !GetAtt NBRole.Arn
       DefaultCodeRepository: !GetAtt CodeRepository.CodeRepositoryName
@@ -405,10 +405,13 @@ Outputs:
     Description: SageMaker Notebook Instance
     Value: !Join
       - ''
-      - - 'https://console.aws.amazon.com/sagemaker/home?region=us-east-1#/notebook-instances/openNotebook/'
+      - - 'https://console.aws.amazon.com/sagemaker/home?region='
+        - !Ref AWS::Region
+        - '#/notebook-instances/openNotebook/'
         - !GetAtt NotebookInstance.NotebookInstanceName
         - '?view=classic'
 
+      
   EmbeddingEndpointName:
     Description: Name of the LLM endpoint
     Value: !GetAtt EmbeddingEndpoint.EndpointName
