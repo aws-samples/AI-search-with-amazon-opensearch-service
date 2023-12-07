@@ -58,6 +58,6 @@ def call(prompt: str, session_id: str):
     print(docs)
     arr = []
     for doc in docs:
-        arr.append({"desc":doc['_source']['description'],"image_url":doc['_source']['image_s3_url']})
+        arr.append({"desc":doc['_source']['caption'],"image_url":doc['_source']['image_s3_url']})
 
     return arr
