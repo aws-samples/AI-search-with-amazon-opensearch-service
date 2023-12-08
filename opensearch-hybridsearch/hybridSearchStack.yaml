@@ -223,6 +223,7 @@ Resources:
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/IAMFullAccess
         - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+      MaxSessionDuration: 43200
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
