@@ -41,9 +41,12 @@ def call(prompt: str, session_id: str):
         "inputs": prompt,
         "session_id": session_id
     })
+    print("=========")
     print(body)
+    search_type = (json.loads(prompt))['searchType']
+    print("=========")
     method = "post"
-    url = "API_URL_TO_BE_REPLACED" #API_URL_TO_BE_REPLACED
+    url = "https://bwwj5hqbym7w245urmrijqrifa0gzmoc.lambda-url.us-east-1.on.aws/" #https://bwwj5hqbym7w245urmrijqrifa0gzmoc.lambda-url.us-east-1.on.aws/
     #https://$query_invoke_URL_cmd.execute-api.us-east-1.amazonaws.com/prod/lambda
     r = requests.post(url, headers= signing_headers(method,url,body), data=body)
 
@@ -57,7 +60,15 @@ def call(prompt: str, session_id: str):
     docs = response_['hits']['hits']
     print(docs)
     arr = []
+    if(search_type == 'Multi-modal Search'):
+        key_ = 'image_description'
+    else:
+        key_ = 'caption'
+    #filter_out = 0
     for doc in docs:
-        arr.append({"desc":doc['_source']['caption'],"image_url":doc['_source']['image_s3_url']})
+        # if('b5/b5319e00' in doc['_source']['image_s3_url'] ):
+        #     filter_out +=1
+        #     continue
+        arr.append({"desc":doc['_source'][key_],"image_url":doc['_source']['image_s3_url']})
 
     return arr

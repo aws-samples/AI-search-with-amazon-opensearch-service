@@ -11,6 +11,8 @@ import random
 import string
 from PIL import Image 
 import urllib.request 
+import base64
+import shutil
 #from langchain.callbacks.base import BaseCallbackHandler
 
 
@@ -69,6 +71,44 @@ if "input_searchType" not in st.session_state:
 
 
 def handle_input():
+    print("***")
+    print(model_type)
+    print(st.session_state.img_doc)
+    print(type(st.session_state.img_doc))
+    if(st.session_state.img_doc is not None ):#and st.session_state.input_searchType == 'Multi-modal Search'):
+        print("perform multimodal search")
+        st.session_state.input_imageUpload = 'yes'
+        Image.MAX_IMAGE_PIXELS = 100000000
+        
+        width = 2048
+        height = 2048
+        uploaded_images = os.path.join("/home/ec2-user/", "uploaded_images")
+        if not os.path.exists(uploaded_images):
+            os.mkdir(uploaded_images)
+
+        with open(os.path.join("/home/ec2-user/uploaded_images",st.session_state.img_doc.name),"wb") as f: 
+            f.write(st.session_state.img_doc.getbuffer())  
+        photo = "/home/ec2-user/uploaded_images/"+st.session_state.img_doc.name
+        with Image.open(photo) as image:
+            image.verify()
+
+        with Image.open(photo) as image:    
+            if image.format in ["JPEG", "PNG","JPG"]:
+                file_type = image.format.lower()
+                path = image.filename.rsplit(".", 1)[0]
+                print(path)
+                image.thumbnail((width, height))
+                image.save(f"{path}-resized.{file_type}")
+
+        with open(photo.split(".")[0]+"-resized."+file_type, "rb") as image_file:
+            input_image = base64.b64encode(image_file.read()).decode("utf8")
+            st.session_state.input_image = input_image
+    else:
+        print("no image uploaded")
+        st.session_state.input_imageUpload = 'no'
+        st.session_state.input_image = ''
+
+
     inputs = {}
     for key in st.session_state:
         if key.startswith('input_'):
@@ -93,18 +133,26 @@ def handle_input():
     #st.session_state.input_searchType=st.session_state.input_searchType
 
 def write_top_bar():
-    col1, col2, col3, col4 = st.columns([1.75,10,2,5])
+    col1, col2,col3  = st.columns([1.75,20,5])
     with col1:
         st.image(AI_ICON, use_column_width='always')
     with col2:
         #st.markdown("")
         input = st.text_input( "Ask here",label_visibility = "collapsed",key="input_text")
-    
     with col3:
+        clear = st.button("Clear")
+    
+    col4, col5  = st.columns([90,10])
+
+    with col4:
+        st.session_state.img_doc = st.file_uploader(
+        "Upload the image", accept_multiple_files=False,type = ['png', 'jpg'])
+
+    with col5:
         #hidden = st.button("RUN",disabled=True,key = "hidden")
         play = st.button("GO",on_click=handle_input,key = "play")
-    with col4:
-        clear = st.button("Clear Results")
+    
+
     return clear
 
 clear = write_top_bar()
@@ -119,21 +167,31 @@ if clear:
     # st.session_state.input_topP = 0.95
     # st.session_state.input_maxTokens = 1024
 
+col1, col2, col3 = st.columns([40,40,20])
 
-
-
-
-
-    
-search_type = st.selectbox('Select the Search type',
+with col1:
+    search_type = st.selectbox('Select the Search type',
     ('Keyword Search',
     'Vector Search', 
-    'Hybrid Search'
+    'Hybrid Search',
+    'Multi-modal Search'
     ),
    
     key = 'input_searchType',
     help = "Select the type of retriever\n1. Conversational Search (Recommended) - This will include both the OpenSearch and LLM in the retrieval pipeline \n (note: This will put opensearch response as context to LLM to answer) \n2. OpenSearch vector search - This will put only OpenSearch's vector search in the pipeline, \n(Warning: this will lead to unformatted results )\n3. LLM Text Generation - This will include only LLM in the pipeline, \n(Warning: This will give hallucinated and out of context answers)"
     )
+with col2:
+    model_type = st.selectbox('Select the Embeddings Model',
+    ('GPT-J-6B (Sagemaker)',
+    'Titan-Embed-Text-v1 (Bedrock)'
+    ),
+   
+    key = 'input_modelType',
+    help = "Select the type of retriever\n1. Conversational Search (Recommended) - This will include both the OpenSearch and LLM in the retrieval pipeline \n (note: This will put opensearch response as context to LLM to answer) \n2. OpenSearch vector search - This will put only OpenSearch's vector search in the pipeline, \n(Warning: this will lead to unformatted results )\n3. LLM Text Generation - This will include only LLM in the pipeline, \n(Warning: This will give hallucinated and out of context answers)"
+    )
+with col3:
+    st.number_input("No. of docs", min_value=1, max_value=50, value="min", step=5,  key='input_K', help=None)
+ 
 
 with st.sidebar:
     st.header('Fine-tune Hybrid Search', divider='rainbow')
@@ -156,8 +214,7 @@ with st.sidebar:
     )  
 
 
-st.number_input("Number of Documents", min_value=1, max_value=5, value="min", step=1,  key='input_K', help=None)
-    
+   
 
     
 
@@ -178,6 +235,13 @@ def write_user_message(md):
 
 
 def render_answer(answer,search_type,index):
+    if os.path.isdir("res_images"):
+        shutil.rmtree('/home/ec2-user/res_images')
+        #os.rmdir("res_images")
+    
+    res_images = os.path.join("/home/ec2-user/", "res_images")
+    if not os.path.exists(res_images):
+        os.mkdir(res_images)
 
     # cols = st.columns(len(answer), gap = "large")
     
@@ -185,15 +249,48 @@ def render_answer(answer,search_type,index):
         
     #     x.image(answer[i]['image_url'],width = 100,caption=answer[i]['desc'])#caption=ans['desc']
 
+    placeholder_no_results  = st.empty()
+
     col_1, col_2, col_3 = st.columns([60,10,30])
     i = 0
+    filter_out = 0
     for ans in answer:
-        urllib.request.urlretrieve( ans['image_url'], str(i)+".png") 
-        img = Image.open(str(i)+".png")
-        newsize = (200, 200)
-        im1 = img.resize(newsize)#((int(img.size[0]*0.2),int(img.size[1]*0.2)))
+
+        
+
+        if('b5/b5319e00' in ans['image_url'] ):
+            filter_out+=1
+            continue
+
+        
+        # imgdata = base64.b64decode(ans['image_binary'])
+        format_ = ans['image_url'].split(".")[-1]
+        # filename = str(i)+ "_." + format_ 
+        # with open("/home/ec2-user/"+filename, 'wb') as f:
+        #     f.write(imgdata)
+
+        urllib.request.urlretrieve(ans['image_url'], "/home/ec2-user/res_images/"+str(i)+"_."+format_) 
+
+        # img = Image.open(str(i)+".png")
+        # newsize = (200, 200)
+        # im1 = img.resize(newsize)#((int(img.size[0]*0.2),int(img.size[1]*0.2)))
+
+        Image.MAX_IMAGE_PIXELS = 100000000
+        
+        width = 500
+        height = 500
+          
+        photo = "/home/ec2-user/res_images/"+str(i)+"_."+format_
+        # with Image.open(photo) as image:
+        #     image.verify()
+
+        with Image.open(photo) as image:    
+            image.thumbnail((width, height))
+            image.save("/home/ec2-user/res_images/"+str(i)+"_resized."+format_)
+
+
         with col_1:
-            st.image(im1, caption=ans['desc'])
+            st.image(ans['image_url'], caption=ans['desc'])
         i = i+1
     with col_2:
         st.write("")
@@ -202,8 +299,8 @@ def render_answer(answer,search_type,index):
 
             rdn_key = ''.join([random.choice(string.ascii_letters)
                               for _ in range(10)])
-            currentValue = st.session_state.input_searchType+str(st.session_state.input_weight)+st.session_state.input_NormType+st.session_state.input_CombineType+str(st.session_state.input_K)
-            oldValue = st.session_state.inputs_["searchType"]+str(st.session_state.inputs_["weight"])+st.session_state.inputs_["NormType"]+st.session_state.inputs_["CombineType"]+str(st.session_state.inputs_["K"])
+            currentValue = st.session_state.input_searchType+st.session_state.input_modelType+st.session_state.input_imageUpload+str(st.session_state.input_weight)+st.session_state.input_NormType+st.session_state.input_CombineType+str(st.session_state.input_K)
+            oldValue = st.session_state.inputs_["searchType"]+st.session_state.inputs_["modelType"]+st.session_state.inputs_["imageUpload"]+str(st.session_state.inputs_["weight"])+st.session_state.inputs_["NormType"]+st.session_state.inputs_["CombineType"]+str(st.session_state.inputs_["K"])
 
             def on_button_click():
                 if(currentValue!=oldValue):
@@ -230,7 +327,8 @@ def render_answer(answer,search_type,index):
             
             placeholder__.button("🔄",key=rdn_key,on_click=on_button_click, help = "This will regenerate the last response with new settings that you entered, Note: This applies to only the last response and to see difference in responses, you should change any of the settings above")#,type="primary",use_container_width=True)
      
-        
+    if(filter_out > 0):
+        placeholder_no_results.text(str(filter_out)+" result(s) removed due to missing or in-appropriate content")    
 
     
     # with col2:
