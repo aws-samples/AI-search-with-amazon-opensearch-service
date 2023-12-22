@@ -1,20 +1,10 @@
 ## Hybrid Search with OpenSearch
 
+Traditional keyword-based search algorithm which works by matching user queries with specific words or phrases is more suitable for exact matches, provides good interpretability of results, requires no fine-tuning and generalises well across domains and importantly it is fast in fetching documents. However, this approach may sometimes lead to imprecise results, especially when dealing with ambiguous terms or variations in language due to poor contextual understanding.
 
+On the other hand, vector search enables a more context-aware search understanding the natural language questions of users. However, this method requires fine-tuning of the ML model for the involved domain, provides poor interpretability of results and importantly requires more memory resources yet not faster compared to basic keyword search.
 
-
-
-**Overview of Hands-on Labs**
-
-1. Train a Sentence Transformer BERT model using Amazon SageMaker to fine tune the pre-trained BERT embeddings on data retrieval task
-2. Deploy the fine-tuned BERT model on Amazon SageMaker for both real-time and batch inference.
-3. Use Amazon OpenSearch service to index andd store the sentence embeddings and perform realtime search against query
-
-**References**
-- [1]  “BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding“, Jacob Devlin, Ming-Wei Chang, Kenton Lee, Kristina Toutanova.
-- [2]  Reimers, N., & Gurevych, I. (2019). Sentence-bert: Sentence embeddings using siamese bert-networks. arXiv preprint arXiv:1908.10084.
-
-
+It will be beneficial to leverage the best features of each algorithm to complement the limitations of the other using a hybrid search system. Such integration can lead to improved accuracy in understanding user intent and delivering relevant results that are contextually appropriate. In this section you will learn about implementing such a hybrid search system using Amazon OpenSearch service to combine keyword and vector search.
 
 ## Security
 
