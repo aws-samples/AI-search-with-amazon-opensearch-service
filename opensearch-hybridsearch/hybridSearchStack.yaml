@@ -106,7 +106,7 @@ Resources:
     Properties: 
       InstanceProfileName: WebServiceApp
       Roles: 
-        - !Ref Ec2IAMRole
+        - !GetAtt NBRole.Arn
   Ec2IAMRole:
     Type: "AWS::IAM::Role"
     Properties:
@@ -124,8 +124,6 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
         - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
         - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
-        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
-        - arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess
         - arn:aws:iam::aws:policy/AWSLambda_FullAccess
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
@@ -222,7 +220,7 @@ Resources:
         - arn:aws:iam::aws:policy/AWSLambda_FullAccess
         - arn:aws:iam::aws:policy/AWSLambdaExecute
         - arn:aws:iam::aws:policy/IAMFullAccess
-        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
       MaxSessionDuration: 43200
       AssumeRolePolicyDocument:
         Version: 2012-10-17
@@ -239,6 +237,13 @@ Resources:
               - lambda.amazonaws.com
             Action:
               - 'sts:AssumeRole'
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+          
 
   Role:
     Type: AWS::IAM::Role
@@ -330,6 +335,11 @@ Resources:
         KmsKeyId: alias/aws/es
       DomainEndpointOptions:
         EnforceHTTPS: True
+      Tags:
+        - {"Key" : "app","Value" : "hybrid-search"}
+
+
+
 
   EmbeddingEndpoint:
     Type: "AWS::SageMaker::Endpoint"
