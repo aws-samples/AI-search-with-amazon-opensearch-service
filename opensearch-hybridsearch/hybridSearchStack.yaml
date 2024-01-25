@@ -13,8 +13,7 @@ Metadata:
         default: Name of the overall application
       SageMakerNotebookName:
         default: Name of SageMaker Notebook Instance
-      LambdaFunctionName:
-        default: Lambda function name
+      
       
 Parameters:
   InstanceType:
@@ -30,11 +29,7 @@ Parameters:
     Type: String
     AllowedValues: [opensearch-hybrid-search]
     Description: Name of the overall application, this is used while creating the ML model endpoint.
-  LambdaFunctionName:
-    Default: OpenSearchHybridSearch
-    Type: String
-    AllowedPattern: '[a-zA-Z0-9]+[a-zA-Z0-9-]+[a-zA-Z0-9]+'
-    Description: Name of the Lambda function for LLM Apps  
+  
 
 Mappings: 
   RegionMap: 
@@ -63,38 +58,11 @@ Resources:
               sudo yum install awscli
               sudo yum install zip
               sudo yum -y install git
-              git clone https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search
+              git clone https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
               aws s3 cp /home/ec2-user/amazon-sagemaker-bert-finetuning-for-search/opensearch-hybridsearch/hybridsearch.zip s3://${s3Bucket} 
             - s3Bucket: !Ref s3BucketHosting
   
-  HybridSearchFunction:
-    Type: AWS::Lambda::Function
-    Properties:
-      FunctionName: !Ref LambdaFunctionName
-      Description: Lambda function to execute hybrid search in opensearch.
-      Runtime: python3.9
-      Code:
-        S3Bucket: !Ref s3BucketHosting
-        S3Key: hybridsearch.zip
-      Handler: handler.handler
-      MemorySize: 10240
-      Timeout: 600
-      Role: !GetAtt NBRole.Arn
-      Tags: 
-        -
-          Key: Project
-          Value: !Ref AppName
-        -
-          Key: Version
-          Value: v3
-      Environment:
-        Variables:
-          OPENSEARCH_DOMAIN_ENDPOINT: !GetAtt OpenSearchServiceDomain.DomainEndpoint
-          REGION: !Ref AWS::Region
-          
-
-
-
+  
 
   DemoSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -106,34 +74,14 @@ Resources:
     Properties: 
       InstanceProfileName: WebServiceApp
       Roles: 
-        - !GetAtt NBRole.Arn
-  Ec2IAMRole:
-    Type: "AWS::IAM::Role"
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Action:
-              - "sts:AssumeRole"
-            Effect: "Allow"
-            Principal:
-              Service:
-                - "ec2.amazonaws.com"
-        
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
-        - arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess
-        - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
-        - arn:aws:iam::aws:policy/AWSLambda_FullAccess
-        - arn:aws:iam::aws:policy/AWSLambdaExecute
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-        - arn:aws:iam::aws:policy/AmazonSSMPatchAssociation
+        - !Ref NBRole
+  
 
   CodeRepository:
     Type: AWS::SageMaker::CodeRepository
     Properties:
       GitConfig:
-        RepositoryUrl: https://github.com/aws-samples/amazon-sagemaker-bert-finetuning-for-search
+        RepositoryUrl: https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
 
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
@@ -431,9 +379,7 @@ Outputs:
     Description: ID of the Security group of the ec2 instance
     Value: !GetAtt DemoSecurityGroup.GroupId
 
-  LambdaFunction:
-    Description: OpenSearch HybridSearch Lambda Function Function
-    Value: !Ref HybridSearchFunction
+  
 
    
 
