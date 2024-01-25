@@ -4,6 +4,7 @@ import os
 import boto3
 import requests
 import api
+import lambda_api
 from boto3 import Session
 import botocore.session
 import json
@@ -78,7 +79,7 @@ def handle_input():
     }
     st.session_state.questions.append(question_with_id)
     st.session_state.answers.append({
-        'answer': api.call(input, st.session_state['session_id']),
+        'answer': lambda_api.call(input, st.session_state['session_id']),
         'id': len(st.session_state.questions)
     })
     st.session_state.input = ""
