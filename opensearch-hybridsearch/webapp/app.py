@@ -193,7 +193,8 @@ def render_answer(answer,search_type,index):
         newsize = (200, 200)
         im1 = img.resize(newsize)#((int(img.size[0]*0.2),int(img.size[1]*0.2)))
         with col_1:
-            st.image(im1, caption=ans['desc'])
+            st.image(im1)
+            st.markdown(ans['desc'])
         i = i+1
     with col_2:
         st.write("")
