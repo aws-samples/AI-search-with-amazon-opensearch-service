@@ -1,9 +1,11 @@
 ## Steps to deploy the application
 
+```
 git clone https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
 cd AI-search-with-amazon-opensearch-service
 pip install -r requirements.txt 
 streamlit run app.py
+```
 
 ## Security
 
