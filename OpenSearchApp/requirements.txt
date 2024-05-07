@@ -1,0 +1,12 @@
+streamlit
+unstructured[all-docs]
+transformers
+opensearch-py
+boto3
+pillow
+pandas
+requests_aws4auth
+langchain
+PyPDF2
+pdf2image
+sklearn

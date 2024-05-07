@@ -11,7 +11,6 @@ import base64
 import re
 #import torch
 import base64
-from anthropic import Anthropic
 import requests 
 from requests_aws4auth import AWS4Auth
 import re_ranker
@@ -236,9 +235,9 @@ def prep_document(raw_element,processed_element,doc_type,src_doc,encoding,embedd
     else:
         img_ = "None"
     document = { 
-        "processed_element": processed_element,#re.sub(r"[^a-zA-Z0-9]+", ' ', processed_element) ,
+        "processed_element": re.sub(r"[^a-zA-Z0-9]+", ' ', processed_element) ,
         "raw_element_type": doc_type.split("*")[0],
-        "raw_element": raw_element,#re.sub(r"[^a-zA-Z0-9]+", ' ', raw_element) ,
+        "raw_element": re.sub(r"[^a-zA-Z0-9]+", ' ', raw_element) ,
         "src_doc": src_doc.replace(","," "),
         "image": img_,
         

@@ -22,11 +22,11 @@ import base64
 import shutil
 import re
 import utilities.re_ranker as re_ranker
-from nltk.stem import PorterStemmer
-from nltk.tokenize import word_tokenize
+# from nltk.stem import PorterStemmer
+# from nltk.tokenize import word_tokenize
 import query_rewrite
 import amazon_rekognition
-from st_click_detector import click_detector
+#from st_click_detector import click_detector
 import llm_eval
 import all_search_execute
 
@@ -47,7 +47,7 @@ st.markdown("""
     }
     </style>
     """,unsafe_allow_html=True)
-ps = PorterStemmer()
+#ps = PorterStemmer()
 
 bedrock_ = boto3.client('bedrock-runtime',region_name='us-east-1')
 #from langchain.callbacks.base import BaseCallbackHandler
@@ -769,14 +769,14 @@ def write_user_message(md,ans):
     st.markdown('---')
         
 
-def stem_(sentence):
-    words = word_tokenize(sentence)
+# def stem_(sentence):
+#     words = word_tokenize(sentence)
     
-    words_stem = []
+#     words_stem = []
 
-    for w in words:
-        words_stem.append( ps.stem(w))
-    return words_stem
+#     for w in words:
+#         words_stem.append( ps.stem(w))
+#     return words_stem
 
 def render_answer(answer,index):
     column1, column2 = st.columns([6,90])
