@@ -9,8 +9,6 @@ This repository covers all search types of Amazon openSearch service that involv
 5. Sparse Search
 6. Conversational Search
 
-Every search type in the repository comes with the full cloudformation stack to deploy an end to end search application running on ec2 with sample data to play around different search types.
-
 ## Security
 
 See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
