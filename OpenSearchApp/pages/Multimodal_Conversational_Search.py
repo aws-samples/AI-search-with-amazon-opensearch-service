@@ -31,11 +31,12 @@ from requests.auth import HTTPBasicAuth
 st.set_page_config(
     #page_title="Semantic Search using OpenSearch",
     layout="wide",
-    page_icon="/home/ubuntu/images/opensearch_mark_default.png"
+    page_icon="images/opensearch_mark_default.png"
 )
-USER_ICON = "/home/ubuntu/images/user.png"
-AI_ICON = "/home/ubuntu/images/opensearch-twitter-card.png"
-REGENERATE_ICON = "/home/ubuntu/images/regenerate.png"
+parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
+USER_ICON = "images/user.png"
+AI_ICON = "images/opensearch-twitter-card.png"
+REGENERATE_ICON = "images/regenerate.png"
 s3_bucket_ = "pdf-repo-uploads"
             #"pdf-repo-uploads"
 polly_client = boto3.Session(
@@ -327,7 +328,7 @@ def render_answer(question,answer,index,res_img):
                                 
                                 with cols[idx]:
                                     
-                                    st.image("/home/ubuntu/figures/"+st.session_state.input_index+"/"+img+".jpg")
+                                    st.image(parent_dirname+"/figures/"+st.session_state.input_index+"/"+img+".jpg")
                                     #st.write(caption)
                                 idx = idx+1
                 #st.markdown("<div style='color:#e28743';padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'><b>Sources from the document:</b></div>", unsafe_allow_html = True)
@@ -428,13 +429,13 @@ with st.sidebar:
     #                                     '[preview](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/BEIR.pdf)'],
     #                         key="input_rad_index")
     with coln_1:
-        index_select = st.radio("Choose one index",["Global Warming stats","UK Housing","Covid19 impacts on Ireland","BEIR Research"],key="input_rad_index")
+        index_select = st.radio("Choose one index",["Global Warming stats","UK Housing","Covid19 impacts on Ireland"],key="input_rad_index")
     with coln_2:
         st.markdown("<p style='font-size:15px'>Preview file</p>",unsafe_allow_html=True)
         st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/HPI-Jan-2024-Hometrack.pdf)")
         st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/covid19_ie.pdf)")
         st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/global_warming.pdf)")
-        st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/BEIR.pdf)")
+        #st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/BEIR.pdf)")
     st.markdown("""
     <style>
     [data-testid=column]:nth-of-type(2) [data-testid=stVerticalBlock]{
@@ -481,17 +482,16 @@ with st.sidebar:
     pdf_docs = [pdf_doc_]
     if st.button("Process"):
         with st.spinner("Processing"):
-            if os.path.isdir("/home/ubuntu/pdfs"):
-                shutil.rmtree("/home/ubuntu/pdfs")
+            if os.path.isdir(parent_dirname+"/pdfs"):
+                shutil.rmtree(parent_dirname+"/pdfs")
 
-            os.mkdir("/home/ubuntu/pdfs")
+            os.mkdir(parent_dirname+"/pdfs")
             for pdf_doc in pdf_docs:
                 print(type(pdf_doc))
                 pdf_doc_name = (pdf_doc.name).replace(" ","_")
-                print("aws s3 cp pdfs"+pdf_doc_name+" s3://"+s3_bucket_)
-                with open(os.path.join("/home/ubuntu/pdfs",pdf_doc_name),"wb") as f: 
+                with open(os.path.join(parent_dirname+"/pdfs",pdf_doc_name),"wb") as f: 
                     f.write(pdf_doc.getbuffer())  
-                    os.system("aws s3 cp /home/ubuntu/pdfs/"+pdf_doc_name+" s3://"+s3_bucket_)
+                    
                 request_ = { "bucket": s3_bucket_,"key": pdf_doc_name}
                 rag_DocumentLoader.load_docs(request_)
                 print('lambda done')

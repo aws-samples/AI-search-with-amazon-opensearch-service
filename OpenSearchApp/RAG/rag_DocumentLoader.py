@@ -9,7 +9,7 @@ import streamlit as st
 from PIL import Image 
 import base64
 import re
-import torch
+#import torch
 import base64
 from anthropic import Anthropic
 import requests 
@@ -44,8 +44,7 @@ summary_prompt = """You are an assistant tasked with summarizing tables and text
 Give a detailed summary of the table or text. Table or text chunk: {element} """
 
 
-
-
+parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
 
 
 
@@ -72,12 +71,11 @@ def generate_image_captions_(image_paths):
 
 
 def load_docs(inp):
-    bucket = inp['bucket']
-    key_file = inp['key']
+    
     extracted_elements_list = []
 
     
-    data_dir = '/home/ubuntu/pdfs'
+    data_dir = parent_dirname+"/pdfs"
     target_files = [os.path.join(data_dir,file_name) for file_name in os.listdir(data_dir)]
     
     
@@ -90,21 +88,24 @@ def load_docs(inp):
     for target_file in target_files:
         tables_textract = generate_csv_for_tables.main_(target_file)
         #tables_textract = {}
-        index_ = re.sub('[^A-Za-z0-9]+', '', (target_file.split("/")[-1].split(".")[0]).lower()) +"no_table"
+        index_ = re.sub('[^A-Za-z0-9]+', '', (target_file.split("/")[-1].split(".")[0]).lower())
         st.session_state.input_index = index_ 
         
-        image_output_dir = '/home/ubuntu/figures/'+st.session_state.input_index+"/"
-        image_output_dir_pdf = '/home/ubuntu/figures_pdf/'+st.session_state.input_index+"/"
-        print(image_output_dir_pdf)
+        if os.path.isdir(parent_dirname+'/figures/') == False:
+            os.mkdir(parent_dirname+'/figures/')
+            
+        
+
+        
+        
+        image_output_dir = parent_dirname+'/figures/'+st.session_state.input_index+"/"
+        
         if os.path.isdir(image_output_dir):
             shutil.rmtree(image_output_dir)
-        if os.path.isdir(image_output_dir_pdf):
-            shutil.rmtree(image_output_dir_pdf)
+        
 
-        path = os.path.join(image_output_dir, "") 
-        os.mkdir(path)
-        path_2 = os.path.join(image_output_dir_pdf, "") 
-        os.mkdir(path_2)
+        os.mkdir(image_output_dir)
+        
         
         print("***")
         print(target_file)
@@ -136,7 +137,7 @@ def load_docs(inp):
             max_characters=4000,
             new_after_n_chars=3800,
             combine_text_under_n_chars=2000,
-            extract_image_block_output_dir='/home/ubuntu/figures/'+st.session_state.input_index+'/',
+            extract_image_block_output_dir=parent_dirname+'/figures/'+st.session_state.input_index+'/',
         )
         tables = []
         texts = []

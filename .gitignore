@@ -1,0 +1,9 @@
+OpenSearchApp/figures/
+OpenSearchApp/pdfs/
+OpenSearchApp/semantic_search/__pycache__/
+OpenSearchApp/split_pdf/
+OpenSearchApp/split_pdf_csv/
+OpenSearchApp/figures
+OpenSearchApp/gen_images
+OpenSearchApp/uploaded_images
+OpenSearchApp/RAG/__pycache__/*

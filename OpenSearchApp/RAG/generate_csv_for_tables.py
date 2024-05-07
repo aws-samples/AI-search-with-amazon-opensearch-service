@@ -7,8 +7,18 @@ import sys
 from pprint import pprint
 from PyPDF2 import PdfWriter, PdfReader
 import re
+import shutil
 
 file_content = {}
+parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
+if os.path.isdir(parent_dirname+"/split_pdf"):
+    shutil.rmtree(parent_dirname+"/split_pdf")
+os.mkdir(parent_dirname+"/split_pdf")
+
+if os.path.isdir(parent_dirname+"/split_pdf_csv"):
+    shutil.rmtree(parent_dirname+"/split_pdf_csv")
+os.mkdir(parent_dirname+"/split_pdf_csv")
+
 
 def get_rows_columns_map(table_result, blocks_map):
     rows = {}
@@ -59,14 +69,14 @@ def split_pages(file_name):
         
         output = PdfWriter()
         output.add_page(inputpdf.pages[i])
-        split_file = "/home/ubuntu/split_pdf/"+file_name_short+"%s.pdf" % i
+        split_file = parent_dirname+"/split_pdf/"+file_name_short+"%s.pdf" % i
         
         with open(split_file, "wb") as outputStream:
             output.write(outputStream)
         table_csv = get_table_csv_results(split_file)
         if(table_csv != "<b> NO Table FOUND </b>"):
             
-            output_file = "/home/ubuntu/split_pdf_csv/"+file_name_short+"%s.csv" % i
+            output_file = parent_dirname+"/split_pdf_csv/"+file_name_short+"%s.csv" % i
             file_content[output_file] = table_csv
 
             # replace content

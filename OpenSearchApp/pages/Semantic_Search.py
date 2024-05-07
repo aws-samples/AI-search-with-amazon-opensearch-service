@@ -30,12 +30,13 @@ from st_click_detector import click_detector
 import llm_eval
 import all_search_execute
 
-parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
+
 st.set_page_config(
     #page_title="Semantic Search using OpenSearch",
     #layout="wide",
     page_icon="images/opensearch_mark_default.png"
 )
+parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
 st.markdown("""
     <style>
     [data-testid=column]:nth-of-type(2) [data-testid=stVerticalBlock]{
@@ -113,13 +114,6 @@ if "input_sql_query" not in st.session_state:
     st.session_state.input_sql_query = ""
 if "input_rewritten_query" not in st.session_state:
     st.session_state.input_rewritten_query = ""
-# if "rad_2" not in st.session_state:
-#     st.session_state.rad_2 = ""
-
-# if "rad_3" not in st.session_state:
-#     st.session_state.rad_3 = ""
-
-
 
 if "input_hybridType" not in st.session_state:
     st.session_state.input_hybridType = "OpenSearch Hybrid Query"
