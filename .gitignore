@@ -6,4 +6,5 @@ OpenSearchApp/split_pdf_csv/
 OpenSearchApp/figures
 OpenSearchApp/gen_images
 OpenSearchApp/uploaded_images
-OpenSearchApp/RAG/__pycache__/*
+OpenSearchApp/RAG/__pycache__/
+OpenSearchApp/semantic_search/__pycache__/
