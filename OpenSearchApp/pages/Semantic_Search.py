@@ -9,7 +9,6 @@ import requests
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/semantic_search")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/RAG")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/utilities")
-import all_search_api
 from boto3 import Session
 from pathlib import Path    
 import botocore.session
@@ -31,11 +30,11 @@ from st_click_detector import click_detector
 import llm_eval
 import all_search_execute
 
-
+parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
 st.set_page_config(
     #page_title="Semantic Search using OpenSearch",
     #layout="wide",
-    page_icon="/home/ubuntu/images/opensearch_mark_default.png"
+    page_icon="images/opensearch_mark_default.png"
 )
 st.markdown("""
     <style>
@@ -65,11 +64,11 @@ else:
     'Multimodal Search'
     ]
 
-USER_ICON = "/home/ubuntu/images/user.png"
-AI_ICON = "/home/ubuntu/images/opensearch-twitter-card.png"
-REGENERATE_ICON = "/home/ubuntu/images/regenerate.png"
-IMAGE_ICON = "/home/ubuntu/images/Image_Icon.png"
-TEXT_ICON = "/home/ubuntu/images/text.png"
+USER_ICON = "images/user.png"
+AI_ICON = "images/opensearch-twitter-card.png"
+REGENERATE_ICON = "images/regenerate.png"
+IMAGE_ICON = "images/Image_Icon.png"
+TEXT_ICON = "images/text.png"
 s3_bucket_ = "pdf-repo-uploads"
             #"pdf-repo-uploads"
 
@@ -221,7 +220,7 @@ def generate_images(tab,inp_):
             
             response_body = json.loads(response["body"].read())
             st.session_state.img_gen = response_body["images"]
-        gen_images_dir = os.path.join("/home/ubuntu/", "gen_images")
+        gen_images_dir = os.path.join(parent_dirname, "gen_images")
         if os.path.exists(gen_images_dir):
             shutil.rmtree(gen_images_dir)
         os.mkdir(gen_images_dir)
@@ -265,7 +264,7 @@ def generate_images(tab,inp_):
         
             Image.MAX_IMAGE_PIXELS = 100000000
             filename = st.session_state.image_prompt+"_gen_"+str(index_)
-            photo = "/home/ubuntu/gen_images/"+filename+'.jpg'  # I assume you have a way of picking unique filenames
+            photo = parent_dirname+"/gen_images/"+filename+'.jpg'  # I assume you have a way of picking unique filenames
             imgdata = base64.b64decode(base64_image_data)
             with open(photo, 'wb') as f:
                 f.write(imgdata) 
@@ -276,11 +275,11 @@ def generate_images(tab,inp_):
                 file_type = 'jpg'
                 path = image.filename.rsplit(".", 1)[0]
                 image.thumbnail((width_, height_))
-                image.save("/home/ubuntu/gen_images/"+filename+"-resized_display."+file_type)
+                image.save(parent_dirname+"/gen_images/"+filename+"-resized_display."+file_type)
 
             with img_arr[index_]:
                 placeholder_ = st.empty()
-                placeholder_.image("/home/ubuntu/gen_images/"+filename+"-resized_display."+file_type)
+                placeholder_.image(parent_dirname+"/gen_images/"+filename+"-resized_display."+file_type)
 
             index_ = index_ + 1
       
@@ -299,24 +298,24 @@ def handle_input():
         if(st.session_state.input_rad_1 is not None and st.session_state.input_rad_1!=""):
             
             num_str = str(int(st.session_state.input_rad_1.strip())-1)
-            with open("/home/ubuntu/gen_images/"+st.session_state.image_prompt+"_gen_"+num_str+"-resized_display.jpg", "rb") as image_file:
+            with open(parent_dirname+"/gen_images/"+st.session_state.image_prompt+"_gen_"+num_str+"-resized_display.jpg", "rb") as image_file:
                 input_image = base64.b64encode(image_file.read()).decode("utf8")
                 st.session_state.input_image = input_image
         
             if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):
-                st.session_state.bytes_for_rekog = Path("/home/ubuntu/gen_images/"+st.session_state.image_prompt+"_gen_"+num_str+".jpg").read_bytes()
+                st.session_state.bytes_for_rekog = Path(parent_dirname+"/gen_images/"+st.session_state.image_prompt+"_gen_"+num_str+".jpg").read_bytes()
         else:
             Image.MAX_IMAGE_PIXELS = 100000000
             width = 2048
             height = 2048
-            uploaded_images = os.path.join("/home/ubuntu/", "uploaded_images")
+            uploaded_images = os.path.join(parent_dirname, "uploaded_images")
 
             if not os.path.exists(uploaded_images):
                 os.mkdir(uploaded_images)
 
-            with open(os.path.join("/home/ubuntu/uploaded_images",st.session_state.img_doc.name),"wb") as f: 
+            with open(os.path.join(parent_dirname+"/uploaded_images",st.session_state.img_doc.name),"wb") as f: 
                 f.write(st.session_state.img_doc.getbuffer())  
-            photo = "/home/ubuntu/uploaded_images/"+st.session_state.img_doc.name
+            photo = parent_dirname+"/uploaded_images/"+st.session_state.img_doc.name
             with Image.open(photo) as image:
                 image.verify()
 
@@ -343,7 +342,7 @@ def handle_input():
                 st.session_state.input_image = input_image
                 
             if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):  
-                st.session_state.bytes_for_rekog = Path("/home/ubuntu/uploaded_images/"+st.session_state.img_doc.name).read_bytes()
+                st.session_state.bytes_for_rekog = Path(parent_dirname+"/uploaded_images/"+st.session_state.img_doc.name).read_bytes()
        
                 
         
@@ -757,9 +756,9 @@ def write_user_message(md,ans):
 
             if(st.session_state.input_rad_1 is not None and st.session_state.input_rad_1!=""):
                 num_str = str(int(st.session_state.input_rad_1.strip())-1)
-                img_file = "/home/ubuntu/gen_images/"+st.session_state.image_prompt+"_gen_"+num_str+"-resized_display.jpg"
+                img_file = parent_dirname+"/gen_images/"+st.session_state.image_prompt+"_gen_"+num_str+"-resized_display.jpg"
             else:
-                img_file = "/home/ubuntu/uploaded_images/"+st.session_state.img_doc.name.split(".")[0]+"-resized_display."+st.session_state.img_doc.name.split(".")[1]
+                img_file = parent_dirname+"/uploaded_images/"+st.session_state.img_doc.name.split(".")[0]+"-resized_display."+st.session_state.img_doc.name.split(".")[1]
     
             st.image(img_file)
             cols_1,cols_2 = st.columns([50,50])
@@ -802,13 +801,7 @@ def render_answer(answer,index):
             
             #st.markdown("<span style='font-size:30px;color:"+span_color+"'>"+st.session_state.ndcg_increase.split("~")[0] +"</span><span style='font-size:15px;font-family:Courier New;color:"+span_color+"'>"+st.session_state.ndcg_increase.split("~")[1]+"</span>",unsafe_allow_html = True)
         
-    if os.path.isdir("res_images"):
-        shutil.rmtree('/home/ubuntu/res_images')
-        #os.rmdir("res_images")
     
-    res_images = os.path.join("/home/ubuntu/", "res_images")
-    if not os.path.exists(res_images):
-        os.mkdir(res_images)
 
     placeholder_no_results  = st.empty()
 
@@ -835,7 +828,7 @@ def render_answer(answer,index):
         width = 500
         height = 500
           
-        photo = "/home/ubuntu/res_images/"+str(i)+"_."+format_
+        
 
         with col_1:
             inner_col_1,inner_col_2 = st.columns([8,92])

@@ -9,6 +9,8 @@ import os
 import streamlit as st
 from langchain.schema import Document
 from langchain_community.vectorstores import OpenSearchVectorSearch,ElasticsearchStore
+from requests_aws4auth import AWS4Auth
+from requests.auth import HTTPBasicAuth
 from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
     get_query_constructor_prompt,
@@ -43,8 +45,9 @@ bedrock_embeddings = BedrockEmbeddings(model_id='amazon.titan-embed-text-v1',cli
 from langchain.vectorstores import OpenSearchVectorSearch
 from opensearchpy import OpenSearch, RequestsHttpConnection
 aos_host = 'search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com'
+credentials = boto3.Session().get_credentials()
+auth = AWS4Auth(credentials.access_key, credentials.secret_key, 'us-east-1', 'es', session_token=credentials.token)
 
-auth = ('prasadnu', '@Palamalai1') #### input credentials
 aos_client = OpenSearch(
     hosts = [{'host': aos_host, 'port': 443}],
     http_auth = auth,

@@ -37,8 +37,8 @@ if(demo_1):
 #st.button("1. Semantic Search")
 image_ = Image.open('/home/ubuntu/images/Semantic_SEarch.png')
 new_image = image_.resize((1500, 1000))
-new_image.save('/home/ubuntu/images/semantic_search_resize.png')
-st.image("/home/ubuntu/images/semantic_search_resize.png")
+new_image.save('images/semantic_search_resize.png')
+st.image("images/semantic_search_resize.png")
 st.write("")
 col_2_1,col_2_2,col_2_3 = st.columns([3,40,65])
 with col_2_1:
@@ -50,10 +50,10 @@ with col_2_3:
 if(demo_2):
     st.switch_page('pages/Multimodal_Conversational_Search.py')
 #st.header("2. Multimodal Conversational Search")
-image_ = Image.open('/home/ubuntu/images/RAG_.png')
+image_ = Image.open('images/RAG_.png')
 new_image = image_.resize((1500, 1000))
-new_image.save('/home/ubuntu/images/RAG_resize.png')
-st.image("/home/ubuntu/images/RAG_resize.png")
+new_image.save('images/RAG_resize.png')
+st.image("images/RAG_resize.png")
 
 # with st.sidebar:
 #     st.subheader("Choose a demo !")
