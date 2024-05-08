@@ -8,3 +8,5 @@ OpenSearchApp/gen_images
 OpenSearchApp/uploaded_images
 OpenSearchApp/RAG/__pycache__/
 OpenSearchApp/semantic_search/__pycache__/
+OpenSearchApp/utilities/__pycache__/
+*.DS_Store
