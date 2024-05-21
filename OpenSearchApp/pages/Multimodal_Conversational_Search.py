@@ -482,10 +482,9 @@ with st.sidebar:
     pdf_docs = [pdf_doc_]
     if st.button("Process"):
         with st.spinner("Processing"):
-            if os.path.isdir(parent_dirname+"/pdfs"):
-                shutil.rmtree(parent_dirname+"/pdfs")
-
-            os.mkdir(parent_dirname+"/pdfs")
+            if os.path.isdir(parent_dirname+"/pdfs") == False:
+                os.mkdir(parent_dirname+"/pdfs")
+            
             for pdf_doc in pdf_docs:
                 print(type(pdf_doc))
                 pdf_doc_name = (pdf_doc.name).replace(" ","_")
@@ -512,7 +511,7 @@ with st.sidebar:
      ############## haystach demo temporary addition ############       
     if(pdf_doc_ is None or pdf_doc_ == ""):
         if(index_select == "Global Warming stats"):
-            st.session_state.input_index = "globalwarmingnew"
+            st.session_state.input_index = "testcode"#"globalwarmingnew"
         if(index_select == "Covid19 impacts on Ireland"):
             st.session_state.input_index = "covid19ie"#"choosetheknnalgorithmforyourbillionscaleusecasewithopensearchawsbigdatablog"
         if(index_select == "BEIR"):

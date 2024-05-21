@@ -11,7 +11,7 @@ import streamlit as st
 from opensearchpy import OpenSearch, RequestsHttpConnection
 aos_host = 'search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com'
 
-auth = ('prasadnu', '@Palamalai1') #### input credentials
+auth = ("username","password") #### input credentials
 
 aos_client = OpenSearch(
     hosts = [{'host': aos_host, 'port': 443}],

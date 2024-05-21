@@ -11,13 +11,13 @@ import shutil
 
 file_content = {}
 parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
-if os.path.isdir(parent_dirname+"/split_pdf"):
-    shutil.rmtree(parent_dirname+"/split_pdf")
-os.mkdir(parent_dirname+"/split_pdf")
+# if os.path.isdir(parent_dirname+"/split_pdf"):
+#     shutil.rmtree(parent_dirname+"/split_pdf")
+# os.mkdir(parent_dirname+"/split_pdf")
 
-if os.path.isdir(parent_dirname+"/split_pdf_csv"):
-    shutil.rmtree(parent_dirname+"/split_pdf_csv")
-os.mkdir(parent_dirname+"/split_pdf_csv")
+# if os.path.isdir(parent_dirname+"/split_pdf_csv"):
+#     shutil.rmtree(parent_dirname+"/split_pdf_csv")
+# os.mkdir(parent_dirname+"/split_pdf_csv")
 
 
 def get_rows_columns_map(table_result, blocks_map):

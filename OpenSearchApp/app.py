@@ -1,7 +1,10 @@
 import streamlit as st
 from PIL import Image
-
+import base64
+import yaml
+from yaml.loader import SafeLoader
 from streamlit_javascript import st_javascript
+import streamlit_authenticator as stauth
 
 
 st.set_page_config(
@@ -10,6 +13,28 @@ st.set_page_config(
     layout="wide",
     page_icon="/home/ubuntu/images/opensearch_mark_default.png"
 )
+st.markdown(
+    
+    """<a href="https://github.com/aws-samples/AI-search-with-amazon-opensearch-service">
+    <img src="data:image/png;base64,{}" width="50" height=50", style = 'position: relative;top:2%;left:98%'>
+    </a>""".format(
+        base64.b64encode(open("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/Github-symbol.png", "rb").read()).decode()
+    ),
+       
+        unsafe_allow_html=True,
+    )
+
+# with open('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/auth.yaml') as file:
+#     config = yaml.load(file, Loader=SafeLoader)
+# authenticator = Authenticate(
+#     config['credentials'],
+#     config['cookie']['name'],
+#     config['cookie']['key'],
+#     config['cookie']['expiry_days'],
+#     config['preauthorized']
+# )
+# name, authentication_status, username = authenticator.login('Login', 'main')
+
 
 url_ = st_javascript("await fetch('').then(r => window.parent.location.href)")
 AI_ICON = "/home/ubuntu/images/opensearch-twitter-card.png"
@@ -57,3 +82,21 @@ st.image("images/RAG_resize.png")
 
 # with st.sidebar:
 #     st.subheader("Choose a demo !")
+
+
+
+
+    #  """
+    #     <style>
+          
+    #         [data-testid="stHeader"]::after {
+    #             content: "My Company Name";
+    #             margin-left: 0px;
+    #             margin-top: 0px;
+    #             font-size: 30px;
+    #             position: relative;
+    #             left: 90%;
+    #             top: 30%;
+    #         }
+    #     </style>
+    #     """,

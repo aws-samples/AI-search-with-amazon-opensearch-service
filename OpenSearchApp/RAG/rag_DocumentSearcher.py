@@ -19,7 +19,7 @@ import utilities.invoke_models as invoke_models
 headers = {"Content-Type": "application/json"}
 host = "https://search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com/"
 
-
+parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
 
 def query_(awsauth,inputs, session_id,search_types):
 
@@ -228,7 +228,7 @@ def query_(awsauth,inputs, session_id,search_types):
         #print("Forcing table analysis")
         table_ref = []
         any_table_exists = False
-        for fname in os.listdir('/home/ubuntu/split_pdf_csv'):
+        for fname in os.listdir(parent_dirname+"/split_pdf_csv"):
             if fname.startswith(st.session_state.input_index):
                 any_table_exists = True
                 break       
@@ -297,7 +297,7 @@ def query_(awsauth,inputs, session_id,search_types):
             
         else:
             if(hit["_source"]["image"]!="None"):
-                with open('/home/ubuntu/figures/'+st.session_state.input_index+"/"+hit["_source"]["raw_element_type"].split("_")[1].replace(".jpg","")+"-resized.jpg", "rb") as read_img:
+                with open(parent_dirname+'/figures/'+st.session_state.input_index+"/"+hit["_source"]["raw_element_type"].split("_")[1].replace(".jpg","")+"-resized.jpg", "rb") as read_img:
                     input_encoded = base64.b64encode(read_img.read()).decode("utf8")
                 context.append(invoke_models.generate_image_captions_llm(input_encoded,question))
             else:
