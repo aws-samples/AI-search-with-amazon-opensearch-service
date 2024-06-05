@@ -143,7 +143,7 @@ def read_from_table(file,question):
     print("started table analysis:")
     print("-----------------------")
     print("\n\n")
-    #print("file name: "+file)
+    print("Table name: "+file)
     print("-----------------------")
     print("\n\n")
     bedrock_params = {

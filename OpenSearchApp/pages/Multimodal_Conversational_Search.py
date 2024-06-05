@@ -72,7 +72,7 @@ if "answers_" not in st.session_state:
     st.session_state.answers_ = []
 
 if "input_index" not in st.session_state:
-    st.session_state.input_index = "globalwarmingnew"#"hpijan2024hometrack_no_img_no_table"
+    st.session_state.input_index = "hpijan2024hometrack"#"globalwarmingnew"#"hpijan2024hometrack_no_img_no_table"
     
 if "input_is_rerank" not in st.session_state:
     st.session_state.input_is_rerank = True
@@ -82,7 +82,7 @@ if "input_table_with_sql" not in st.session_state:
     st.session_state.input_table_with_sql = False
     
 if "input_query" not in st.session_state:
-    st.session_state.input_query="What is the projected energy percentage from renewable sources in future?"#"Which city in United Kingdom has the highest average housing price ?"#"How many aged above 85 years died due to covid ?"# What is the projected energy from renewable sources ?"
+    st.session_state.input_query="which city has the highest average housing price in UK ?"#"What is the projected energy percentage from renewable sources in future?"#"Which city in United Kingdom has the highest average housing price ?"#"How many aged above 85 years died due to covid ?"# What is the projected energy from renewable sources ?"
 
 
 if "input_rag_searchType" not in st.session_state:
@@ -429,11 +429,11 @@ with st.sidebar:
     #                                     '[preview](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/BEIR.pdf)'],
     #                         key="input_rad_index")
     with coln_1:
-        index_select = st.radio("Choose one index",["Global Warming stats","UK Housing","Covid19 impacts on Ireland"],key="input_rad_index")
+        index_select = st.radio("Choose one index",["UK Housing","Global Warming stats","Covid19 impacts on Ireland"],key="input_rad_index")
     with coln_2:
         st.markdown("<p style='font-size:15px'>Preview file</p>",unsafe_allow_html=True)
-        st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/global_warming.pdf)")
         st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/HPI-Jan-2024-Hometrack.pdf)")
+        st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/global_warming.pdf)")
         st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/covid19_ie.pdf)")
         #st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/BEIR.pdf)")
     st.markdown("""
