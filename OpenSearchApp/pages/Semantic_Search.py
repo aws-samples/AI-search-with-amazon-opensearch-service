@@ -101,6 +101,13 @@ if "chats" not in st.session_state:
 
 if "questions" not in st.session_state:
     st.session_state.questions = []
+    
+if "clear_" not in st.session_state:
+    st.session_state.clear_ = False
+    
+ 
+if "radio_disabled" not in st.session_state:
+    st.session_state.radio_disabled = True
 
 if "input_rad_1" not in st.session_state:
     st.session_state.input_rad_1 = ""
@@ -123,6 +130,9 @@ if "ndcg_increase" not in st.session_state:
     
 if "inputs_" not in st.session_state:
     st.session_state.inputs_ = {}
+    
+if "img_container" not in st.session_state:
+    st.session_state.img_container = ""
 
 if "input_rekog_directoutput" not in st.session_state:
     st.session_state.input_rekog_directoutput = {}
@@ -189,7 +199,7 @@ if "bytes_for_rekog" not in st.session_state:
 
 
 def generate_images(tab,inp_):
-    
+        #write_top_bar()
  
         request = json.dumps(
                     {
@@ -223,7 +233,8 @@ def generate_images(tab,inp_):
         index_ = 0
         #if(inp_!=st.session_state.image_prompt):
         
-        if(len(st.session_state.img_gen)==0):
+        if(len(st.session_state.img_gen)==0 and st.session_state.clear_ == True):
+            #write_top_bar()
             placeholder1 = st.empty()
             with tab:
                 with placeholder1.container():
@@ -232,22 +243,25 @@ def generate_images(tab,inp_):
         
         images_dis = []
         for image_ in st.session_state.img_gen:
+            st.session_state.radio_disabled  = False
             if(index_==0):
-                with tab:
-                    rad1, rad2,rad3  = st.columns([98,1,1])
-                if(st.session_state.input_rad_1 is None):
-                    rand_ = ""
-                else:
-                    rand_ = st.session_state.input_rad_1
-                if(inp_!=st.session_state.image_prompt+rand_):
-                    with rad1:
-                        sel_rad_1 = st.radio("Choose one image", ["1","2","3"],index=None, horizontal = True,key = 'input_rad_1')
+                # with tab:
+                #     rad1, rad2,rad3  = st.columns([98,1,1])
+                # if(st.session_state.input_rad_1 is None):
+                #     rand_ = ""
+                # else:
+                #     rand_ = st.session_state.input_rad_1
+                # if(inp_!=st.session_state.image_prompt+rand_):
+                #     with rad1:
+                #         sel_rad_1 = st.radio("Choose one image", ["1","2","3"],index=None, horizontal = True,key = 'input_rad_1')
 
                 with tab:
                     #sel_image = st.radio("", ["1","2","3"],index=None, horizontal = True)
-                    
+                    if(st.session_state.img_container!=""):
+                        st.session_state.img_container.empty()
                     place_ = st.empty()
                     img1, img2,img3  = place_.columns([30,30,30])
+                    st.session_state.img_container = place_
                 img_arr = [img1, img2,img3]
             
             base64_image_data = image_
@@ -494,6 +508,14 @@ def handle_input():
     #st.session_state.input_searchType=st.session_state.input_searchType
 
 def write_top_bar():
+    # st.markdown("""
+    # <style>
+    # [data-testid=column]:nth-of-type(1) [data-testid=stVerticalBlock]{
+    #     gap: 0rem;
+    # }
+    # </style>
+    # """,unsafe_allow_html=True)
+    #print("top bar")
     # st.title(':mag: AI powered OpenSearch')
     # st.write("")
     # st.write("")
@@ -520,9 +542,43 @@ def write_top_bar():
             with tab1:
                 c1,c2 = st.columns([80,20])
                 with c1:
-                    gen_images=st.text_input("Design your product using text prompts", key = "image_prompt")
+                    gen_images=st.text_area("Text to Image:",placeholder = "Enter the text prompt to generate images",height = 20, key = "image_prompt")
                 with c2:
+                    st.markdown("<div style = 'height:50px'></div>",unsafe_allow_html=True)
                     st.button("Generate image",disabled=False,key = "generate",on_click = generate_images, args=(tab1,"default_img"))
+                
+                # image_select = st.select_slider(
+                #     "Select a image",
+                #     options=["Image 1","Image 2","Image 3"], value = None, disabled = st.session_state.radio_disabled,key = "image_select")
+                image_select = st.radio("Choose one image", ["Image 1","Image 2","Image 3"],index=None, horizontal = True,key = 'image_select',disabled = st.session_state.radio_disabled)
+                st.markdown("""
+                            <style>
+                            [role=radiogroup]{
+                                gap: 10rem;
+                            }
+                            </style>
+                            """,unsafe_allow_html=True)
+                if(st.session_state.image_select is not None and st.session_state.image_select !="" and len(st.session_state.img_gen)!=0):
+                    print("image_select")
+                    print("------------")
+                    print(st.session_state.image_select)
+                    st.session_state.input_rad_1 = st.session_state.image_select.split(" ")[1]
+                else:
+                    st.session_state.input_rad_1 = ""
+                # rad1, rad2,rad3  = st.columns([33,33,33])
+                # with rad1:
+                #     btn1 = st.button("choose image 1", disabled = st.session_state.radio_disabled)
+                # with rad2:
+                #     btn2 = st.button("choose image 2", disabled = st.session_state.radio_disabled)
+                # with rad3:
+                #     btn3 = st.button("choose image 3", disabled = st.session_state.radio_disabled)
+                # if(btn1):
+                #     st.session_state.input_rad_1 = "1" 
+                # if(btn2):
+                #     st.session_state.input_rad_1 = "2" 
+                # if(btn3):
+                #     st.session_state.input_rad_1 = "3" 
+
 
         generate_images(tab1,gen_images)   
             
@@ -540,14 +596,28 @@ def write_top_bar():
 clear,tab_ = write_top_bar()
 
 if clear:
+    
+    
     print("clear1")
     st.session_state.questions = []
     st.session_state.answers = []
+    
+    st.session_state.clear_ = True
     st.session_state.image_prompt2 = ""
-    st.session_state.img_gen = []
-    placeholder1 = st.empty()
-    with placeholder1.container():
-        generate_images(tab_,st.session_state.image_prompt)
+    
+    st.session_state.radio_disabled = True
+    
+    if(len(st.session_state.img_gen)!=0):
+        st.session_state.img_container.empty()
+        st.session_state.img_gen = []
+        st.session_state.input_rad_1 = ""
+    
+        
+        # placeholder1 = st.empty()
+        # with placeholder1.container():
+        #     generate_images(tab_,st.session_state.image_prompt)
+        
+        
     #st.session_state.input_text=""
     # st.session_state.input_searchType="Conversational Search (RAG)"
     # st.session_state.input_temperature = "0.001"
@@ -723,7 +793,7 @@ st.markdown('---')
 def write_user_message(md,ans):
     #print(ans)
     ans = ans["answer"][0]
-    col1, col2, col3 = st.columns([3,20,40])
+    col1, col2, col3 = st.columns([3,40,20])
     
     with col1:
         st.image(USER_ICON, use_column_width='always')
@@ -740,7 +810,7 @@ def write_user_message(md,ans):
                 st.write(filtered_query_sparse)
         if(st.session_state.input_is_rewrite_query == "enabled" and st.session_state.input_rewritten_query !=""):
             with st.expander("Re-written Query:"):
-                st.write(json.dumps(st.session_state.input_rewritten_query))
+                st.json(st.session_state.input_rewritten_query,expanded = True)
                 
             
     with col3:   
@@ -755,10 +825,8 @@ def write_user_message(md,ans):
                 img_file = parent_dirname+"/uploaded_images/"+st.session_state.img_doc.name.split(".")[0]+"-resized_display."+st.session_state.img_doc.name.split(".")[1]
     
             st.image(img_file)
-            cols_1,cols_2 = st.columns([50,50])
             if(st.session_state.input_rekog_label !=""):
-                with cols_1:
-                    with st.expander("Image Metadata:"):
+                with st.expander("Image Metadata:"):
                         st.markdown('<p>'+json.dumps(st.session_state.input_rekog_directoutput)+'<p>',unsafe_allow_html=True)
         else:
             st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>None</div>", unsafe_allow_html = True)
@@ -980,4 +1048,3 @@ with placeholder.container():
   #generate_images("",st.session_state.image_prompt)
 
 st.markdown("")
-

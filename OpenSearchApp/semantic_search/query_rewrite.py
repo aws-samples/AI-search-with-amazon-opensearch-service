@@ -5,6 +5,8 @@ import boto3
 import amazon_rekognition
 from botocore.config import Config
 import getpass
+from nltk.stem import PorterStemmer
+from nltk.tokenize import word_tokenize
 import os
 import streamlit as st
 from langchain.schema import Document
@@ -135,7 +137,10 @@ def get_new_query_res(query):
                 "query": query
             }
         )
-
+        print("***prompt****")
+        print(prompt)
+        print("******query_struct******")
+        print(query_struct)
 
         opts = OpenSearchTranslator()
         query_ = json.loads(json.dumps(opts.visit_structured_query(query_struct)[1]['filter']).replace("must","should"))#.replace("must","should")
@@ -193,7 +198,18 @@ def get_new_query_res(query):
                     
         if(imp_item == ""):
             imp_item = query
+            
+        ps = PorterStemmer()        
+        def stem_(sentence):
+            words = word_tokenize(sentence)
+            
+            words_stem = ""
+
+            for w in words:
+                words_stem = words_stem +" "+ps.stem(w)
+            return words_stem.strip()
         
+        imp_item = stem_(imp_item)
         print("imp_item---------------")
         print(imp_item)
         

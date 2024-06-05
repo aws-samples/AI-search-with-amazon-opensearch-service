@@ -330,18 +330,6 @@ def query_(awsauth,inputs, session_id,search_types):
         ans = [{"answer":total_context}]
         
         total_context = re_ranker.re_rank('rag','Cross Encoder',"",ques, ans)
-        
-    # print("-------------")
-    # print("text_context")
-    # print(context)
-    # print("-------------")
-    # print("-------------")
-    # print("table_context")
-    # print(context_tables)
-    # print("-------------")
-    # print("-------------")
-    # print(total_context)
-    # print("-------------")
 
     llm_prompt = prompt_template.format(context=total_context[0],question=question)
     output = invoke_models.invoke_llm_model( "\n\nHuman: {input}\n\nAssistant:".format(input=llm_prompt) ,False)

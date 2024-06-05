@@ -432,9 +432,9 @@ with st.sidebar:
         index_select = st.radio("Choose one index",["Global Warming stats","UK Housing","Covid19 impacts on Ireland"],key="input_rad_index")
     with coln_2:
         st.markdown("<p style='font-size:15px'>Preview file</p>",unsafe_allow_html=True)
+        st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/global_warming.pdf)")
         st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/HPI-Jan-2024-Hometrack.pdf)")
         st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/covid19_ie.pdf)")
-        st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/global_warming.pdf)")
         #st.write("[:eyes:](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/b559f82c07dfcca973f457c0a15d6444752553ab/rag/sample_pdfs/BEIR.pdf)")
     st.markdown("""
     <style>
@@ -511,7 +511,7 @@ with st.sidebar:
      ############## haystach demo temporary addition ############       
     if(pdf_doc_ is None or pdf_doc_ == ""):
         if(index_select == "Global Warming stats"):
-            st.session_state.input_index = "testcode"#"globalwarmingnew"
+            st.session_state.input_index = "globalwarmingnew"
         if(index_select == "Covid19 impacts on Ireland"):
             st.session_state.input_index = "covid19ie"#"choosetheknnalgorithmforyourbillionscaleusecasewithopensearchawsbigdatablog"
         if(index_select == "BEIR"):
