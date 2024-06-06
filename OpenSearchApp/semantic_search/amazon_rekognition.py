@@ -97,7 +97,7 @@ def call(a,b):
     if(st.session_state.input_is_rewrite_query == 'enabled' and st.session_state.input_rewritten_query!=""):
         
         
-        st.session_state.input_rewritten_query['query']['bool']['should'].pop()
+        #st.session_state.input_rewritten_query['query']['bool']['should'].pop()
         st.session_state.input_rewritten_query['query']['bool']['should'].append( {
                     "simple_query_string": {
                     

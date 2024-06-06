@@ -341,15 +341,23 @@ def handler(input_,session_id):
     dup = []
     for doc in docs:
         if(doc['_source']['image_s3_url'] not in dup):
-            res_ = {"desc":doc['_source']['description'],"caption":doc['_source']['caption'],"image_url":doc['_source']['image_s3_url']}
+            res_ = {
+                "desc":doc['_source']['description'],
+                "caption":doc['_source']['caption'],
+                "image_url":doc['_source']['image_s3_url'],
+                "category":doc['_source']['category'],
+                "price":doc['_source']['price'],
+                "gender_affinity":doc['_source']['gender_affinity'],
+                
+                }
             if('highlight' in doc):
                 res_['highlight'] = doc['highlight']['description']
             if('NeuralSparse Search' in search_types):
                 res_['sparse'] = doc['_source']['desc_embedding_sparse']
                 res_['query_sparse'] = query_sparse
-            if(st.session_state.input_rekog_label !=""):
+            if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
                 res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}
-          
+            
             res_['id'] = doc['_id']
             res_['score'] = doc['_score']
             res_['title'] = doc['_source']['description']

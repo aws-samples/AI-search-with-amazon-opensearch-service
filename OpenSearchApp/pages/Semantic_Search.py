@@ -90,6 +90,9 @@ if 'user_id' in st.session_state:
 if 'session_id' not in st.session_state:
     st.session_state['session_id'] = ""
     
+if 'input_reranker' not in st.session_state:
+    st.session_state['input_reranker'] = "None"#"Cross Encoder"
+    
 if "chats" not in st.session_state:
     st.session_state.chats = [
         {
@@ -542,7 +545,7 @@ def write_top_bar():
             with tab1:
                 c1,c2 = st.columns([80,20])
                 with c1:
-                    gen_images=st.text_area("Text to Image:",placeholder = "Enter the text prompt to generate images",height = 20, key = "image_prompt")
+                    gen_images=st.text_area("Text to Image:",placeholder = "Enter the text prompt to generate images",height = 50, key = "image_prompt")
                 with c2:
                     st.markdown("<div style = 'height:50px'></div>",unsafe_allow_html=True)
                     st.button("Generate image",disabled=False,key = "generate",on_click = generate_images, args=(tab1,"default_img"))
@@ -604,6 +607,7 @@ if clear:
     
     st.session_state.clear_ = True
     st.session_state.image_prompt2 = ""
+    st.session_state.input_rekog_label = ""
     
     st.session_state.radio_disabled = True
     
@@ -657,7 +661,7 @@ if(search_all_type == True):
         #st.write("Note: After changing any of the below settings, click 'SEARCH' button or '🔄' to apply the changes")
         st.subheader(':blue[Keyword Search]')
 
-        rewrite_query = st.checkbox('Re-write query DSL', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
+        rewrite_query = st.checkbox('Enrich Docs and Re-write query DSL', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
         sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
         st.session_state.input_is_rewrite_query = 'disabled'
         st.session_state.input_is_sql_query = 'disabled'
@@ -826,7 +830,7 @@ def write_user_message(md,ans):
     
             st.image(img_file)
             if(st.session_state.input_rekog_label !=""):
-                with st.expander("Image Metadata:"):
+                with st.expander("Enriched Query Metadata:"):
                         st.markdown('<p>'+json.dumps(st.session_state.input_rekog_directoutput)+'<p>',unsafe_allow_html=True)
         else:
             st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>None</div>", unsafe_allow_html = True)
@@ -952,10 +956,19 @@ def render_answer(answer,index):
                             if(sparse_[key]>=1.0):
                                 filtered_sparse[key] = round(sparse_[key], 2)
                         st.write(filtered_sparse)
-                if("rekog" in ans):
-                    with st.expander("Image Metadata from AI:"):
-                        
-                        st.write(ans['rekog'])
+                with st.expander("Document Metadata:"):
+                    if("rekog" in ans):
+                        div_size = [50,50]
+                    else:
+                        div_size = [99,1]
+                    div1,div2 = st.columns(div_size)
+                    with div1:
+                        st.write(":green[default:]")
+                        st.json({"category":ans['category'],"price":ans['price'],"gender_affinity":ans['gender_affinity']},expanded = False)
+                    with div2:
+                        if("rekog" in ans):
+                            st.write(":green[enriched:]")
+                            st.json(ans['rekog'],expanded = False)
             with inner_col_1:
                 
                 if(st.session_state.input_evaluate == "enabled"):

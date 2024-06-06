@@ -17,12 +17,21 @@ from langchain.chains.query_constructor.base import (
     StructuredQueryOutputParser,
     get_query_constructor_prompt,
 )
-
 from langchain.retrievers.self_query.opensearch import OpenSearchTranslator
-
 from langchain.chains import ConversationChain
 from langchain.llms.bedrock import Bedrock
 from langchain.memory import ConversationBufferMemory
+from langchain.chains.query_constructor.base import AttributeInfo
+from langchain.retrievers.self_query.base import SelfQueryRetriever
+from langchain_core.prompts.few_shot import FewShotPromptTemplate
+from langchain_core.prompts.prompt import PromptTemplate
+from langchain.embeddings import BedrockEmbeddings
+from langchain.vectorstores import OpenSearchVectorSearch
+from opensearchpy import OpenSearch, RequestsHttpConnection
+import utilities.invoke_models as invoke_models
+
+
+
 bedrock_params = {
     "max_tokens_to_sample":2048,
     "temperature":0.0001,
@@ -37,15 +46,9 @@ boto3_bedrock = boto3.client(service_name="bedrock-runtime", config=Config(regio
 
 bedrock_titan_llm = Bedrock(model_id="anthropic.claude-instant-v1", client=boto3_bedrock)
 bedrock_titan_llm.model_kwargs = bedrock_params
-
-from langchain.chains.query_constructor.base import AttributeInfo
-from langchain.retrievers.self_query.base import SelfQueryRetriever
-from langchain.embeddings import BedrockEmbeddings
-
 bedrock_embeddings = BedrockEmbeddings(model_id='amazon.titan-embed-text-v1',client=boto3_bedrock)
 
-from langchain.vectorstores import OpenSearchVectorSearch
-from opensearchpy import OpenSearch, RequestsHttpConnection
+
 aos_host = 'search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com'
 credentials = boto3.Session().get_credentials()
 auth = AWS4Auth(credentials.access_key, credentials.secret_key, 'us-east-1', 'es', session_token=credentials.token)
@@ -59,7 +62,43 @@ aos_client = OpenSearch(
 )
 os_domain_ep = aos_host
 
-
+schema = """{{
+    "content": "Brief summary of a retail product",
+    "attributes": {{
+    "category": {{
+        "description": "The category of the product, the available categories are apparel, footwear, outdoors, electronics, beauty, jewelry, accessories, housewares, homedecor, furniture, seasonal, floral, books, groceries, instruments, tools, hot dispensed, cold dispensed, food service and salty snacks",
+        "type": "string"
+    }},
+    "gender_affinity": {{
+        "description": "The gender that the product relates to, the choices are Male and Female", 
+        "type": "string"
+    }},
+    "price": {{
+        "description": "Cost of the product",
+        "type": "double"
+    }},
+    "description": {{
+        "description": "The detailed description of the product",
+        "type": "string"
+    }},
+    "color": {{
+        "description": "The color of the product",
+        "type": "string"
+    }},
+     "caption": {{
+        "description": "The short description of the product",
+        "type": "string"
+    }},
+     "current_stock": {{
+        "description": "The available quantity of the product in stock for sale",
+        "type": "integer"
+    }},
+     "style": {{
+        "description": "The style of the product",
+        "type": "string"
+    }}
+}}
+}}"""
 metadata_field_info_ = [
     AttributeInfo(
         name="price",
@@ -111,6 +150,98 @@ open_search_vector_store = OpenSearchVectorSearch(
                                     http_auth=auth
                                     )  
 
+examples = [
+    {  "i":1,
+        "data_source": schema,
+        "user_query": "black shoes for men",
+        "structured_request": """{{
+    "query": "shoes",
+    "filter": "and(eq(\"color\", \"black\"),  eq(\"category\", \"footwear\")), eq(\"gender_affinity\", \"Male\")"
+            }}""",
+    },
+    
+        {  "i":2,
+        "data_source": schema,
+        "user_query": "black or brown jackets for men under 50 dollars",
+        "structured_request": """{{
+    "query": "jackets",
+    "filter": "and(eq(\"style\", \"jacket\"), or(eq(\"color\", \"brown\"),eq(\"color\", \"black\")),eq(\"category\", \"apparel\"),eq(\"gender_affinity\", \"male\"),lt(\"price\", \"50\"))"
+            }}""",
+    },
+          {  "i":2,
+        "data_source": schema,
+        "user_query": "trendy handbags for women",
+        "structured_request": """{{
+    "query": "handbag",
+    "filter": "and(eq(\"style\", \"bag\") ,eq(\"category\", \"accessories\"),eq(\"gender_affinity\", \"female\"))"
+            }}""",
+    }
+]
+
+
+example_prompt = PromptTemplate(
+    input_variables=["question", "answer"], template="Question: {question}\n{answer}"
+)
+example_prompt=PromptTemplate(input_variables=['data_source', 'i', 'structured_request', 'user_query'],
+template='<< Example {i}. >>\nData Source:\n{data_source}\n\nUser Query:\n{user_query}\n\nStructured Request:\n{structured_request}\n')
+#print(example_prompt.format(**examples[0]))
+
+prefix_ = """
+Your goal is to structure the user's query to match the request schema provided below.
+
+<< Structured Request Schema >>
+When responding use a markdown code snippet with a JSON object formatted in the following schema:
+
+```json
+{{
+    "query": string \ text string to compare to document contents
+    "filter": string \ logical condition statement for filtering documents
+}}
+```
+
+The query string should contain only text that is expected to match the contents of documents. Any conditions in the filter should not be mentioned in the query as well.
+
+A logical condition statement is composed of one or more comparison and logical operation statements.
+
+A comparison statement takes the form: `comp(attr, val)`:
+- `comp` (eq | ne | gt | gte | lt | lte | contain | like | in | nin): comparator
+- `attr` (string):  name of attribute to apply the comparison to
+- `val` (string): is the comparison value
+
+A logical operation statement takes the form `op(statement1, statement2, ...)`:
+- `op` (and | or | not): logical operator
+- `statement1`, `statement2`, ... (comparison statements or logical operation statements): one or more statements to apply the operation to
+
+Make sure that you only use the comparators and logical operators listed above and no others.
+Make sure that filters only refer to attributes that exist in the data source.
+Make sure that filters only use the attributed names with its function names if there are functions applied on them.
+Make sure that filters only use format `YYYY-MM-DD` when handling date data typed values.
+Make sure that filters take into account the descriptions of attributes and only make comparisons that are feasible given the type of data being stored.
+Make sure that filters are only used as needed. If there are no filters that should be applied return "NO_FILTER" for the filter value.
+"""
+
+suffix_ = """<< Example 3. >>
+Data Source:
+{schema}
+
+User Query:
+{query}
+
+Structured Request:
+"""
+
+prompt_ = FewShotPromptTemplate(
+    examples=examples,
+    example_prompt=example_prompt,
+    suffix=suffix_,
+    prefix=prefix_,
+    input_variables=["query","schema"],
+)
+
+
+
+
+
 # retriever = SelfQueryRetriever.from_llm(
 #     bedrock_titan_llm, open_search_vector_store, document_content_description_, metadata_field_info_, verbose=True
 # )
@@ -119,47 +250,55 @@ open_search_vector_store = OpenSearchVectorSearch(
 
 # st.write(res)
 
-
-prompt = get_query_constructor_prompt(
-    document_content_description_,
-    metadata_field_info_,
-)
-output_parser = StructuredQueryOutputParser.from_components()
-query_constructor = prompt | bedrock_titan_llm | output_parser
+######### use this for self query retriever ########
+# prompt = get_query_constructor_prompt(
+#     document_content_description_,
+#     metadata_field_info_,
+# )
+# output_parser = StructuredQueryOutputParser.from_components()
+# query_constructor = prompt | bedrock_titan_llm | output_parser
 
 def get_new_query_res(query):
     if(query == ""):
         query = st.session_state.input_rekog_label
     if(st.session_state.input_is_rewrite_query == 'enabled'):
 
-        query_struct = query_constructor.invoke(
-            {
-                "query": query
-            }
-        )
-        print("***prompt****")
-        print(prompt)
-        print("******query_struct******")
-        print(query_struct)
+        # query_struct = query_constructor.invoke(
+        #     {
+        #         "query": query
+        #     }
+        # )
+        # print("***prompt****")
+        # print(prompt)
+        # print("******query_struct******")
+        # print(query_struct)
 
+        res = invoke_models.invoke_llm_model( prompt_.format(query=query,schema = schema)  ,False)
+        inter_query = res[7:-3].replace('\\"',"'").replace("\n","")
+        print("inter_query")
+        print(inter_query)
+        query_struct = StructuredQueryOutputParser.from_components().parse(inter_query)  
+        print("query_struct")
+        print(query_struct)
         opts = OpenSearchTranslator()
         query_ = json.loads(json.dumps(opts.visit_structured_query(query_struct)[1]['filter']).replace("must","should"))#.replace("must","should")
-        if('bool' in query_ and 'should' in query_['bool']):
-            query_['bool']['should'].append({
-                    "match": {
+        
+        # if('bool' in query_ and 'should' in query_['bool']):
+        #     query_['bool']['should'].append({
+        #             "match": {
                     
-                        "rekog_description_plus_original_description": query
+        #                 "rekog_description_plus_original_description": query
                     
-                    }
-                })
-        else:
-            query_['bool']['should'] = {
-                    "match": {
+        #             }
+        #         })
+        # else:
+        #     query_['bool']['should'] = {
+        #             "match": {
                     
-                        "rekog_description_plus_original_description": query
+        #                 "rekog_description_plus_original_description": query
                     
-                    }
-                }
+        #             }
+        #         }
         
         # def find_by_key(data, target):
         #     for key, value in data.items():
@@ -170,30 +309,34 @@ def get_new_query_res(query):
         # for x in find_by_key(query_, "metadata.category.keyword"):
         #     imp_item = x
         
-        imp_item = ""
-        if("bool" in query_ and  'should' in query_['bool']):
-            for i in query_['bool']['should']:
-                if("term" in i.keys()):
-                    if("metadata.category.keyword" in i["term"]):
-                        imp_item = imp_item + i["term"]["metadata.category.keyword"]+ " "
-                    if("metadata.style.keyword" in i["term"]):
-                        imp_item = imp_item + i["term"]["metadata.style.keyword"]+ " "
-                if("match" in i.keys()):
-                    if("metadata.category.keyword" in i["match"]):
-                        imp_item = imp_item + i["match"]["metadata.category.keyword"]+ " "
-                    if("metadata.style.keyword" in i["match"]):
-                        imp_item = imp_item + i["match"]["metadata.style.keyword"]+ " "
-        else:
-            if("term" in query_):
-                    if("metadata.category.keyword" in query_):
-                        imp_item = imp_item + query_["metadata.category.keyword"] + " "
-                    if("metadata.style.keyword" in query_):
-                        imp_item = imp_item + query_["metadata.style.keyword"]+ " "
-            if("match" in query_):
-                    if("metadata.category.keyword" in query_):
-                        imp_item = imp_item + query_["metadata.category.keyword"]+ " "
-                    if("metadata.style.keyword" in query_):
-                        imp_item = imp_item + query_["metadata.style.keyword"]+ " "
+        
+        ###### find the main subject of the query
+        #imp_item = ""
+        # if("bool" in query_ and  'should' in query_['bool']):
+        #     for i in query_['bool']['should']:
+        #         if("term" in i.keys()):
+        #             if("metadata.category.keyword" in i["term"]):
+        #                 imp_item = imp_item + i["term"]["metadata.category.keyword"]+ " "
+        #             if("metadata.style.keyword" in i["term"]):
+        #                 imp_item = imp_item + i["term"]["metadata.style.keyword"]+ " "
+        #         if("match" in i.keys()):
+        #             if("metadata.category.keyword" in i["match"]):
+        #                 imp_item = imp_item + i["match"]["metadata.category.keyword"]+ " "
+        #             if("metadata.style.keyword" in i["match"]):
+        #                 imp_item = imp_item + i["match"]["metadata.style.keyword"]+ " "
+        # else:
+        #     if("term" in query_):
+        #             if("metadata.category.keyword" in query_):
+        #                 imp_item = imp_item + query_["metadata.category.keyword"] + " "
+        #             if("metadata.style.keyword" in query_):
+        #                 imp_item = imp_item + query_["metadata.style.keyword"]+ " "
+        #     if("match" in query_):
+        #             if("metadata.category.keyword" in query_):
+        #                 imp_item = imp_item + query_["metadata.category.keyword"]+ " "
+        #             if("metadata.style.keyword" in query_):
+        #                 imp_item = imp_item + query_["metadata.style.keyword"]+ " "
+        ###### find the main subject of the query
+        imp_item = (opts.visit_structured_query(query_struct)[0]).replace(",","")
             
                     
         if(imp_item == ""):
@@ -217,18 +360,19 @@ def get_new_query_res(query):
                     "multi_match": {
                     
                         "query": imp_item.strip(),
-                      "fields":['description','rekog_all^3', "category","style"]
+                      "fields":['description','rekog_all^3',"style"]
                     
                     }
+                    #"match":{"description":imp_item.strip()}
                 }
        
             
         #query_['bool']["minimum_should_match"] = 1
             
         st.session_state.input_rewritten_query = {"query":query_}
-    if(st.session_state.input_rekog_label!=""):
-        amazon_rekognition.call(st.session_state.input_text,st.session_state.input_rekog_label)
-    #return searchWithNewQuery(st.session_state.input_rewritten_query)
+    # if(st.session_state.input_rekog_label!="" and query!=st.session_state.input_rekog_label):
+    #     amazon_rekognition.call(st.session_state.input_text,st.session_state.input_rekog_label)
+    # #return searchWithNewQuery(st.session_state.input_rewritten_query)
 
 # def searchWithNewQuery(new_query):
 #     response = aos_client.search(
