@@ -372,6 +372,8 @@ def get_new_query_res(query):
         st.session_state.input_rewritten_query = {"query":query_}
     # if(st.session_state.input_rekog_label!="" and query!=st.session_state.input_rekog_label):
     #     amazon_rekognition.call(st.session_state.input_text,st.session_state.input_rekog_label)
+    
+    
     # #return searchWithNewQuery(st.session_state.input_rewritten_query)
 
 # def searchWithNewQuery(new_query):
