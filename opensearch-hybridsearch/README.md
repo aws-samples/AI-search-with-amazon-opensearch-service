@@ -1,4 +1,3 @@
-**AWS Big Data Blog**
 
 # Hybrid Search with Amazon OpenSearch Service
 
