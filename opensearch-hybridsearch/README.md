@@ -2,37 +2,6 @@
 
 # Hybrid Search with Amazon OpenSearch Service
 
-by Hajer Bouafif and Praveen Mohan Prasad | on 19 MAR 2024 | in Advanced (300), Amazon OpenSearch Service,
-Amazon SageMaker | Permalink |  Comments |  Share
-Amazon OpenSearch Service has been a long-standing supporter of both lexical and semantic search, facilitated
-by its utilization of the k-nearest neighbors (k-NN) plugin. By using OpenSearch Service as a vector database, you
-can seamlessly combine the advantages of both lexical and vector search. The introduction of the neural search
-feature in OpenSearch Service 2.9 further simplifie s integration with artific ial intelligence (AI) and machine
-learning (ML) models, facilitating the implementation of semantic search.
-
-Lexical search using TF/IDF or BM25 has been the workhorse of search systems for decades. These traditional
-lexical search algorithms match user queries with exact words or phrases in your documents. Lexical search is
-more suitable for exact matches, provides low latency, and offers good interpretability of results and generalizes
-well across domains. However, this approach does not consider the context or meaning of the words, which can
-lead to irrelevant results.
-
-In the past few years, semantic search methods based on vector embeddings have become increasingly popular
-to enhance search. Semantic search enables a more context-aware search, understanding the natural language
-questions of user queries. However, semantic search powered by vector embeddings requires fine-tuning of the
-ML model for the associated domain (such as healthcare or retail) and more memory resources compared to basic
-lexical search.
-
-Both lexical search and semantic search have their own strengths and weaknesses. Combining lexical and vector
-search improves the quality of search results by using their best features in a hybrid model. OpenSearch Service
-2.11 now supports out-of-the-box hybrid query capabilities that make it straightforward for you to implement a
-hybrid search model combining lexical search and semantic search.
-
-This post explains the internals of hybrid search and how to build a hybrid search solution using OpenSearch
-Service. We experiment with sample queries to explore and compare lexical, semantic, and hybrid search. All the
-code used in this post is publicly available in the GitHub repository.
-
-## Hybrid search with OpenSearch Service
-
 In general, hybrid search to combine lexical and semantic search involves the following steps:
 
 1. Run a semantic and lexical search using a compound search query clause.
