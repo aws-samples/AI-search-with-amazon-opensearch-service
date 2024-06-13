@@ -259,6 +259,8 @@ prompt_ = FewShotPromptTemplate(
 # query_constructor = prompt | bedrock_titan_llm | output_parser
 
 def get_new_query_res(query):
+    field_map = {'Price':'price','Gender':'gender_affinity','Category':'category','Style':'style','Color':'color'}
+    field_map_filter = {key: field_map[key] for key in st.session_state.input_must}
     if(query == ""):
         query = st.session_state.input_rekog_label
     if(st.session_state.input_is_rewrite_query == 'enabled'):
@@ -281,7 +283,41 @@ def get_new_query_res(query):
         print("query_struct")
         print(query_struct)
         opts = OpenSearchTranslator()
-        query_ = json.loads(json.dumps(opts.visit_structured_query(query_struct)[1]['filter']).replace("must","should"))#.replace("must","should")
+        result_query_llm = opts.visit_structured_query(query_struct)[1]['filter']
+        print(result_query_llm)
+        draft_new_query = {'bool':{'should':[],'must':[]}}
+        if('bool' in result_query_llm and ('must' in result_query_llm['bool'] or 'should' in result_query_llm['bool'])):
+            #draft_new_query['bool']['should'] = []
+            if('must' in result_query_llm['bool']):
+                for q in result_query_llm['bool']['must']:
+                    old_clause = list(q.keys())[0]
+                    if(old_clause == 'term'):
+                        new_clause = 'match'
+                    else:
+                        new_clause = old_clause
+                    q_dash = {}
+                    q_dash[new_clause] = {}
+                    long_field = list(q[old_clause].keys())[0]
+                    #print(long_field)
+                    get_attr = long_field.split(".")[1]
+                    #print(get_attr)
+                    q_dash[new_clause][get_attr] = q[old_clause][long_field]
+                    #print(q_dash)
+                    if(get_attr in list(field_map_filter.values())):
+                        draft_new_query['bool']['must'].append(q_dash)
+                    else:
+                        draft_new_query['bool']['should'].append(q_dash)
+            # if('should' in result_query_llm['bool']):
+            #     for q_ in result_query_llm['bool']['must']:
+            #         q__dash = json.loads(json.dumps(q_).replace('term','match'  ))
+            #         clause = list(q__dash.keys())[0]category
+            #         long_field = list(q__dash[clause].keys())[0]
+            #         get_attr = long_field.split(".")[1]
+            #         q__dash[clause][get_attr] = q__dash[clause][long_field]
+            #         draft_new_query['bool']['should'].append(q__dash)
+                
+        #print(draft_new_query)    
+        query_ = draft_new_query#json.loads(json.dumps(opts.visit_structured_query(query_struct)[1]['filter']).replace("must","should"))#.replace("must","should")
         
         # if('bool' in query_ and 'should' in query_['bool']):
         #     query_['bool']['should'].append({
@@ -355,12 +391,22 @@ def get_new_query_res(query):
         imp_item = stem_(imp_item)
         print("imp_item---------------")
         print(imp_item)
-        
-        query_['bool']['must']={
+        if('must' in query_['bool']):
+            query_['bool']['must'].append({
                     "multi_match": {
                     
                         "query": imp_item.strip(),
-                      "fields":['description','rekog_all^3',"style"]
+                      "fields":['description',"style","caption"]#'rekog_all^3'
+                    
+                    }
+                    #"match":{"description":imp_item.strip()}
+                })
+        else:
+            query_['bool']['must']={
+                    "multi_match": {
+                    
+                        "query": imp_item.strip(),
+                      "fields":['description',"style"]#'rekog_all^3'
                     
                     }
                     #"match":{"description":imp_item.strip()}

@@ -13,16 +13,26 @@ st.set_page_config(
     layout="wide",
     page_icon="/home/ubuntu/images/opensearch_mark_default.png"
 )
+
+git_icon = base64.b64encode(open("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/Github-symbol.png", "rb").read()).decode()
+quip_icon =  base64.b64encode(open("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/quip.png", "rb").read()).decode()
 st.markdown(
-    
-    """<a href="https://github.com/aws-samples/AI-search-with-amazon-opensearch-service">
-    <img src="data:image/png;base64,{}" width="50" height=50", style = 'position: relative;top:2%;left:98%'>
-    </a>""".format(
-        base64.b64encode(open("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/Github-symbol.png", "rb").read()).decode()
-    ),
+    """<div style = 'position: relative;top:2%;left:95%;vertical-align:middle' >
+    <table border="1" frame="void" rules="all">
+    <tr style='vertical-align:bottom;text-align:center'>
+    <td style='vertical-align:top;text-align:left'><a href="https://github.com/aws-samples/AI-search-with-amazon-opensearch-service">
+    <img src="data:image/png;base64,"""+git_icon+"""" width="35" height=35" title="Code">
+    </a>
+    </td>
+    <td style='vertical-align:bottom;text-align:left'><a href="https://quip-amazon.com/VkZBAzt3mVIb/AI-Powered-OpenSearch-project-issueFR-tracker">
+    <img src="data:image/png;base64,"""+quip_icon+"""" width="40" height=40" title="Feedback">
+    </a></td>
+    </table>
+    </div>""",
        
-        unsafe_allow_html=True,
+        unsafe_allow_html=True
     )
+
 
 # with open('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/auth.yaml') as file:
 #     config = yaml.load(file, Loader=SafeLoader)

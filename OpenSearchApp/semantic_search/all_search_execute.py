@@ -213,8 +213,10 @@ def handler(input_,session_id):
         if(image_upload == 'no' and query != ""):
             multimodal_payload["neural"]["desc_embedding_bedrock-multimodal"]["query_text"] =  query
         if(image_upload == 'yes' and query != ""):
+            
             multimodal_payload["neural"]["desc_embedding_bedrock-multimodal"]["query_image"] =  img
             multimodal_payload["neural"]["desc_embedding_bedrock-multimodal"]["query_text"] =  query
+        
         
         
         hybrid_payload["query"]["hybrid"]["queries"].append(multimodal_payload)
@@ -348,6 +350,7 @@ def handler(input_,session_id):
                 "category":doc['_source']['category'],
                 "price":doc['_source']['price'],
                 "gender_affinity":doc['_source']['gender_affinity'],
+                "style":doc['_source']['style'],
                 
                 }
             if('highlight' in doc):

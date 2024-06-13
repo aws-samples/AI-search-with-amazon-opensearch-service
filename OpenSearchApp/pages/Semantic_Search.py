@@ -154,7 +154,7 @@ if "answers_none_rank" not in st.session_state:
 
 
 if "input_text" not in st.session_state:
-    st.session_state.input_text="trendy footwear for women"
+    st.session_state.input_text="black jacket for men under 120 dollars"
     
 if "input_ndcg" not in st.session_state:
     st.session_state.input_ndcg=0.0  
@@ -164,7 +164,10 @@ if "gen_image_str" not in st.session_state:
 
 if "input_searchType" not in st.session_state:
     st.session_state.input_searchType = ["Keyword Search"]
-
+    
+if "input_must" not in st.session_state:
+    st.session_state.input_must = ["Category"]
+    
 if "input_NormType" not in st.session_state:
     st.session_state.input_NormType = "min_max"
 
@@ -200,10 +203,28 @@ if "bytes_for_rekog" not in st.session_state:
     st.session_state.bytes_for_rekog = ""
 #bytes_for_rekog = ""
 
-
+from streamlit.components.v1 import html
+# with st.container():
+#     html("""
+#     <script>
+#         // Locate elements
+#         var decoration = window.parent.document.querySelectorAll('[data-testid="stDecoration"]')[0];
+#         decoration.style.height = "3.0rem";
+#         decoration.style.right = "45px";
+#         // Adjust text decorations
+#         decoration.innerText = "Semantic Search with OpenSearch!"; // Replace with your desired text
+#         decoration.style.fontWeight = "bold";
+#         decoration.style.display = "flex";
+#         decoration.style.justifyContent = "center";
+#         decoration.style.alignItems = "center";
+#         //decoration.style.fontWeight = "bold";
+#         //decoration.style.backgroundImage = "none"; // Remove background image
+#         //decoration.style.backgroundSize = "unset"; // Remove background size
+#     </script>
+# """, width=0, height=0)
 def generate_images(tab,inp_):
         #write_top_bar()
- 
+        seed = random.randint(1, 10)
         request = json.dumps(
                     {
                         "taskType": "TEXT_IMAGE",
@@ -214,7 +235,7 @@ def generate_images(tab,inp_):
                             "cfgScale": 8.0,
                             "height": 512,
                             "width": 512,
-                        # "seed": seed,
+                            "seed": seed,
                         },
                     }
                 )
@@ -370,9 +391,10 @@ def handle_input():
     # if(st.session_state.input_sparse == 'enabled' or st.session_state.input_is_rewrite_query == 'enabled'):
     #     st.session_state.input_searchType = 'Keyword Search'
     if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):
+        old_rekog_label = st.session_state.input_rekog_label
         st.session_state.input_rekog_label = amazon_rekognition.extract_image_metadata(st.session_state.bytes_for_rekog)
         if(st.session_state.input_text == ""):
-            st.session_state.input_text = st.session_state.input_text + st.session_state.input_rekog_label
+            st.session_state.input_text = st.session_state.input_rekog_label
             
     # if(st.session_state.input_imageUpload == 'yes'):
     #     if(st.session_state.input_searchType!='Multi-modal Search'):
@@ -635,7 +657,7 @@ with col1:
     
 
     search_type = st.multiselect('Select the Search type(s)',
-   search_types,['Keyword Search'],
+    search_types,['Keyword Search'],
    
     key = 'input_searchType',
     help = "Select the type of Search, adding more than one search type will activate hybrid search"#\n1. Conversational Search (Recommended) - This will include both the OpenSearch and LLM in the retrieval pipeline \n (note: This will put opensearch response as context to LLM to answer) \n2. OpenSearch vector search - This will put only OpenSearch's vector search in the pipeline, \n(Warning: this will lead to unformatted results )\n3. LLM Text Generation - This will include only LLM in the pipeline, \n(Warning: This will give hallucinated and out of context answers)"
@@ -656,21 +678,29 @@ with col4:
 if(search_all_type == True):
     with st.sidebar:
         st.page_link("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
+        st.image('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png', width = 300)
         #st.warning('Note: After changing any of the below settings, click "SEARCH" button or 🔄 to apply the changes', icon="⚠️")
         #st.header('     :gear: :orange[Fine-tune Search]')
         #st.write("Note: After changing any of the below settings, click 'SEARCH' button or '🔄' to apply the changes")
         st.subheader(':blue[Keyword Search]')
 
         rewrite_query = st.checkbox('Enrich Docs and Re-write query DSL', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
-        sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
+        st.multiselect('Fields for "MUST"',
+                ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
+   
+                key = 'input_must',
+               )
+            
+            
+        #sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
         st.session_state.input_is_rewrite_query = 'disabled'
         st.session_state.input_is_sql_query = 'disabled'
         if rewrite_query:
             #st.write(st.session_state.inputs_)
             st.session_state.input_is_rewrite_query = 'enabled'
-        if sql_query:
-            #st.write(st.session_state.inputs_)
-            st.session_state.input_is_sql_query = 'enabled'
+        # if sql_query:
+        #     #st.write(st.session_state.inputs_)
+        #     st.session_state.input_is_sql_query = 'enabled'
         
         
         
@@ -956,19 +986,20 @@ def render_answer(answer,index):
                             if(sparse_[key]>=1.0):
                                 filtered_sparse[key] = round(sparse_[key], 2)
                         st.write(filtered_sparse)
-                with st.expander("Document Metadata:"):
+                with st.expander("Document Metadata:",expanded = False):
                     if("rekog" in ans):
                         div_size = [50,50]
                     else:
                         div_size = [99,1]
                     div1,div2 = st.columns(div_size)
                     with div1:
+                        
                         st.write(":green[default:]")
-                        st.json({"category":ans['category'],"price":ans['price'],"gender_affinity":ans['gender_affinity']},expanded = False)
+                        st.json({"category:":ans['category'],"price":str(ans['price']),"gender_affinity":ans['gender_affinity'],"style":ans['style']},expanded = True)
                     with div2:
                         if("rekog" in ans):
                             st.write(":green[enriched:]")
-                            st.json(ans['rekog'],expanded = False)
+                            st.json(ans['rekog'],expanded = True)
             with inner_col_1:
                 
                 if(st.session_state.input_evaluate == "enabled"):
