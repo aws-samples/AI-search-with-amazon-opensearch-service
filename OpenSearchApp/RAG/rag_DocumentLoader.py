@@ -71,11 +71,13 @@ def generate_image_captions_(image_paths):
 
 def load_docs(inp):
     
+    print("input_doc")
+    print(inp)
     extracted_elements_list = []
-
+    
     
     data_dir = parent_dirname+"/pdfs"
-    target_files = [os.path.join(data_dir,file_name) for file_name in os.listdir(data_dir)]
+    target_files = [os.path.join(data_dir,inp["key"])]
     
     
 

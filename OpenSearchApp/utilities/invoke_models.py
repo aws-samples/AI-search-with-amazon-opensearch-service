@@ -61,7 +61,7 @@ def invoke_model_mm(text,img):
 def invoke_llm_model(input,is_stream):
     if(is_stream == False):
         response = bedrock_runtime_client.invoke_model( 
-            modelId= "anthropic.claude-3-sonnet-20240229-v1:0",
+            modelId= "anthropic.claude-3-sonnet-20240229-v1:0",#"anthropic.claude-3-5-sonnet-20240620-v1:0",,
             contentType = "application/json",
             accept = "application/json",
    

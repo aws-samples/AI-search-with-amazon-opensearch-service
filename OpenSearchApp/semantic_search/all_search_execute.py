@@ -107,8 +107,8 @@ def handler(input_,session_id):
         weight = input_['weightage'][i+'-weight']/100
         if(weight>0.0):
             weights.append(weight)
-    
-    
+            
+      
         
     ######## Create Search pipeline #######   
     print("Creating Search pipeline")        
@@ -134,7 +134,16 @@ def handler(input_,session_id):
     r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
     print("Search Pipeline Creation: "+str(r.status_code))
     
+    ######## start of Applying LLM filters ####### 
+    if(st.session_state.input_rewritten_query!=""):
+            filter_ = {"filter": {
+                 "bool": {
+                     "must": []}}}
+            filter_['filter']['bool']['must'] = st.session_state.input_rewritten_query['query']['bool']['must']
+    ######## end of Applying LLM filters ####### 
+    
     ######### Create the queries for hybrid search #########
+    
     
     path = "retail-ml-search-index/_search?search_pipeline=hybrid-search-pipeline" 
     
@@ -183,15 +192,49 @@ def handler(input_,session_id):
         
     if('Vector Search' in search_types):
         
+        path3 =  "_plugins/_ml/models/"+BEDROCK_TEXT_MODEL_ID+"/_predict"
+        
+        url3 = host+path3
+        
+        payload3 = {
+        "parameters": {
+            "inputs": query
+            }
+                }
+        
+        r3 = requests.post(url3, auth=awsauth, json=payload3, headers=headers)
+        vector_ = json.loads(r3.text)
+        
+        query_vector = vector_['inference_results'][0]['output'][0]['data']
+        #print(query_vector)
+        
         vector_payload = {
-                        "neural": {
+                        "knn": {
                         "desc_embedding_bedrock-text": {
-                            "query_text": query,
-                            "model_id": BEDROCK_TEXT_MODEL_ID,
+                            "vector":query_vector,
+                            #"query_text": query,
+                            #"model_id": BEDROCK_TEXT_MODEL_ID,
                             "k": k_
                         }
                         }
                     }
+        
+        # using neural query (without efficient filters)
+        # vector_payload = {
+        #                 "neural": {
+        #                 "desc_embedding_bedrock-text": {
+        #                     "query_text": query,
+        #                     "model_id": BEDROCK_TEXT_MODEL_ID,
+        #                     "k": k_
+        #                 }
+        #                 }
+        #             }
+        
+        ###### start of efficient filter applying #####
+        if(st.session_state.input_rewritten_query!=""):
+            vector_payload['knn']['desc_embedding_bedrock-text']['filter'] = filter_['filter']
+        ###### end of efficient filter applying #####
+        
         hybrid_payload["query"]["hybrid"]["queries"].append(vector_payload)
         
     if('Multimodal Search' in search_types):
@@ -225,28 +268,7 @@ def handler(input_,session_id):
           
         
     if('NeuralSparse Search' in search_types):
-            
-        print("text expansion is enabled")
-        sparse_payload = {
-            
-                "neural_sparse": 
-                {
-                "desc_embedding_sparse":
-                    {
-                "query_text": query,
-                "model_id": SAGEMAKER_SPARSE_MODEL_ID
-                #"max_token_score": 2
-            }
-            }
-                
-                }
         
-        
-        hybrid_payload["query"]["hybrid"]["queries"].append(sparse_payload)
-            
-            
-            
-            
         path2 =  "_plugins/_ml/models/"+SAGEMAKER_SPARSE_MODEL_ID+"/_predict"
         
         url2 = host+path2
@@ -260,6 +282,54 @@ def handler(input_,session_id):
         r2 = requests.post(url2, auth=awsauth, json=payload2, headers=headers)
         sparse_ = json.loads(r2.text)
         query_sparse = sparse_["inference_results"][0]["output"][0]["dataAsMap"]["response"][0]
+        query_sparse_sorted = {key: value for key, 
+               value in sorted(query_sparse.items(), 
+                               key=lambda item: item[1],reverse=True)}
+        print("text expansion is enabled")
+        #print(query_sparse_sorted)
+        query_sparse_sorted_filtered = {}
+       
+        rank_features = []
+        for key_ in query_sparse_sorted.keys():
+            if(query_sparse_sorted[key_]>=st.session_state.input_sparse_filter):
+                feature = {"rank_feature": {"field": "desc_embedding_sparse."+key_,"boost":query_sparse_sorted[key_]}}
+                rank_features.append(feature)
+                query_sparse_sorted_filtered[key_]=query_sparse_sorted[key_]
+            else:
+                break
+        
+        #print(query_sparse_sorted_filtered)
+        sparse_payload = {"bool":{"should":rank_features}}
+        
+        ###### start of efficient filter applying #####
+        if(st.session_state.input_rewritten_query!=""):
+            sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
+        ###### end of efficient filter applying #####
+        
+        
+        #print(sparse_payload)
+            
+        # sparse_payload = {
+            
+        #         "neural_sparse": 
+        #         {
+        #         "desc_embedding_sparse":
+        #             {
+        #         "query_text": query,
+        #         "model_id": SAGEMAKER_SPARSE_MODEL_ID,
+        #         #"max_token_score": 2
+        #     }
+        #     }
+                
+        #         }
+        
+        
+        hybrid_payload["query"]["hybrid"]["queries"].append(sparse_payload)
+            
+            
+            
+            
+        
         
 
         
@@ -278,6 +348,8 @@ def handler(input_,session_id):
         single_query = hybrid_payload["query"]["hybrid"]["queries"][0]
         del hybrid_payload["query"]["hybrid"]
         hybrid_payload["query"] = single_query
+        # print("-------final query--------")
+        #print(hybrid_payload)
         r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
         print(r.status_code)
         #print(r.text)
@@ -288,6 +360,7 @@ def handler(input_,session_id):
     
     
     else:
+        
         if( st.session_state.input_hybridType == "OpenSearch Hybrid Query"):
             r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
             print(r.status_code)
@@ -357,7 +430,7 @@ def handler(input_,session_id):
                 res_['highlight'] = doc['highlight']['description']
             if('NeuralSparse Search' in search_types):
                 res_['sparse'] = doc['_source']['desc_embedding_sparse']
-                res_['query_sparse'] = query_sparse
+                res_['query_sparse'] = query_sparse_sorted_filtered
             if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
                 res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}
             

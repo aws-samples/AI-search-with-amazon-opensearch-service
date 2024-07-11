@@ -1,6 +1,7 @@
 import streamlit as st
 import uuid
 import os
+import re
 import sys
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/semantic_search")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/RAG")
@@ -474,6 +475,7 @@ with st.sidebar:
             #st.write("["+obj.key.split('/')[1]+"]("+s3_presigned_url+")")
             st.link_button(obj.key.split('/')[1], s3_presigned_url)
     
+    
     st.subheader(":blue[Your multi-modal documents]")
     pdf_doc_ = st.file_uploader(
         "Upload your PDFs here and click on 'Process'", accept_multiple_files=False)
@@ -538,6 +540,10 @@ with st.sidebar:
     #     st.session_state.input_include_tables = True
     # else:
     #     st.session_state.input_include_tables = False
+    
+    custom_index = st.text_input("If uploaded the file already, enter the original file name", value = "")
+    if(custom_index!=""):
+        st.session_state.input_index = re.sub('[^A-Za-z0-9]+', '', (custom_index.lower().replace(".pdf","").split("/")[-1].split(".")[0]).lower())
     
     
     

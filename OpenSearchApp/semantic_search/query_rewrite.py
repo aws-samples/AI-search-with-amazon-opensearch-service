@@ -393,7 +393,7 @@ def get_new_query_res(query):
         print(imp_item)
         if('must' in query_['bool']):
             query_['bool']['must'].append({
-                    "multi_match": {
+                    "simple_query_string": {
                     
                         "query": imp_item.strip(),
                       "fields":['description',"style","caption"]#'rekog_all^3'
@@ -416,6 +416,7 @@ def get_new_query_res(query):
         #query_['bool']["minimum_should_match"] = 1
             
         st.session_state.input_rewritten_query = {"query":query_}
+        print(st.session_state.input_rewritten_query)
     # if(st.session_state.input_rekog_label!="" and query!=st.session_state.input_rekog_label):
     #     amazon_rekognition.call(st.session_state.input_text,st.session_state.input_rekog_label)
     

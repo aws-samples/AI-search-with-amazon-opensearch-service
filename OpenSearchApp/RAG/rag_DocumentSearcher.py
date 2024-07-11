@@ -23,7 +23,7 @@ parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
 
 def query_(awsauth,inputs, session_id,search_types):
 
-
+    print("using index: "+st.session_state.input_index)
 
     question = inputs['query']
     

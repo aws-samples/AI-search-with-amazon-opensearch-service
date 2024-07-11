@@ -154,7 +154,7 @@ if "answers_none_rank" not in st.session_state:
 
 
 if "input_text" not in st.session_state:
-    st.session_state.input_text="black jacket for men under 120 dollars"
+    st.session_state.input_text="silver bracelets for men"#"black jacket for men under 120 dollars"
     
 if "input_ndcg" not in st.session_state:
     st.session_state.input_ndcg=0.0  
@@ -166,7 +166,7 @@ if "input_searchType" not in st.session_state:
     st.session_state.input_searchType = ["Keyword Search"]
     
 if "input_must" not in st.session_state:
-    st.session_state.input_must = ["Category"]
+    st.session_state.input_must = ["Category","Price","Gender","Style"]
     
 if "input_NormType" not in st.session_state:
     st.session_state.input_NormType = "min_max"
@@ -186,6 +186,10 @@ if "input_is_rewrite_query" not in st.session_state:
     
 if "input_rekog_label" not in st.session_state:
     st.session_state.input_rekog_label = ""
+    
+
+if "input_sparse_filter" not in st.session_state:
+    st.session_state.input_sparse_filter = 0.5
 
 if "input_modelType" not in st.session_state:
     st.session_state.input_modelType = "Titan-Embed-Text-v1"
@@ -217,9 +221,9 @@ from streamlit.components.v1 import html
 #         decoration.style.display = "flex";
 #         decoration.style.justifyContent = "center";
 #         decoration.style.alignItems = "center";
-#         //decoration.style.fontWeight = "bold";
-#         //decoration.style.backgroundImage = "none"; // Remove background image
-#         //decoration.style.backgroundSize = "unset"; // Remove background size
+#         decoration.style.fontWeight = "bold";
+#         decoration.style.backgroundImage = url('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png'); // Remove background image
+#         decoration.style.backgroundSize = "unset"; // Remove background size
 #     </script>
 # """, width=0, height=0)
 def generate_images(tab,inp_):
@@ -678,19 +682,21 @@ with col4:
 if(search_all_type == True):
     with st.sidebar:
         st.page_link("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
-        st.image('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png', width = 300)
+        #st.image('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png', width = 300)
         #st.warning('Note: After changing any of the below settings, click "SEARCH" button or 🔄 to apply the changes', icon="⚠️")
         #st.header('     :gear: :orange[Fine-tune Search]')
         #st.write("Note: After changing any of the below settings, click 'SEARCH' button or '🔄' to apply the changes")
-        st.subheader(':blue[Keyword Search]')
+        #st.subheader(':blue[Keyword Search]')
 
-        rewrite_query = st.checkbox('Enrich Docs and Re-write query DSL', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
-        st.multiselect('Fields for "MUST"',
+        rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
+        st.multiselect('Fields for "MUST" filter',
                 ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
    
                 key = 'input_must',
                )
-            
+        
+        sparse_filter = st.slider('Keep only sparse tokens with weight >=', 0.0, 1.0, 0.5,0.1,key = 'input_sparse_filter', help = 'Use this slider to set the minimum weight that the sparse vector token weights should meet, rest are filtered out')
+          
             
         #sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
         st.session_state.input_is_rewrite_query = 'disabled'
@@ -839,8 +845,7 @@ def write_user_message(md,ans):
                 query_sparse = dict(sorted(ans['query_sparse'].items(), key=lambda item: item[1],reverse=True))
                 filtered_query_sparse = dict()
                 for key in query_sparse:
-                    if(query_sparse[key]>=0.5):
-                        filtered_query_sparse[key] = round(query_sparse[key], 2)
+                    filtered_query_sparse[key] = round(query_sparse[key], 2)
                 st.write(filtered_query_sparse)
         if(st.session_state.input_is_rewrite_query == "enabled" and st.session_state.input_rewritten_query !=""):
             with st.expander("Re-written Query:"):
