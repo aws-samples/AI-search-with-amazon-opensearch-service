@@ -1,46 +1,40 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# # Build Multimodal Search with Amazon OpenSearch service
+
 # In[ ]:
 
 
 #Install python packages
-get_ipython().run_line_magic('pip', 'install requests_aws4auth boto3 PIL opensearch_py')
+get_ipython().run_line_magic('pip', 'install requests_aws4auth boto3 pillow opensearch_py ipywidgets')
 
 
-# # 1. Setup OpenSearch client
+# ## 1. Setup OpenSearch client
 # 
 # NOTE: Values enclosed within <> are the parameters that you should configure
 # 
 # You should also setup opensearch authentication in the code 
 
-# In[234]:
+# In[ ]:
 
 
 import requests
 from requests_aws4auth import AWS4Auth
 import boto3
+import json
 from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
 from requests.auth import HTTPBasicAuth
 
 
 headers = {"Content-Type": "application/json"}
-host = <OpenSearch domain endpoint without 'https://'> #example: "opensearch-domain-endpoint.us-east-1.es.amazonaws.com"
+host = <opensearch domain endpoint without 'https://'> #example: "opensearch-domain-endpoint.us-east-1.es.amazonaws.com"
 service = 'es'
-region = <region-name> #example: "us-east-1"
+region = <aws-region> #example: "us-east-1"
 
-# Use any of the below 3 methods to setup opensearch authentication
 
-# 1.boto3 session from the attached IAM role
-credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
-
-# 2.boto3 session from the IAM user
-credentials = boto3.Session().get_credentials()
-awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service)
-
-# 3.Using OpenSearch internal database credentials
-awsauth = HTTPBasicAuth(<username>,<password>)
+# 3.Use OpenSearch master credentials that you created while creating the OpenSearch domain
+awsauth = HTTPBasicAuth(<master username>,<master password>)
 
 
 #Initialise OpenSearch-py client
@@ -52,9 +46,9 @@ aos_client = OpenSearch(
 )
 
 
-# # 2. Download the dataset (.gz) and extract the .gz file
+# ## 2. Download the dataset (.gz) and extract the .gz file
 
-# In[235]:
+# In[ ]:
 
 
 import os
@@ -72,80 +66,114 @@ file.close()
 os.remove('tmp/images/images.tar.gz')
 
 
-# # 3. Create the OpenSearch Bedrock ML connector
+# # Do you have the model_id already ?
 
-# In[236]:
+# In[ ]:
+
+
+import ipywidgets as widgets
+from ipywidgets import Dropdown
+
+model_id_selection = [
+    "I have the model_id already from the cloudformation",
+    "I don't have the model_id already fromthe cloudformation",
+]
+
+model_id_dropdown = widgets.Dropdown(
+    options=model_id_selection,
+    value="I have the model_id already from the cloudformation",
+    description="Is model_id already created ?",
+    style={"description_width": "initial"},
+    layout={"width": "max-content"},
+)
+
+display(model_id_dropdown)
+
+
+# In[ ]:
+
+
+if(model_id_dropdown.value == "I have the model_id already from the cloudformation"):
+    model_id = (input("Enter the model_id and press ENTER : "))
+    print("model_id: "+model_id)
+else:
+    model_id = ""
+    print("model_id: '' \nCreate the model id by running next step")
+
+
+# # Run the below step 3 only if you DO NOT have the model_id 
+# 
+# # If you have the model_id already created from the cloudformation template, skip step 3 and proceed from step 4
+
+# ## 3. Create the OpenSearch Bedrock ML connector
+# 
+# you need to change **"iam-role-arn"** below with the ARN of the IAM role that has permissions to talk to OpenSearch and mapped as back-end role in OpenSearch dashboards
+
+# In[ ]:
 
 
 # Register repository
-import json
-path = '_plugins/_ml/connectors/_create'
-url = 'https://'+host + '/' + path
+if(model_id == ''):
+    path = '_plugins/_ml/connectors/_create'
+    url = 'https://'+host + '/' + path
 
-payload = {
-   "name": "sagemaker: embedding",
-   "description": "Test connector for Sagemaker embedding model",
-   "version": 1,
-   "protocol": "aws_sigv4",
-   "credential": {
-      "roleArn": "<iam-role-arn>"
-   },
-   "parameters": {
-      "region": region,
-      "service_name": "bedrock"
-   },
-   "actions": [
-      {
-         "action_type": "predict",
-         "method": "POST",
-       "headers": {
-        "content-type": "application/json",
-        "x-amz-content-sha256": "required"
-      },
-         
-    "url": "https://bedrock-runtime."+region+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
-     "request_body": "{ \"inputText\": \"${parameters.inputText:-null}\", \"inputImage\": \"${parameters.inputImage:-null}\" }",
-      "pre_process_function": "\n    StringBuilder parametersBuilder = new StringBuilder(\"{\");\n    if (params.text_docs.length > 0 && params.text_docs[0] != null) {\n      parametersBuilder.append(\"\\\"inputText\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[0]);\n      parametersBuilder.append(\"\\\"\");\n      \n      if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n        parametersBuilder.append(\",\");\n      }\n    }\n    \n    \n    if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n      parametersBuilder.append(\"\\\"inputImage\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[1]);\n      parametersBuilder.append(\"\\\"\");\n    }\n    parametersBuilder.append(\"}\");\n    \n    return  \"{\" +\"\\\"parameters\\\":\" + parametersBuilder + \"}\";",
-      "post_process_function": "\n      def name = \"sentence_embedding\";\n      def dataType = \"FLOAT32\";\n      if (params.embedding == null || params.embedding.length == 0) {\n          return null;\n      }\n      def shape = [params.embedding.length];\n      def json = \"{\" +\n                 \"\\\"name\\\":\\\"\" + name + \"\\\",\" +\n                 \"\\\"data_type\\\":\\\"\" + dataType + \"\\\",\" +\n                 \"\\\"shape\\\":\" + shape + \",\" +\n                 \"\\\"data\\\":\" + params.embedding +\n                 \"}\";\n      return json;\n    "
-      }
-   ]
-}
-headers = {"Content-Type": "application/json"}
+    payload = {
+       "name": "sagemaker: embedding",
+       "description": "Test connector for Sagemaker embedding model",
+       "version": 1,
+       "protocol": "aws_sigv4",
+       "credential": {
+          "roleArn": "<iam-role-arn>"
+       },
+       "parameters": {
+          "region": region,
+          "service_name": "bedrock"
+       },
+       "actions": [
+          {
+             "action_type": "predict",
+             "method": "POST",
+           "headers": {
+            "content-type": "application/json",
+            "x-amz-content-sha256": "required"
+          },
 
-r = requests.post(url, auth=awsauth, json=payload, headers=headers)
-print(r.status_code)
-print(r.text)
-connector_id = json.loads(r.text)["connector_id"]
-connector_id
+        "url": "https://bedrock-runtime."+region+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
+         "request_body": "{ \"inputText\": \"${parameters.inputText:-null}\", \"inputImage\": \"${parameters.inputImage:-null}\" }",
+          "pre_process_function": "\n    StringBuilder parametersBuilder = new StringBuilder(\"{\");\n    if (params.text_docs.length > 0 && params.text_docs[0] != null) {\n      parametersBuilder.append(\"\\\"inputText\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[0]);\n      parametersBuilder.append(\"\\\"\");\n      \n      if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n        parametersBuilder.append(\",\");\n      }\n    }\n    \n    \n    if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n      parametersBuilder.append(\"\\\"inputImage\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[1]);\n      parametersBuilder.append(\"\\\"\");\n    }\n    parametersBuilder.append(\"}\");\n    \n    return  \"{\" +\"\\\"parameters\\\":\" + parametersBuilder + \"}\";",
+          "post_process_function": "\n      def name = \"sentence_embedding\";\n      def dataType = \"FLOAT32\";\n      if (params.embedding == null || params.embedding.length == 0) {\n          return null;\n      }\n      def shape = [params.embedding.length];\n      def json = \"{\" +\n                 \"\\\"name\\\":\\\"\" + name + \"\\\",\" +\n                 \"\\\"data_type\\\":\\\"\" + dataType + \"\\\",\" +\n                 \"\\\"shape\\\":\" + shape + \",\" +\n                 \"\\\"data\\\":\" + params.embedding +\n                 \"}\";\n      return json;\n    "
+          }
+       ]
+    }
+    headers = {"Content-Type": "application/json"}
 
+    r = requests.post(url, auth=awsauth, json=payload, headers=headers)
+    print(r.status_code)
+    print(r.text)
+    connector_id = json.loads(r.text)["connector_id"]
 
-# # 4. Register and deploy the model
+    # Register the model
+    path = '_plugins/_ml/models/_register'
+    url = 'https://'+host + '/' + path
+    payload = { "name": "Bedrock Multimodal embeddings model",
+    "function_name": "remote",
+    "description": "Bedrock Multimodal embeddings model",
+    "connector_id": connector_id}
+    r = requests.post(url, auth=awsauth, json=payload, headers=headers)
+    model_id = json.loads(r.text)["model_id"]
+    print("Model registered under model_id: "+model_id)
 
-# In[237]:
-
-
-# Register the model
-path = '_plugins/_ml/models/_register'
-url = 'https://'+host + '/' + path
-payload = { "name": "Bedrock Multimodal embeddings model",
-"function_name": "remote",
-"description": "Bedrock Multimodal embeddings model",
-"connector_id": connector_id}
-r = requests.post(url, auth=awsauth, json=payload, headers=headers)
-model_id = json.loads(r.text)["model_id"]
-print("Model registered under model_id: "+model_id)
-
-# Deploy the model
-path = '_plugins/_ml/models/'+model_id+'/_deploy'
-url = 'https://'+host + '/' + path
-r = requests.post(url, auth=awsauth, headers=headers)
-deploy_status = json.loads(r.text)["status"]
-print("Deployment status of the model, "+model_id+" : "+deploy_status)
+    # Deploy the model
+    path = '_plugins/_ml/models/'+model_id+'/_deploy'
+    url = 'https://'+host + '/' + path
+    r = requests.post(url, auth=awsauth, headers=headers)
+    deploy_status = json.loads(r.text)["status"]
+    print("Deployment status of the model, "+model_id+" : "+deploy_status)
 
 
-# # 5. Test the OpenSearch - Bedrock integration with a test input
+# ## 4. Test the OpenSearch - Bedrock integration with a test input
 
-# In[238]:
+# In[ ]:
 
 
 import base64
@@ -171,7 +199,7 @@ print("\n")
 print("Total: "+str(shape)+" dimensions")
 
 
-# # 6. Create the OpenSearch ingest pipeline
+# ## 5. Create the OpenSearch ingest pipeline
 
 # In[ ]:
 
@@ -186,7 +214,7 @@ payload = {
 "model_id":model_id,
 "embedding": "vector_embedding",
 "field_map": {
-"text": "image_description",
+"text": "product_description",
 "image": "image_binary"
 }}}]}
 r = requests.put(url, auth=awsauth, json=payload, headers=headers)
@@ -194,9 +222,9 @@ print(r.status_code)
 print(r.text)
 
 
-# # 7. Create the k-NN index
+# ## 6. Create the k-NN index
 
-# In[240]:
+# In[ ]:
 
 
 path = "bedrock-multimodal-demostore-search-index"
@@ -243,9 +271,9 @@ print(r.status_code)
 print(r.text)
 
 
-# # 8. Ingest the dataset into k-NN index usig Bulk request
+# ## 7. Ingest the dataset into k-NN index usig Bulk request
 
-# In[241]:
+# In[ ]:
 
 
 from ruamel.yaml import YAML
@@ -318,9 +346,9 @@ response = aos_client.bulk(
 print("All "+str(last_batch)+" batches ingested into index")
 
 
-# # 9. Experiment 1: Keyword search
+# ## 8. Experiment 1: Keyword search
 
-# In[242]:
+# In[ ]:
 
 
 #Keyword Search
@@ -351,9 +379,9 @@ for i,doc in enumerate(docs):
     image.show()
 
 
-# # 10. Experiment 2: Multimodal search with only text caption as input
+# ## 9. Experiment 2: Multimodal search with only text caption as input
 
-# In[243]:
+# In[ ]:
 
 
 #Multimodal Search
@@ -396,9 +424,9 @@ for i,doc in enumerate(docs):
     
 
 
-# # 11. Experiment 3: Multimodal search with only image as input
+# ## 10. Experiment 3: Multimodal search with only image as input
 
-# In[244]:
+# In[ ]:
 
 
 #Multimodal Search
@@ -447,9 +475,9 @@ for i,doc in enumerate(docs):
     image.show()
 
 
-# # 12. Experiment 4: Multimodal search with both image and text caption as inputs
+# ## 11. Experiment 4: Multimodal search with both image and text caption as inputs
 
-# In[245]:
+# In[ ]:
 
 
 #Multimodal Search
