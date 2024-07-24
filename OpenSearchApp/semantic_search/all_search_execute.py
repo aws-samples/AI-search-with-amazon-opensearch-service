@@ -349,13 +349,13 @@ def handler(input_,session_id):
         del hybrid_payload["query"]["hybrid"]
         hybrid_payload["query"] = single_query
         # print("-------final query--------")
-        #print(hybrid_payload)
+        print(hybrid_payload)
         r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
         print(r.status_code)
         #print(r.text)
         response_ = json.loads(r.text)
         print("-------------------------------------------------------------------")
-        #print(response_)
+        print(response_)
         docs = response_['hits']['hits']
     
     
