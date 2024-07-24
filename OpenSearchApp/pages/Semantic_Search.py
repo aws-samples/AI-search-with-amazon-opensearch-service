@@ -836,8 +836,10 @@ def write_user_message(md,ans):
     col1, col2, col3 = st.columns([3,40,20])
     
     with col1:
+        
         st.image(USER_ICON, use_column_width='always')
     with col2:
+        
         #st.warning(md['question'])
         st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Text: </div><div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;font-style: italic;color:#e28743'>"+md['question']+"</div>", unsafe_allow_html = True)
         if('query_sparse' in ans):
