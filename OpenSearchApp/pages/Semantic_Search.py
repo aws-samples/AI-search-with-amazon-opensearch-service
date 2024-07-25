@@ -65,11 +65,11 @@ else:
     'Multimodal Search'
     ]
 
-USER_ICON = "images/user.png"
-AI_ICON = "images/opensearch-twitter-card.png"
-REGENERATE_ICON = "images/regenerate.png"
-IMAGE_ICON = "images/Image_Icon.png"
-TEXT_ICON = "images/text.png"
+USER_ICON = "OpenSearchApp/images/user.png"
+AI_ICON = "OpenSearchApp/images/opensearch-twitter-card.png"
+REGENERATE_ICON = "OpenSearchApp/images/regenerate.png"
+IMAGE_ICON = "OpenSearchApp/images/Image_Icon.png"
+TEXT_ICON = "OpenSearchApp/images/text.png"
 s3_bucket_ = "pdf-repo-uploads"
             #"pdf-repo-uploads"
 
@@ -681,7 +681,7 @@ with col4:
 
 if(search_all_type == True):
     with st.sidebar:
-        st.page_link("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
+        st.page_link("/home/ubuntu/opensearch-app-custom-data/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
         #st.image('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png', width = 300)
         #st.warning('Note: After changing any of the below settings, click "SEARCH" button or 🔄 to apply the changes', icon="⚠️")
         #st.header('     :gear: :orange[Fine-tune Search]')
