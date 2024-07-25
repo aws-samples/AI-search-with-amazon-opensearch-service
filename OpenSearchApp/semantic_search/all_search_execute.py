@@ -20,12 +20,14 @@ import boto3
 import streamlit as st
 
 
-DOMAIN_ENDPOINT =   "search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com" #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
-REGION = "us-east-1" #'us-west-2'#
-SAGEMAKER_MODEL_ID = 'uPQAE40BnrP7K1qW-Alx' #'P_vh7YsBNIVobUP3w7RJ' #
-BEDROCK_TEXT_MODEL_ID = 'iUvGQYwBuQkLO8mDfE0l'
-BEDROCK_MULTIMODAL_MODEL_ID = 'o6GykYwB08ySW4fgXdf3'
-SAGEMAKER_SPARSE_MODEL_ID = 'srrJ-owBQhe1aB-khx2n'
+DOMAIN_ENDPOINT =   st.session_state.OpenSearchDomainEndpoint #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
+REGION = 'us-west-2'
+#SAGEMAKER_MODEL_ID = st.session_state.SAGEMAKER_MODEL_ID
+BEDROCK_TEXT_MODEL_ID = st.session_state.BEDROCK_TEXT_MODEL_ID
+BEDROCK_MULTIMODAL_MODEL_ID = st.session_state.BEDROCK_MULTIMODAL_MODEL_ID
+SAGEMAKER_SPARSE_MODEL_ID = st.session_state.SAGEMAKER_SPARSE_MODEL_ID
+print("BEDROCK_TEXT_MODEL_ID")
+print(BEDROCK_TEXT_MODEL_ID)
 
 current_date_time = (datetime.now()).isoformat()
 today_ = datetime.today().strftime('%Y-%m-%d')
@@ -198,13 +200,13 @@ def handler(input_,session_id):
         
         payload3 = {
         "parameters": {
-            "inputs": query
+            "inputText": query
             }
                 }
         
         r3 = requests.post(url3, auth=awsauth, json=payload3, headers=headers)
         vector_ = json.loads(r3.text)
-        
+        print(r3.text)
         query_vector = vector_['inference_results'][0]['output'][0]['data']
         #print(query_vector)
         

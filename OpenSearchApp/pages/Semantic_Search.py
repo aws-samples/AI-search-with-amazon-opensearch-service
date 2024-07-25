@@ -681,7 +681,7 @@ with col4:
 
 if(search_all_type == True):
     with st.sidebar:
-        st.page_link("/home/ubuntu/opensearch-app-custom-data/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
+        st.page_link("/home/ec2-user/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
         #st.image('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png', width = 300)
         #st.warning('Note: After changing any of the below settings, click "SEARCH" button or 🔄 to apply the changes', icon="⚠️")
         #st.header('     :gear: :orange[Fine-tune Search]')
@@ -798,7 +798,7 @@ if(search_all_type == True):
         #st.subheader('Note: The below selection applies only when the Search type is set to Vector or Hybrid Search')
         st.subheader(':blue[Re-ranking]')
         reranker = st.selectbox('Choose a Re-Ranker',
-        ('None','Kendra Rescore','Cross Encoder'
+        ('None','Cross Encoder'
         
         ),
         
@@ -934,7 +934,7 @@ def render_answer(answer,index):
         with col_1:
             inner_col_1,inner_col_2 = st.columns([8,92])
             with inner_col_2:
-                st.image(ans['image_url'].replace('https://retail-demo-store-us-east-1.s3.amazonaws.com/images/','/home/ubuntu/images_retail/'))
+                st.image(ans['image_url'].replace('https://retail-demo-store-us-east-1.s3.amazonaws.com/images/','/home/ec2-user/images_retail/'))
 
                 if("highlight" in ans and 'Keyword Search' in st.session_state.input_searchType):
                     test_strs = ans["highlight"]
@@ -992,19 +992,19 @@ def render_answer(answer,index):
                                 filtered_sparse[key] = round(sparse_[key], 2)
                         st.write(filtered_sparse)
                 with st.expander("Document Metadata:",expanded = False):
-                    if("rekog" in ans):
-                        div_size = [50,50]
-                    else:
-                        div_size = [99,1]
-                    div1,div2 = st.columns(div_size)
-                    with div1:
+                    # if("rekog" in ans):
+                    #     div_size = [50,50]
+                    # else:
+                    #     div_size = [99,1]
+                    # div1,div2 = st.columns(div_size)
+                    # with div1:
                         
-                        st.write(":green[default:]")
-                        st.json({"category:":ans['category'],"price":str(ans['price']),"gender_affinity":ans['gender_affinity'],"style":ans['style']},expanded = True)
-                    with div2:
-                        if("rekog" in ans):
-                            st.write(":green[enriched:]")
-                            st.json(ans['rekog'],expanded = True)
+                    st.write(":green[default:]")
+                    st.json({"category:":ans['category'],"price":str(ans['price']),"gender_affinity":ans['gender_affinity'],"style":ans['style']},expanded = True)
+                    #with div2:
+                    if("rekog" in ans):
+                        st.write(":green[enriched:]")
+                        st.json(ans['rekog'],expanded = True)
             with inner_col_1:
                 
                 if(st.session_state.input_evaluate == "enabled"):
