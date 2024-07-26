@@ -28,6 +28,14 @@ Parameters:
     Type: String
     AllowedValues: [opensearch-ml-search]
     Description: Name of the overall application, this is used while creating the ML model endpoint.
+  OpenSearchMasterUsername:
+    Default: "test"
+    Type: String
+    Description: Master username of the source OpenSearch cluster that has all_access to OpenSearch indices. You should have a public opensearch domain with master credentials for this.
+  OpenSearchMasterPassword:
+    Default: "@ML-Search123"
+    Type: String
+    Description: Master username of the source OpenSearch cluster that has all_access to OpenSearch indices. You should have a public opensearch domain with master credentials for this.
   
 
 Mappings: 
@@ -415,7 +423,13 @@ Outputs:
           - DomainName
     Description: Name of S3 bucket to hold website content
 
+  OpenSearchUsername:
+    Description: OpenSearchUsername
+    Value: !Ref OpenSearchMasterUsername
 
+  OpenSearchPassword:
+    Description: OpenSearchPassword
+    Value: !Ref OpenSearchMasterPassword
 
 
 
