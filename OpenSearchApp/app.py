@@ -11,6 +11,7 @@ import time
 import os
 import urllib.request
 import tarfile
+import subprocess
 
 st.set_page_config(
     
@@ -28,6 +29,9 @@ if "index_map" not in st.session_state:
 if "OpenSearchDomainEndpoint" not in st.session_state:
     st.session_state.OpenSearchDomainEndpoint = ""
     
+if "REGION" not in st.session_state:
+    st.session_state.REGION = ""
+    
 if "BEDROCK_MULTIMODAL_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ""
 
@@ -40,9 +44,9 @@ if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     
     
 
-    
-if(os.path.isdir("/home/ec2-user/images_retail") == False):
-
+isExist = os.path.exists("/home/ec2-user/images_retail")
+if not isExist:   
+    os.makedirs('/home/ec2-user/images_retail')
     metadata_file = urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/products-data.yml', '/home/ec2-user/images_retail/products.yaml')
     img_filename,headers= urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/images.tar.gz', '/home/ec2-user/images_retail/images.tar.gz')              
     print(img_filename)
@@ -52,13 +56,24 @@ if(os.path.isdir("/home/ec2-user/images_retail") == False):
     #remove images.tar.gz
     os.remove('/home/ec2-user/images_retail/images.tar.gz')
     
-cfn = boto3.client('cloudformation',region_name='us-east-1')
+# Define the command
+command = "ec2-metadata --availability-zone | sed 's/.$//'"
+
+# Run the command and capture the output
+output = subprocess.check_output(command, shell=True, text=True)
+
+# Print the command output
+print("Command output:")
+st.session_state.REGION = output.split(":")[1].strip()
+print(st.session_state.REGION)
+
+cfn = boto3.client('cloudformation',region_name=st.session_state.REGION)
 
 response = cfn.list_stacks(StackStatusFilter=['CREATE_COMPLETE','UPDATE_COMPLETE'])
 
 for cfns in response['StackSummaries']:
     if('TemplateDescription' in cfns.keys()):
-        if('hybrid search' in cfns['TemplateDescription']):
+        if('NextGen ML search' in cfns['TemplateDescription']):
             stackname = cfns['StackName']
 
 
@@ -82,8 +97,7 @@ for output in cfn_outputs:
         s3_bucket = output['OutputValue']
         
 
-region = 'us-east-1'#boto3.Session().region_name  
-print(region)
+
         
 
 account_id = boto3.client('sts').get_caller_identity().get('Account')
@@ -106,13 +120,13 @@ def create_ml_components():
     host = 'https://'+OpenSearchDomainEndpoint+'/'
     service = 'es'
     credentials = boto3.Session().get_credentials()
-    awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, region, service, session_token=credentials.token)
+    awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_state.REGION, service, session_token=credentials.token)
 
 
     remote_ml = {
                 "sagemaker_sparse":
                  {
-                     "endpoint_url":"https://runtime.sagemaker."+region+".amazonaws.com/endpoints/"+SparseEmbeddingEndpointName+"/invocations",
+                     "endpoint_url":"https://runtime.sagemaker."+st.session_state.REGION+".amazonaws.com/endpoints/"+SparseEmbeddingEndpointName+"/invocations",
                      "pre_process_fun": '\n    StringBuilder builder = new StringBuilder();\n    builder.append("\\"");\n    builder.append(params.text_docs[0]);\n    builder.append("\\"");\n    def parameters = "{" +"\\"inputs\\":" + builder + "}";\n    return "{" +"\\"parameters\\":" + parameters + "}";\n    ', 
                    #"post_process_fun": '\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.result == null || params.result.length == 0) {\n        return null;\n    }\n    def shape = [params.result[0].length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.result[0] +\n               "}";\n    return json;\n    ',
                     "request_body": """["${parameters.inputs}"]"""
@@ -121,7 +135,7 @@ def create_ml_components():
                 
                  "bedrock_text":
                 {
-                     "endpoint_url":"https://bedrock-runtime."+region+".amazonaws.com/model/amazon.titan-embed-text-v1/invoke",
+                     "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-text-v1/invoke",
                     "pre_process_fun": "\n    StringBuilder builder = new StringBuilder();\n    builder.append(\"\\\"\");\n    String first = params.text_docs[0];\n    builder.append(first);\n    builder.append(\"\\\"\");\n    def parameters = \"{\" +\"\\\"inputText\\\":\" + builder + \"}\";\n    return  \"{\" +\"\\\"parameters\\\":\" + parameters + \"}\";",
       
                     "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    ',
@@ -130,7 +144,7 @@ def create_ml_components():
                 
                  "bedrock_multimodal":
                 {
-                     "endpoint_url": "https://bedrock-runtime."+region+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
+                     "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
                      "request_body": "{ \"inputText\": \"${parameters.inputText:-null}\", \"inputImage\": \"${parameters.inputImage:-null}\" }",
                       "pre_process_fun": "\n    StringBuilder parametersBuilder = new StringBuilder(\"{\");\n    if (params.text_docs.length > 0 && params.text_docs[0] != null) {\n      parametersBuilder.append(\"\\\"inputText\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[0]);\n      parametersBuilder.append(\"\\\"\");\n      \n      if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n        parametersBuilder.append(\",\");\n      }\n    }\n    \n    \n    if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n      parametersBuilder.append(\"\\\"inputImage\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[1]);\n      parametersBuilder.append(\"\\\"\");\n    }\n    parametersBuilder.append(\"}\");\n    \n    return  \"{\" +\"\\\"parameters\\\":\" + parametersBuilder + \"}\";",
                      "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    '
@@ -155,7 +169,7 @@ def create_ml_components():
             "roleArn": "arn:aws:iam::"+account_id+":role/opensearch-sagemaker-role"
         },
         "parameters": {
-            "region": region,
+            "region": st.session_state.REGION,
             "service_name": remote_ml_key.split("_")[0]
         },
         "actions": [
@@ -236,7 +250,7 @@ def create_ml_components():
     
     # 3. Model IDs assignment
     
-    REGION = "us-east-1" 
+    REGION = st.session_state.REGION
     SAGEMAKER_SPARSE_MODEL_ID = remote_ml["sagemaker_sparse"]["model_id"] 
     st.session_state.SAGEMAKER_SPARSE_MODEL_ID = SAGEMAKER_SPARSE_MODEL_ID
     BEDROCK_TEXT_MODEL_ID = remote_ml["bedrock_text"]["model_id"]#'iUvGQYwBuQkLO8mDfE0l'#
@@ -312,7 +326,7 @@ def create_ml_components():
     "source":{
         "remote":{
             "host":st.session_state.input_host[:-1]+":443",
-            "region": "us-east-1",
+            "region": st.session_state.REGION,
             "username":"test",
             "password":"@ML-Search123"
         },
@@ -357,7 +371,7 @@ if(playground):
     st.switch_page('pages/Semantic_Search.py')
 if(get_fileds):
     #DOMAIN_ENDPOINT =   "search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com" #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
-    REGION = "us-east-1" #'us-west-2'#
+    REGION = st.session_state.REGION #'us-west-2'#
     credentials = boto3.Session().get_credentials()
     #awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, REGION, 'es', session_token=credentials.token)
     awsauth = HTTPBasicAuth("prasadnu","@Palamalai1")
