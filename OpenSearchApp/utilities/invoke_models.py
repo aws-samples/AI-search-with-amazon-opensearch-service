@@ -9,7 +9,7 @@ from langchain_community.chat_models import BedrockChat
 #from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer
 #import torch
 
-region = 'us-east-1'
+region = st.session_state.REGION
 bedrock_runtime_client = boto3.client('bedrock-runtime',region_name=region)
 
 

@@ -20,7 +20,7 @@ aos_client = OpenSearch(
     verify_certs = True,
     connection_class = RequestsHttpConnection
 )
-rekog_client = boto3.client('rekognition', region_name='us-east-1')
+rekog_client = boto3.client('rekognition', region_name=st.session_state.REGION)
 
 def extract_image_metadata(img):
     res = rekog_client.detect_labels(

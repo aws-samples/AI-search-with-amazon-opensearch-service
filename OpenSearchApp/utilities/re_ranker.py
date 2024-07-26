@@ -6,7 +6,7 @@ import streamlit as st
 from sentence_transformers import CrossEncoder
 
 model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", max_length=512)
-kendra_ranking = boto3.client("kendra-ranking",region_name = 'us-east-1')
+kendra_ranking = boto3.client("kendra-ranking",region_name = st.session_state.REGION)
 
 
 print("Create a rescore execution plan.")

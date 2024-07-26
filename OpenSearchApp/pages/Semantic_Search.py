@@ -49,7 +49,7 @@ st.markdown("""
     """,unsafe_allow_html=True)
 #ps = PorterStemmer()
 
-bedrock_ = boto3.client('bedrock-runtime',region_name='us-east-1')
+bedrock_ = boto3.client('bedrock-runtime',region_name=st.session_state.REGION)
 #from langchain.callbacks.base import BaseCallbackHandler
 search_all_type = True
 if(search_all_type==True):

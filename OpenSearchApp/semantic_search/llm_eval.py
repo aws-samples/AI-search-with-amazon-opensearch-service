@@ -22,7 +22,7 @@ from sklearn.metrics import ndcg_score,dcg_score
 from sklearn import preprocessing as pre
 import invoke_models
 
-bedrock_ = boto3.client('bedrock-runtime',region_name='us-east-1')
+bedrock_ = boto3.client('bedrock-runtime',region_name=st.session_state.REGION)
 
 inference_modifier = {
     "max_tokens_to_sample": 4096,
