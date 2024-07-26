@@ -19,7 +19,7 @@ st.set_page_config(
     layout="wide",
     page_icon="/home/ubuntu/images/opensearch_mark_default.png"
 )
-
+st.title("Bring your own data")
 if "play_disabled" not in st.session_state:
     st.session_state.play_disabled = True
     
@@ -42,6 +42,11 @@ if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
 if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_MODEL_ID = "" 
     
+if "OpenSearchPassword" not in st.session_state:
+    st.session_state.OpenSearchPassword = "" 
+    
+if "OpenSearchUsername" not in st.session_state:
+    st.session_state.OpenSearchUsername = "" 
     
 
 isExist = os.path.exists("/home/ec2-user/images_retail")
@@ -96,6 +101,12 @@ for output in cfn_outputs:
     if('s3' in output['OutputKey'].lower()):
         s3_bucket = output['OutputValue']
         
+    if('OpenSearchUsername' == output['OutputKey']):
+        OpenSearchUsername = output['OutputValue']
+        
+    if('OpenSearchPassword' == output['OutputKey']):
+        OpenSearchPassword = output['OutputValue']
+        
 
 
         
@@ -110,7 +121,9 @@ print("account_id: "+account_id)
 print("SparseEmbeddingEndpointName: "+SparseEmbeddingEndpointName)
 print("OpenSearchDomainEndpoint: "+OpenSearchDomainEndpoint)
 print("S3 Bucket: "+s3_bucket)
+st.session_state.OpenSearchUsername = OpenSearchUsername
 st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
+st.session_state.OpenSearchPassword = OpenSearchPassword
 def create_ml_components():
     
     
@@ -327,8 +340,8 @@ def create_ml_components():
         "remote":{
             "host":st.session_state.input_host[:-1]+":443",
             "region": st.session_state.REGION,
-            "username":"test",
-            "password":"@ML-Search123"
+            "username":st.session_state.OpenSearchUsername,
+            "password":st.session_state.OpenSearchPassword
         },
         "index": "retail-ml-search-index"
     },
@@ -362,11 +375,11 @@ def create_ml_components():
 
 headers = {"Content-Type": "application/json"}
 
-input_host = st.text_input( "OpenSearch domain URL",key="input_host",placeholder = "Opensearch host",value = "https://search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com/")
-input_index = st.text_input( "OpenSearch domain index",key="input_index",placeholder = "Opensearch index name", value = "raw-retail-ml-search-index")
+input_host = st.text_input( "Your OpenSearch domain URL",key="input_host",placeholder = "Opensearch host",value = "https://search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com/")
+input_index = st.text_input( "Your OpenSearch domain index",key="input_index",placeholder = "Opensearch index name", value = "raw-retail-ml-search-index")
 url = input_host + input_index
 get_fileds = st.button('Get field metadata')
-playground = st.button('Launch Playground', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
+playground = st.button('Launch Search Playground', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
 if(playground):
     st.switch_page('pages/Semantic_Search.py')
 if(get_fileds):
@@ -374,7 +387,7 @@ if(get_fileds):
     REGION = st.session_state.REGION #'us-west-2'#
     credentials = boto3.Session().get_credentials()
     #awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, REGION, 'es', session_token=credentials.token)
-    awsauth = HTTPBasicAuth("prasadnu","@Palamalai1")
+    awsauth = HTTPBasicAuth(st.session_state.OpenSearchUsername,st.session_state.OpenSearchPassword)
     r = requests.get(url, auth=awsauth,  headers=headers)
     
     mappings= json.loads(r.text)[input_index]["mappings"]["properties"]
@@ -392,7 +405,7 @@ if(get_fileds):
     with col1:
         st.write(fields)
     with col2:
-        input_vectors = st.text_input( "comma separated field names that needs to be vectorised",key="input_vectors",placeholder = "field1,field2")
+        input_vectors = st.text_input( "Field name(s) (comma separated) that needs to be vectorised",key="input_vectors",placeholder = "field1,field2")
         submit = st.button("Submit",on_click = create_ml_components)
         
         
