@@ -71,7 +71,7 @@ Resources:
               sudo yum install zip
               sudo yum -y install git
               git clone -b Custom-ML-Search https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
-              wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-handler.tar.gz
+              wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-biencoder.tar.gz
               aws s3 cp /home/ec2-user/neural-sparse-handler.tar.gz s3://${s3Bucket}
               cd AI-search-with-amazon-opensearch-service
               sudo chmod -R 0777 /home/ec2-user/
