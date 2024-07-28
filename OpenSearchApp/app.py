@@ -93,7 +93,7 @@ for output in cfn_outputs:
     if('OpenSearchDomainEndpoint' in output['OutputKey']):
         OpenSearchDomainEndpoint = output['OutputValue']
         
-    SparseEmbeddingEndpointName = "neural-sparse"
+    #SparseEmbeddingEndpointName = "neural-sparse"
     
     if('SparseEmbeddingEndpointName' in output['OutputKey']):
         SparseEmbeddingEndpointName = output['OutputValue']
