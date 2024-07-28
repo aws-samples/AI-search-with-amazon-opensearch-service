@@ -21,7 +21,7 @@ import streamlit as st
 
 
 DOMAIN_ENDPOINT =   st.session_state.OpenSearchDomainEndpoint #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
-REGION = 'us-west-2'
+REGION = st.session_state.REGION
 #SAGEMAKER_MODEL_ID = st.session_state.SAGEMAKER_MODEL_ID
 BEDROCK_TEXT_MODEL_ID = st.session_state.BEDROCK_TEXT_MODEL_ID
 BEDROCK_MULTIMODAL_MODEL_ID = st.session_state.BEDROCK_MULTIMODAL_MODEL_ID

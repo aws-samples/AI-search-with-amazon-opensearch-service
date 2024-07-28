@@ -5,6 +5,8 @@ import boto3
 import amazon_rekognition
 from botocore.config import Config
 import getpass
+import nltk
+nltk.download('punkt')
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import os
