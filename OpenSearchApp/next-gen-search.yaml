@@ -48,6 +48,15 @@ Mappings:
       HVM64: ami-0b9fd8b55a6e3c9d5
 
 Resources:
+  KendraRescore:
+    Type: AWS::KendraRanking::ExecutionPlan
+    Properties:
+      CapacityUnits: 
+        RescoreCapacityUnits: 2
+      Description: "re-ranking using kendra"
+      Name: "kendra-rerank"
+      
+
   DemoInstance:
     Type: 'AWS::EC2::Instance'
     Properties: 
@@ -66,17 +75,17 @@ Resources:
           Fn::Sub:
             - |
               #!/bin/bash
-              cd /home/ec2-user
+              cd /home/ec2-user/SageMaker
               sudo yum install awscli
               sudo yum install zip
               sudo yum -y install git
-              git clone -b Custom-ML-Search https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
+              git clone -b Next-Gen-Search-Workshop https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
               wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-biencoder.tar.gz
-              aws s3 cp /home/ec2-user/neural-sparse-handler.tar.gz s3://${s3Bucket}
+              aws s3 cp /home/ec2-user/SageMaker neural-sparse-biencoder.tar.gz s3://${s3Bucket}
               cd AI-search-with-amazon-opensearch-service
-              sudo chmod -R 0777 /home/ec2-user/
-              python3 -m venv /home/ec2-user/.myenv
-              source /home/ec2-user/.myenv/bin/activate
+              sudo chmod -R 0777 /home/ec2-user/SageMaker
+              python3 -m venv /home/ec2-user/SageMaker/.myenv
+              source /home/ec2-user/SageMaker/.myenv/bin/activate
               pip install streamlit
               pip install boto3
               pip install requests_aws4auth
@@ -85,11 +94,15 @@ Resources:
               pip3 install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cpu
               pip install -U sentence-transformers
               pip install nltk
+              pip install ruamel_yaml
               pip install langchain
               pip install langchain-core
               pip install langchain-community
               pip install langchain-experimental
-              streamlit run OpenSearchApp/app.py
+              pip install ruamel_yaml
+              pip install lark
+              streamlit run OpenSearchApp/app.py --server.baseUrlPath="/proxy/absolute/8501"
+              https://ops.notebook.us-west-2.sagemaker.aws/proxy/absolute/8501/
 
             - s3Bucket: !Ref s3BucketHosting
   
@@ -166,7 +179,7 @@ Resources:
       ModelName: "neural-sparse-model"
       PrimaryContainer:
         Image: !Sub "763104351884.dkr.ecr.${AWS::Region}.amazonaws.com/pytorch-inference:2.0-cpu-py310"
-        ModelDataUrl: !Join ['', ['s3://', !Join [ '-', [ "ml-search", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ], '/', 'neural-sparse-handler.tar.gz']]
+        ModelDataUrl: !Join ['', ['s3://', !Join [ '-', [ "ml-search", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ], '/', 'neural-sparse-biencoder.tar.gz']]
     
       ExecutionRoleArn: !GetAtt NBRole.Arn
 
@@ -268,8 +281,7 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonSageMakerFullAccess
         - arn:aws:iam::aws:policy/IAMFullAccess
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
-        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-        - arn:aws:iam::aws:policy/AmazonSSMFullAccess
+        - arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess
         - arn:aws:iam::aws:policy/AmazonBedrockFullAccess
         - arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
       MaxSessionDuration: 43200
@@ -390,6 +402,22 @@ Resources:
       Tags:
         - {"Key" : "app","Value" : "ml-search"}
 
+  DemoDynamoDBTable: 
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      AttributeDefinitions: 
+        - 
+          AttributeName: "store_key"
+          AttributeType: "S"
+      KeySchema: 
+        - 
+          AttributeName: "store_key"
+          KeyType: "HASH"
+      ProvisionedThroughput: 
+        ReadCapacityUnits: "5"
+        WriteCapacityUnits: "5"
+      TableName: "dynamo_store_key_value"
+
 
   
 Outputs:
@@ -400,6 +428,10 @@ Outputs:
       'Fn::GetAtt':
         - OpenSearchServiceDomain
         - DomainEndpoint
+
+  DynamoDBTable:
+    Description: DynamoDBTable
+    Value: !Ref DemoDynamoDBTable
 
   OpenSearchDomainName:
     Description: OpenSearch domain name
@@ -440,6 +472,10 @@ Outputs:
   SecurityGroupID:
     Description: ID of the Security group of the ec2 instance
     Value: !GetAtt DemoSecurityGroup.GroupId
+
+  KendraResourcePlanID:
+    Description: KendraResourcePlanID for Kendra rescore plugin
+    Value: !Ref KendraRescore
 
   WebApplicationURL:
     Description: URL of the web application

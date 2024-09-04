@@ -25,10 +25,10 @@ import re
 import utilities.re_ranker as re_ranker
 # from nltk.stem import PorterStemmer
 # from nltk.tokenize import word_tokenize
-import query_rewrite
+#import query_rewrite
 import amazon_rekognition
 #from st_click_detector import click_detector
-import llm_eval
+#import llm_eval
 import all_search_execute
 
 
@@ -987,7 +987,7 @@ def render_answer(answer,index):
         with col_1:
             inner_col_1,inner_col_2 = st.columns([8,92])
             with inner_col_2:
-                st.image(ans['image_url'].replace('https://retail-demo-store-us-east-1.s3.amazonaws.com/images/','/home/ec2-user/images_retail/'))
+                st.image(ans['image_url'].replace('SageMaker/',''))
 
                 if("highlight" in ans and 'Keyword Search' in st.session_state.input_searchType):
                     test_strs = ans["highlight"]
