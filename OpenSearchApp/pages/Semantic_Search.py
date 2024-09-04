@@ -728,7 +728,7 @@ with col4:
 
 if(search_all_type == True or 1==1):
     with st.sidebar:
-        st.page_link("/home/ec2-user/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
+        st.page_link("/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
         #st.image('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png', width = 300)
         #st.warning('Note: After changing any of the below settings, click "SEARCH" button or 🔄 to apply the changes', icon="⚠️")
         #st.header('     :gear: :orange[Fine-tune Search]')

@@ -100,17 +100,17 @@ if "OpenSearchUsername" not in st.session_state:
 
     
 
-isExist = os.path.exists("/home/ec2-user/images_retail")
+isExist = os.path.exists("/home/ec2-user/SageMaker/images_retail")
 if not isExist:   
-    os.makedirs('/home/ec2-user/images_retail')
-    metadata_file = urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/products-data.yml', '/home/ec2-user/images_retail/products.yaml')
-    img_filename,headers= urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/images.tar.gz', '/home/ec2-user/images_retail/images.tar.gz')              
+    os.makedirs('/home/ec2-user/SageMaker/images_retail')
+    metadata_file = urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/products-data.yml', '/home/ec2-user/SageMaker/images_retail/products.yaml')
+    img_filename,headers= urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/images.tar.gz', '/home/ec2-user/SageMaker/images_retail/images.tar.gz')              
     print(img_filename)
-    file = tarfile.open('/home/ec2-user/images_retail/images.tar.gz')
-    file.extractall('/home/ec2-user/images_retail')
+    file = tarfile.open('/home/ec2-user/SageMaker/images_retail/images.tar.gz')
+    file.extractall('/home/ec2-user/SageMaker/images_retail')
     file.close()
     #remove images.tar.gz
-    os.remove('/home/ec2-user/images_retail/images.tar.gz')
+    os.remove('/home/ec2-user/SageMaker/images_retail/images.tar.gz')
     
 
 
@@ -268,7 +268,7 @@ def ingest_data():
     
     
     yaml = YAML()
-    items_ = yaml.load(open('/home/ec2-user/images_retail/products.yaml'))
+    items_ = yaml.load(open('/home/ec2-user/SageMaker/images_retail/products.yaml'))
 
     batch = 0
     count = 0
@@ -297,7 +297,7 @@ def ingest_data():
 
     for item in items_:
         count+=1
-        fileshort = "/home/ec2-user/images_retail/"+item["category"]+"/"+item["image"]
+        fileshort = "/home/ec2-user/SageMaker/images_retail/"+item["category"]+"/"+item["image"]
         payload = {}
         payload['image_url'] = fileshort
         payload['product_description'] = item['description']
