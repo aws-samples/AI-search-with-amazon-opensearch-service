@@ -987,7 +987,7 @@ def render_answer(answer,index):
         with col_1:
             inner_col_1,inner_col_2 = st.columns([8,92])
             with inner_col_2:
-                st.image(ans['image_url'].replace('SageMaker/',''))
+                st.image(ans['image_url'])
 
                 if("highlight" in ans and 'Keyword Search' in st.session_state.input_searchType):
                     test_strs = ans["highlight"]
