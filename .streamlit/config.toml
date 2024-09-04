@@ -1,0 +1,13 @@
+
+[client]
+toolbarMode = "viewer"
+showSidebarNavigation = false
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base="dark"
+font="sans serif"
+primaryColor="#e28743"
+backgroundColor ="#000000"

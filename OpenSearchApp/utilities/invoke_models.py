@@ -6,10 +6,11 @@ from langchain.agents.agent_types import AgentType
 from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_community.chat_models import BedrockChat
+import streamlit as st
 #from transformers import VisionEncoderDecoderModel, ViTImageProcessor, AutoTokenizer
 #import torch
 
-region = 'us-east-1'
+region = st.session_state.REGION
 bedrock_runtime_client = boto3.client('bedrock-runtime',region_name=region)
 
 

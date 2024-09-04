@@ -5,6 +5,8 @@ import boto3
 import amazon_rekognition
 from botocore.config import Config
 import getpass
+import nltk
+nltk.download('punkt')
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import os
@@ -39,7 +41,7 @@ bedrock_params = {
     "top_p":1,
     "stop_sequences":["\\n\\nHuman:"]
 }
-bedrock_region="us-east-1"
+bedrock_region=st.session_state.REGION
 
 #boto3_bedrock = boto3.client(service_name="bedrock-runtime", endpoint_url=f"https://bedrock-runtime.{bedrock_region}.amazonaws.com")
 boto3_bedrock = boto3.client(service_name="bedrock-runtime", config=Config(region_name=bedrock_region))

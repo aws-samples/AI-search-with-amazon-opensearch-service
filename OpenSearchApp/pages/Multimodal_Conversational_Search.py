@@ -541,7 +541,7 @@ with st.sidebar:
     # else:
     #     st.session_state.input_include_tables = False
     
-    custom_index = st.text_input("If you have uploaded the file already, enter the original file name", value = "")
+    custom_index = st.text_input("If uploaded the file already, enter the original file name", value = "")
     if(custom_index!=""):
         st.session_state.input_index = re.sub('[^A-Za-z0-9]+', '', (custom_index.lower().replace(".pdf","").split("/")[-1].split(".")[0]).lower())
     
