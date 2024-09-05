@@ -387,10 +387,6 @@ Outputs:
     Description: IAM role to be added as back-end role in OpenSearch
     Value: !GetAtt NBRole.Arn
 
-  s3BucketHostingBucketName:
-    Description: S3 bucket name for frontend hosting
-    Value: !Ref s3BucketHosting
-
   SparseEmbeddingEndpointName:
     Description: Name of the sparse model endpoint
     Value: !GetAtt Endpoint.EndpointName
