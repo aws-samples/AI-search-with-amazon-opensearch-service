@@ -29,14 +29,20 @@ Parameters:
     AllowedValues: [opensearch-ml-search]
     Description: Name of the overall application, this is used while creating the ML model endpoint.
   OpenSearchMasterUsername:
-    Default: "test"
+    AllowedPattern: '^[a-zA-Z0-9]+$'
+    Default: master
+    Description: User name for the account that will be added to the OpenSearch cluster.
+    MaxLength: '25'
+    MinLength: '5'
     Type: String
-    Description: Master username of the source OpenSearch cluster that has all_access to OpenSearch indices. You should have a public opensearch domain with master credentials for this.
   OpenSearchMasterPassword:
-    Default: "@ML-Search123"
+    AllowedPattern: '(?=^.{8,32}$)((?=.*\d)(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[^A-Za-z0-9])(?=.*[a-z])|(?=.*[^A-Za-z0-9])(?=.*[A-Z])(?=.*[a-z])|(?=.*\d)(?=.*[A-Z])(?=.*[^A-Za-z0-9]))^.*'
+    Description: Password for the account named above. Must be at least 8 characters containing letters, numbers and symbols
+    MaxLength: '32'
+    MinLength: '8'
+    NoEcho: 'true'
     Type: String
-    Description: Master username of the source OpenSearch cluster that has all_access to OpenSearch indices. You should have a public opensearch domain with master credentials for this.
-  
+    Default: ML-Search123!
 
 Mappings: 
   RegionMap: 
@@ -48,6 +54,13 @@ Mappings:
       HVM64: ami-0b9fd8b55a6e3c9d5
 
 Resources:
+  OpenSearchSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub OpenSearchSecret-${AWS::StackName}
+      Description: OpenSearch username and password
+      SecretString: !Sub '{ "username" : "${OpenSearchMasterUsername}", "password" : "${OpenSearchMasterPassword}" }'
+
   KendraRescore:
     Type: AWS::KendraRanking::ExecutionPlan
     Properties:
@@ -73,6 +86,8 @@ Resources:
                   sudo yum -y install git
                   git clone -b Next-Gen-Search-Workshop https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
                   echo ${s3Bucket}
+                  wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-biencoder.tar.gz
+                  aws s3 cp /home/ec2-user/SageMaker/neural-sparse-biencoder.tar.gz s3://${s3Bucket}
                   cd AI-search-with-amazon-opensearch-service
                   sudo chmod -R 0777 /home/ec2-user/SageMaker
                   source /home/ec2-user/anaconda3/bin/activate python3
@@ -83,7 +98,12 @@ Resources:
                   pip3 install torch==1.11.0
                   pip3 install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cpu
                   pip install -U sentence-transformers
+                  pip install nltk
                   pip install ruamel_yaml
+                  pip install langchain
+                  pip install langchain-core
+                  pip install langchain-community
+                  pip install langchain-experimental
                   nohup streamlit run OpenSearchApp/app.py --server.baseUrlPath="/proxy/absolute/8501" &
                 - s3Bucket: !Ref s3BucketHosting
 
@@ -97,123 +117,8 @@ Resources:
       VolumeSizeInGB: 1000
       LifecycleConfigName: !GetAtt NotebookInstanceLifecycleConfiguration.NotebookInstanceLifecycleConfigName
 
-  DemoInstance:
-    Type: 'AWS::EC2::Instance'
-    Properties: 
-      ImageId: !FindInMap [RegionMap, !Ref "AWS::Region", HVM64]
-      InstanceType: !Ref InstanceType
-      SecurityGroupIds: 
-        - !GetAtt DemoSecurityGroup.GroupId
-      IamInstanceProfile: !Ref Ec2InstanceProfile
-      SubnetId: !GetAtt DemoSubnet.SubnetId
-      BlockDeviceMappings:
-        - DeviceName: /dev/xvda
-          Ebs:
-            VolumeSize: 1000
-      UserData:
-        Fn::Base64: 
-          Fn::Sub:
-            - |
-              #!/bin/bash
-              cd /home/ec2-user
-              sudo yum install awscli
-              sudo yum install zip
-              sudo yum -y install git
-              git clone -b Next-Gen-Search-Workshop https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
-              wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-biencoder.tar.gz
-              aws s3 cp /home/ec2-user/neural-sparse-biencoder.tar.gz s3://${s3Bucket}
-              cd AI-search-with-amazon-opensearch-service
-              sudo chmod -R 0777 /home/ec2-user/
-              python3 -m venv /home/ec2-user/.myenv
-              source /home/ec2-user/.myenv/bin/activate
-              pip install streamlit
-              pip install boto3
-              pip install requests_aws4auth
-              pip install opensearch-py
-              pip3 install torch==1.11.0
-              pip3 install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-              pip install -U sentence-transformers
-              pip install nltk
-              pip install ruamel_yaml
-              pip install langchain
-              pip install langchain-core
-              pip install langchain-community
-              pip install langchain-experimental
-              pip install ruamel_yaml
-              pip install lark
-              streamlit run OpenSearchApp/app.py
-
-            - s3Bucket: !Ref s3BucketHosting
-  
-  
-  DemoVPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.0.0.0/16
-
-  DemoSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      CidrBlock: 10.0.0.0/16
-      MapPublicIpOnLaunch: 'true'
-      Ipv6Native: 'false'
-      VpcId: !GetAtt DemoVPC.VpcId
-
-  DemoInternetGateway:
-    Type: AWS::EC2::InternetGateway
-
-  AttachGateway:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId:
-         Ref: DemoVPC
-      InternetGatewayId:
-         Ref: DemoInternetGateway
-
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref DemoVPC
-      
-  PublicRoute:
-    Type: AWS::EC2::Route
-    DependsOn: AttachGateway
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref DemoInternetGateway
-     
-  PublicSubnet1RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref DemoSubnet
-      RouteTableId: !Ref PublicRouteTable
-  
-
-  DemoSecurityGroup:
-    Type: 'AWS::EC2::SecurityGroup'
-    Properties:
-      GroupDescription: SG to allow web access 
-      SecurityGroupIngress:
-      - IpProtocol: "-1"
-        CidrIp: 0.0.0.0/0
-      SecurityGroupEgress:
-      - IpProtocol: "-1"
-        CidrIp: 0.0.0.0/0
-      VpcId: !GetAtt DemoVPC.VpcId
-      
-  Ec2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties: 
-      InstanceProfileName: WebServiceApp
-      Roles: 
-        - !Ref NBRole
-  
-
   Model:
     Type: "AWS::SageMaker::Model"
-    DependsOn: [ DemoInstance ]
-
     Properties:
       ModelName: "neural-sparse-model"
       PrimaryContainer:
@@ -430,7 +335,8 @@ Resources:
         Enabled: True
         InternalUserDatabaseEnabled: False
         MasterUserOptions:
-          MasterUserARN: !GetAtt NBRole.Arn
+          MasterUserName: !Sub ${OpenSearchMasterUsername}
+          MasterUserPassword: !Sub ${OpenSearchMasterPassword}
       NodeToNodeEncryptionOptions:
         Enabled: True
       EncryptionAtRestOptions:
@@ -494,16 +400,6 @@ Outputs:
           - DomainName
     Description: Name of S3 bucket to hold website content
 
-  OpenSearchUsername:
-    Description: OpenSearchUsername
-    Value: !Ref OpenSearchMasterUsername
-
-  OpenSearchPassword:
-    Description: OpenSearchPassword
-    Value: !Ref OpenSearchMasterPassword
-
-
-
   SparseEmbeddingEndpointName:
     Description: Name of the sparse model endpoint
     Value: !GetAtt Endpoint.EndpointName
@@ -515,14 +411,10 @@ Outputs:
   KendraResourcePlanID:
     Description: KendraResourcePlanID for Kendra rescore plugin
     Value: !Ref KendraRescore
-
-  Ec2WebApplicationURL:
-    Description: URL of the web application on Ec2 instance
-    Value: !Join
-      - ''
-      - - 'http://'
-        - !GetAtt DemoInstance.PublicIp
-        - ':8501'
+  
+  OpenSearchSecret:
+    Description: Name of the OpenSearch secret in Secrets Manager
+    Value: !Ref OpenSearchSecret
   
   SageMakerWebApplicationURL:
     Description: URL of the web application on SageMaker Instance
