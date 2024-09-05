@@ -15,10 +15,6 @@ Metadata:
       
       
 Parameters:
-  InstanceType:
-    Type: String
-    Description: Choosing r5.4xlarge
-    Default: r5.4xlarge 
   SageMakerIAMRole:
     Description: Name of IAM role that will be created by this cloud formation template. The role name must _not_ already exist in your AWS account.
     Type: String
@@ -112,13 +108,14 @@ Resources:
     Type: AWS::SageMaker::NotebookInstance
     Properties:
       NotebookInstanceName: ml-search-opensearch
-      InstanceType: ml.r6i.8xlarge
+      InstanceType: ml.c5.18xlarge
       RoleArn: !GetAtt NBRole.Arn
       VolumeSizeInGB: 1000
       LifecycleConfigName: !GetAtt NotebookInstanceLifecycleConfiguration.NotebookInstanceLifecycleConfigName
 
   Model:
     Type: "AWS::SageMaker::Model"
+    DependsOn: [ SagemakerNotebookInstance ]
     Properties:
       ModelName: "neural-sparse-model"
       PrimaryContainer:
@@ -333,7 +330,7 @@ Resources:
       AdvancedSecurityOptions:
         AnonymousAuthEnabled: False
         Enabled: True
-        InternalUserDatabaseEnabled: False
+        InternalUserDatabaseEnabled: True
         MasterUserOptions:
           MasterUserName: !Sub ${OpenSearchMasterUsername}
           MasterUserPassword: !Sub ${OpenSearchMasterPassword}
@@ -404,9 +401,6 @@ Outputs:
     Description: Name of the sparse model endpoint
     Value: !GetAtt Endpoint.EndpointName
 
-  SecurityGroupID:
-    Description: ID of the Security group of the ec2 instance
-    Value: !GetAtt DemoSecurityGroup.GroupId
 
   KendraResourcePlanID:
     Description: KendraResourcePlanID for Kendra rescore plugin
