@@ -235,7 +235,7 @@ def handler(input_,session_id):
         
         ###### start of efficient filter applying #####
         if(st.session_state.input_rewritten_query!=""):
-            vector_payload['knn']['desc_embedding_bedrock-text']['filter'] = filter_['filter']
+            vector_payload['knn']['product_description_vector']['filter'] = filter_['filter']
         ###### end of efficient filter applying #####
         
         hybrid_payload["query"]["hybrid"]["queries"].append(vector_payload)
