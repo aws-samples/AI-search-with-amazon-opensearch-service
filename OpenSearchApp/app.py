@@ -269,7 +269,7 @@ def ingest_data():
     batch = 0
     count = 0
     body_ = ''
-    batch_size = 10
+    batch_size = 50
     last_batch = int(len(items_)/batch_size)
     action = json.dumps({ 'index': { '_index': 'demostore-search-index' } })
     
