@@ -383,6 +383,9 @@ Outputs:
     Description: Deployed Region
     Value: !Ref AWS::Region
 
+  OpenSearchBackendRole:
+    Description: IAM role to be added as back-end role in OpenSearch
+    Value: !GetAtt NBRole.Arn
 
   s3BucketHostingBucketName:
     Description: S3 bucket name for frontend hosting
