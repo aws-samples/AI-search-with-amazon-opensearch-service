@@ -100,6 +100,7 @@ Resources:
                   pip install langchain-core
                   pip install langchain-community
                   pip install langchain-experimental
+                  pip install lark
                   nohup streamlit run OpenSearchApp/app.py --server.baseUrlPath="/proxy/absolute/8501" &
                 - s3Bucket: !Ref s3BucketHosting
 

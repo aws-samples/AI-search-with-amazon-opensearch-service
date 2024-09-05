@@ -133,7 +133,7 @@ metadata_field_info_ = [
         type="string"
     ),
     AttributeInfo(
-        name="description", 
+        name="product_description", 
         description="The detailed description of the product", 
         type="string"
     ),
@@ -398,7 +398,7 @@ def get_new_query_res(query):
                     "simple_query_string": {
                     
                         "query": imp_item.strip(),
-                      "fields":['description',"style","caption"]#'rekog_all^3'
+                      "fields":['product_description',"style","caption"]#'rekog_all^3'
                     
                     }
                     #"match":{"description":imp_item.strip()}
@@ -408,7 +408,7 @@ def get_new_query_res(query):
                     "multi_match": {
                     
                         "query": imp_item.strip(),
-                      "fields":['description',"style"]#'rekog_all^3'
+                      "fields":['product_description',"style"]#'rekog_all^3'
                     
                     }
                     #"match":{"description":imp_item.strip()}

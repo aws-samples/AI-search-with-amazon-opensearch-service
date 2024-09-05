@@ -301,7 +301,13 @@ def ingest_data():
         payload['category'] = item['category']
         payload['price'] = item['price']
         if('gender_affinity' in item):
-            payload['gender_affinity'] = item['gender_affinity']
+            if(item['gender_affinity'] == 'M'):
+                payload['gender_affinity'] = 'Male'
+            else:
+                if(item['gender_affinity'] == 'F'):
+                    payload['gender_affinity'] = 'Female'
+                else:
+                    payload['gender_affinity'] = item['gender_affinity']
         if('style' in item):
             payload['style'] = item['style']
         #resize the image and generate image binary

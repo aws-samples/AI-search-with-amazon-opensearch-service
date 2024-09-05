@@ -436,8 +436,8 @@ def handler(input_,session_id):
             if('NeuralSparse Search' in search_types):
                 res_['sparse'] = doc['_source']['product_description_sparse_vector']
                 res_['query_sparse'] = query_sparse_sorted_filtered
-            if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
-                res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}
+#             if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
+#                 res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}
             
             res_['id'] = doc['_id']
             res_['score'] = doc['_score']
