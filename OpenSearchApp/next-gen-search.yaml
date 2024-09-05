@@ -391,15 +391,6 @@ Outputs:
     Description: S3 bucket name for frontend hosting
     Value: !Ref s3BucketHosting
 
-  S3BucketSecureURL:
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt
-          - s3BucketHosting
-          - DomainName
-    Description: Name of S3 bucket to hold website content
-
   SparseEmbeddingEndpointName:
     Description: Name of the sparse model endpoint
     Value: !GetAtt Endpoint.EndpointName
