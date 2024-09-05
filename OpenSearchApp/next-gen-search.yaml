@@ -383,14 +383,9 @@ Outputs:
     Description: Deployed Region
     Value: !Ref AWS::Region
 
-  OpenSearchBackendRole:
-    Description: IAM role to be added as back-end role in OpenSearch
+  WebappRoleArn:
+    Description: This role is used by the web application to interact with OpenSearch
     Value: !GetAtt NBRole.Arn
-
-  SparseEmbeddingEndpointName:
-    Description: Name of the sparse model endpoint
-    Value: !GetAtt Endpoint.EndpointName
-
 
   KendraResourcePlanID:
     Description: KendraResourcePlanID for Kendra rescore plugin
@@ -400,7 +395,7 @@ Outputs:
     Description: Name of the OpenSearch secret in Secrets Manager
     Value: !Ref OpenSearchSecret
   
-  SageMakerWebApplicationURL:
+  WebApplicationURL:
     Description: URL of the web application on SageMaker Instance
     Value: !Join
       - ''
