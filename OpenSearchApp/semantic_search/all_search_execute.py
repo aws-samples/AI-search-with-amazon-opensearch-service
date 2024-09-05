@@ -155,7 +155,7 @@ def handler(input_,session_id):
     hybrid_payload = {
         "_source": {
         "exclude": [
-            "product_description_vector","product_multimodal_vector"
+            "product_description_vector","product_multimodal_vector","product_description_sparse_vector"
         ]
         },
         "query": {
