@@ -295,7 +295,7 @@ def handler(input_,session_id):
         rank_features = []
         for key_ in query_sparse_sorted.keys():
             if(query_sparse_sorted[key_]>=st.session_state.input_sparse_filter):
-                feature = {"rank_feature": {"field": "desc_embedding_sparse."+key_,"boost":query_sparse_sorted[key_]}}
+                feature = {"rank_feature": {"field": "product_description_sparse_vector."+key_,"boost":query_sparse_sorted[key_]}}
                 rank_features.append(feature)
                 query_sparse_sorted_filtered[key_]=query_sparse_sorted[key_]
             else:
@@ -307,6 +307,8 @@ def handler(input_,session_id):
         ###### start of efficient filter applying #####
         if(st.session_state.input_rewritten_query!=""):
             sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
+            
+        
         ###### end of efficient filter applying #####
         
         
@@ -380,7 +382,7 @@ def handler(input_,session_id):
             rrf_hits = []
             for i,query in enumerate(hybrid_payload["query"]["hybrid"]["queries"]):
                 payload_ =  {'_source': 
-                    {'exclude': ['desc_embedding_bedrock-multimodal', 'desc_embedding_bedrock-text']}, 
+                    {'exclude': ['desc_embedding_bedrock-multimodal', 'desc_embedding_bedrock-text', 'product_description_sparse_vector']}, 
                     'query': query, 
                     'size': k_, 'highlight': {'fields': {'product_description': {}}}}
                 
@@ -432,7 +434,7 @@ def handler(input_,session_id):
             if('highlight' in doc):
                 res_['highlight'] = doc['highlight']['product_description']
             if('NeuralSparse Search' in search_types):
-                res_['sparse'] = doc['_source']['desc_embedding_sparse']
+                res_['sparse'] = doc['_source']['product_description_sparse_vector']
                 res_['query_sparse'] = query_sparse_sorted_filtered
             if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
                 res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}

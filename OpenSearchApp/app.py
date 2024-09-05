@@ -202,9 +202,15 @@ def ingest_data():
                 search_types+='Multimodal Search,'
                 st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = i[key_]['model_id']
                 store_in_dynamo('BEDROCK_MULTIMODAL_MODEL_ID',st.session_state.BEDROCK_MULTIMODAL_MODEL_ID )
+                
+            if(key_ == 'sparse_encoding'):
+                search_types+='NeuralSparse Search,'
+                st.session_state.SAGEMAKER_SPARSE_MODEL_ID = i[key_]['model_id']
+                store_in_dynamo('SAGEMAKER_SPARSE_MODEL_ID',st.session_state.SAGEMAKER_SPARSE_MODEL_ID )
         
         
         search_types = search_types[0:-1]
+        
         print(opensearch_models)
         response = (dynamo_client.get_item( TableName='dynamo_store_key_value',Key = {'store_key': {'S': 'ml_ingest_pipeline'}}))
         if('Item' not in response):
@@ -263,7 +269,7 @@ def ingest_data():
     batch = 0
     count = 0
     body_ = ''
-    batch_size = 100
+    batch_size = 10
     last_batch = int(len(items_)/batch_size)
     action = json.dumps({ 'index': { '_index': 'demostore-search-index' } })
     
