@@ -91,11 +91,6 @@ if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_MODEL_ID = get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
 #bytes_for_rekog = ""
     
-if "OpenSearchPassword" not in st.session_state:
-    st.session_state.OpenSearchPassword = "" 
-    
-if "OpenSearchUsername" not in st.session_state:
-    st.session_state.OpenSearchUsername = "" 
     
 
     
@@ -146,11 +141,6 @@ for output in cfn_outputs:
     if('s3' in output['OutputKey'].lower()):
         s3_bucket = output['OutputValue']
         
-    if('OpenSearchUsername' == output['OutputKey']):
-        OpenSearchUsername = output['OutputValue']
-        
-    if('OpenSearchPassword' == output['OutputKey']):
-        OpenSearchPassword = output['OutputValue']
         
 
 
@@ -168,11 +158,11 @@ print("account_id: "+account_id)
 print("SparseEmbeddingEndpointName: "+SparseEmbeddingEndpointName)
 print("OpenSearchDomainEndpoint: "+OpenSearchDomainEndpoint)
 print("S3 Bucket: "+s3_bucket)
-st.session_state.OpenSearchUsername = OpenSearchUsername
+
 st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
 store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
 store_in_dynamo('REGION',st.session_state.REGION )
-st.session_state.OpenSearchPassword = OpenSearchPassword
+
 st.session_state.KendraResourcePlanID = KendraResourcePlanID
 store_in_dynamo('KendraResourcePlanID',st.session_state.KendraResourcePlanID )
 
