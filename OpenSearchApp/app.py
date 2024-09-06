@@ -133,13 +133,6 @@ for output in cfn_outputs:
     if('KendraResourcePlanID' in output['OutputKey']):
         KendraResourcePlanID = output['OutputValue']
         
-    #SparseEmbeddingEndpointName = "neural-sparse"
-    
-    if('SparseEmbeddingEndpointName' in output['OutputKey']):
-        SparseEmbeddingEndpointName = output['OutputValue']
-        
-    if('s3' in output['OutputKey'].lower()):
-        s3_bucket = output['OutputValue']
         
         
 
@@ -155,9 +148,7 @@ account_id = boto3.client('sts').get_caller_identity().get('Account')
 print("stackname: "+stackname)
 print("account_id: "+account_id)  
 #print("region: "+region)
-print("SparseEmbeddingEndpointName: "+SparseEmbeddingEndpointName)
 print("OpenSearchDomainEndpoint: "+OpenSearchDomainEndpoint)
-print("S3 Bucket: "+s3_bucket)
 
 st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
 store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
