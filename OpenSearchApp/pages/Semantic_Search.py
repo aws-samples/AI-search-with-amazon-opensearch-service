@@ -28,7 +28,7 @@ import utilities.re_ranker as re_ranker
 import query_rewrite
 import amazon_rekognition
 #from st_click_detector import click_detector
-#import llm_eval
+import llm_eval
 import all_search_execute
 
 
