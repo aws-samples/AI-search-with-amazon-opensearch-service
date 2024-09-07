@@ -20,7 +20,7 @@ st.set_page_config(
     layout="wide",
     page_icon="/home/ubuntu/images/opensearch_mark_default.png"
 )
-st.title("Retail dataset")
+st.title("Intelligent Search with OpenSearch")
 
 # Define the command
 command = "ec2-metadata --availability-zone | sed 's/.$//'"
@@ -57,7 +57,7 @@ def get_from_dynamo(key):
 
 
 if "play_disabled" not in st.session_state:
-    st.session_state.play_disabled = True
+    st.session_state.play_disabled = get_from_dynamo("play_disabled")
     
     
 if "KendraResourcePlanID" not in st.session_state:
@@ -106,6 +106,44 @@ if not isExist:
     file.close()
     #remove images.tar.gz
     os.remove('/home/ec2-user/SageMaker/images_retail/images.tar.gz')
+    
+preview_data = ["footwear","jewelry","apparel","beauty","housewares"]
+yaml = YAML()
+preview_contain = st.container()
+preview_items = yaml.load(open('/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/preview_data.yaml'))
+
+with st.expander("Preview data samples",expanded = False):
+    samp1, samp2,samp3  = st.columns([33,33,33])
+    col_array = [samp1, samp2,samp3]
+    count = 0
+    for item in preview_items:
+
+        count = count + 1
+        fileshort = "/home/ec2-user/SageMaker/images_retail/"+item["category"]+"/"+item["image"]
+
+        payload = {}
+        payload['product_description'] = item['description']
+        payload['caption'] = item['name']
+        payload['category'] = item['category']
+        payload['price'] = item['price']
+        #payload['gender_affinity'] = item['gender_affinity']
+        with col_array[count-1]:
+            if(count == 1):
+                st.subheader(item['category'])
+            else:
+                st.subheader("")
+
+            st.image(fileshort,use_column_width="always")
+            st.json(payload,expanded = False)
+        if(count == 3):
+            count = 0
+
+
+                                
+            
+            
+
+
     
 
 
@@ -346,7 +384,8 @@ def ingest_data():
     
     #Enable Playground
     
-    st.session_state.play_disabled = False
+    st.session_state.play_disabled = 'False'
+    store_in_dynamo('play_disabled','False')
     
     
     
@@ -364,9 +403,18 @@ input_host = "https://search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg
 input_index = "raw-retail-ml-search-index"
 url = input_host + input_index
 # get_fileds = st.button('Get field metadata')
-preview_data = st.button('Preview data samples')
-ingest_data = st.button('Index data and deploy application',on_click = ingest_data)
-playground = st.button('Launch Search Playground', disabled = False)#st.session_state.play_disabled
+
+
+ingest_data = st.button('Index data and deploy application',type = 'primary',on_click = ingest_data)
+
+print("st.session_state.play_disabled")
+print(st.session_state.play_disabled )
+if(st.session_state.play_disabled == "" or st.session_state.play_disabled == "True"):
+    st.session_state.play_disabled  = True
+else:
+    st.session_state.play_disabled  = False
+
+playground = st.button('Launch Search Playground', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
 if(playground):
     st.switch_page('pages/Semantic_Search.py')
 # if(get_fileds):
@@ -376,7 +424,6 @@ if(playground):
 #     #awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, REGION, 'es', session_token=credentials.token)
 #     awsauth = HTTPBasicAuth(st.session_state.OpenSearchUsername,st.session_state.OpenSearchPassword)
 #     r = requests.get(url, auth=awsauth,  headers=headers)
-    
 #     mappings= json.loads(r.text)[input_index]["mappings"]["properties"]
     
 #     fields = []

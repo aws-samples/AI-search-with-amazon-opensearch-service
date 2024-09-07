@@ -1,0 +1,141 @@
+- id: 6579c22f-be2b-444c-a52b-0116dd82df6c
+  current_stock: 15
+  name: Spacious Tan Backpack for Her Travels
+  category: accessories
+  style: backpack
+  description: This versatile tan travel backpack is thoughtfully designed with multiple
+    compartments to keep you organized. Its durable fabric withstands daily use while
+    the padded straps ensure carrying comfort. The spacious interior and numerous
+    pockets provide ample storage for all your belongings.
+  price: 90.99
+  image: 6579c22f-be2b-444c-a52b-0116dd82df6c.jpg
+  gender_affinity: F
+  where_visible: UI
+- id: 025ec8a0-0358-494f-a51a-065f090e84f8
+  current_stock: 15
+  name: Sleek Leather Belt Elevates Any Outfit
+  category: accessories
+  style: belt
+  description: This sleek, high-quality leather belt flatters any figure with its
+    polished buckle and smooth design. An elegant wardrobe essential for any occasion,
+    this versatile accessory transitions effortlessly from day to night.
+  price: 75.99
+  image: 025ec8a0-0358-494f-a51a-065f090e84f8.jpg
+  gender_affinity: F
+  where_visible: UI
+- id: c3801e4e-9cdf-4ca8-80ec-7c7ce09a84fa
+  current_stock: 13
+  name: Stylish Tinted Glasses for Women
+  category: accessories
+  style: glasses
+  description: Make a stylish statement with these sleek, lightweight women's glasses
+    featuring a modern design, tinted lenses, and UV protection for fashionable flair
+    and function. The perfect accessory for work or weekends!
+  price: 103.99
+  image: c3801e4e-9cdf-4ca8-80ec-7c7ce09a84fa.jpg
+  gender_affinity: F
+  where_visible: UI
+  promoted: true
+- id: a7fc7d65-a3c7-4793-8c60-8631d208f4a4
+  current_stock: 11
+  name: Navy Casual Jacket - Cozy All-Season Style
+  category: apparel
+  style: jacket
+  description: This versatile navy blue jacket keeps you cozy in style year-round.
+    Made from soft, durable fabric, it's lightweight for spring and fall yet substantial
+    enough to protect from winter chill. An essential outerwear choice for work, errands,
+    or dinner with friends.
+  price: 164.99
+  image: a7fc7d65-a3c7-4793-8c60-8631d208f4a4.jpg
+  gender_affinity: F
+  where_visible: UI
+- id: e1669081-8ffc-4dec-97a6-e9176d7f6651
+  current_stock: 12
+  name: Elegant Scarf for Stylish Women
+  category: apparel
+  style: scarf
+  description: The Sans Pareil scarf is an elegant and stylish accessory that adds
+    a subtle touch of sophistication to any outfit. Crafted from soft, lightweight
+    fabric, it drapes beautifully and can be worn in various ways. This versatile
+    scarf is a must-have wardrobe essential for fashion-forward women.
+  price: 124.99
+  image: e1669081-8ffc-4dec-97a6-e9176d7f6651.jpg
+  gender_affinity: F
+  where_visible: UI
+  promoted: true
+- id: d31c6edf-9d66-4d87-bc80-854b328678e1
+  current_stock: 11
+  name: Stylish Crop Top for Summer
+  category: apparel
+  style: shirt
+  description: Flaunt your style with our form-fitting crop top. Made of soft, breathable
+    fabric, this stylish sleeveless shirt features a short hem perfect for sunny days.
+    Pair with high-waisted bottoms to highlight your figure in trendy comfort.
+  price: 111.99
+  image: d31c6edf-9d66-4d87-bc80-854b328678e1.jpg
+  gender_affinity: F
+  where_visible: UI
+  promoted: true
+- id: f4f2c80e-cd02-4026-8586-3ec3ff05bbb2
+  current_stock: 18
+  name: Stylish Lightweight Earrings
+  category: jewelry
+  style: earrings
+  description: Stylish and on-trend earrings featuring a delicate, lightweight design.
+    Fashionable accessories to complement any outfit - perfect for dressing up day
+    or night looks. Made to be comfortable, durable and easy to wear. An essential
+    addition to every woman's jewelry collection.
+  price: 78.99
+  image: f4f2c80e-cd02-4026-8586-3ec3ff05bbb2.jpg
+  gender_affinity: F
+  where_visible: UI
+- id: 1e5f1f36-9ff4-4436-9555-74b4ef2bd5bf
+  current_stock: 13
+  name: Minimalist Pendant Necklace - Subtle Elegance
+  category: jewelry
+  style: necklace
+  description: Presenting the Swell Minimalist Pendant Necklace - an elegant, versatile
+    necklace featuring a subtle pendant on an adjustable chain. Crafted with care
+    using quality materials, this timeless necklace adds a delicate yet statement-making
+    touch to any outfit. For effortless style and glamour, complete your look with
+    the Swell.
+  price: 55.99
+  image: 1e5f1f36-9ff4-4436-9555-74b4ef2bd5bf.jpg
+  gender_affinity: F
+  where_visible: UI
+- id: 2f3f075b-66ff-475f-95e3-71b462f328c5
+  category: beauty
+  current_stock: 19
+  description: This versatile set of 3 portable eyeshadow palettes contains 12 richly
+    pigmented shades to create both subtle daytime and bold evening looks. Experiment
+    with different color combinations to coordinate any outfit using these blendable,
+    highly pigmented shadows.
+  image: 2f3f075b-66ff-475f-95e3-71b462f328c5.jpg
+  name: Colorful Eyeshadow Palette Set
+  price: 145.0
+  style: grooming
+  gender_affinity: F
+  where_visible: UI
+- id: b20ba076-58a7-4602-9b56-4bee46e98388
+  name: Cheesy Beefy Nacho Platter
+  category: food service
+  style: nachos
+  description: Crispy tortilla chips piled high with melted cheese, seasoned beef,
+    beans, fresh pico de gallo, guacamole and sour cream. An irresistible Tex-Mex
+    fiesta of flavors in every hearty nacho bite.
+  price: 5.0
+  image: b20ba076-58a7-4602-9b56-4bee46e98388jpg
+  image_license: AWS Supplied
+  link: null
+  current_stock: 90
+- id: d78a318a-ca96-4bb3-9f9f-90847b105f2a
+  current_stock: 11
+  name: Scrub Away Dull Skin
+  category: beauty
+  style: bathing
+  description: Reinvigorate your bathing routine with the Scrub Ball, an innovative
+    exfoliator that deeply cleanses and polishes skin. Its textured surface scrubs
+    away impurities, leaving you smooth, refreshed, and ready to take on the day.
+  price: 9.99
+  image: d78a318a-ca96-4bb3-9f9f-90847b105f2a.jpg
+  where_visible: UI

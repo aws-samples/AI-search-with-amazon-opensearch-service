@@ -6,6 +6,7 @@ import os
 import sys
 import boto3
 import requests
+from requests_aws4auth import AWS4Auth
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/semantic_search")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/RAG")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/utilities")
@@ -65,6 +66,18 @@ def get_from_dynamo(key):
         return ""
     else:
         return res['Item']['store_val']['S']
+    
+def store_in_dynamo(key,val):
+    response = dynamo_client.put_item(
+    Item={
+        'store_key': {
+            'S': key,
+    },
+             'store_val': {
+            'S': val,
+    }},
+    TableName='dynamo_store_key_value',
+)
 
 
 #from langchain.callbacks.base import BaseCallbackHandler
@@ -216,6 +229,21 @@ if "OpenSearchDomainEndpoint" not in st.session_state:
     
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = get_from_dynamo("max_selections")
+
+host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
+service = 'es'
+credentials = boto3.Session().get_credentials()
+awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_state.REGION, service, session_token=credentials.token)
+headers = {"Content-Type": "application/json"}
+
+opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_search_pipeline")
+print(opensearch_search_pipeline)
+if(opensearch_search_pipeline!='{}'):
+    st.session_state.max_selections = "None"
+else:
+    st.session_state.max_selections = "1"
+store_in_dynamo('max_selections',st.session_state.max_selections )
     
     
 if "REGION" not in st.session_state:
@@ -736,7 +764,7 @@ if(search_all_type == True or 1==1):
         #st.subheader(':blue[Keyword Search]')
 
         ########################## enable for query_rewrite ########################
-        rewrite_query = st.checkbox('Auto-apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
+        rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
         st.multiselect('Fields for "MUST" filter',
                 ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
    
