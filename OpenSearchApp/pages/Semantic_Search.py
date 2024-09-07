@@ -736,7 +736,7 @@ if(search_all_type == True or 1==1):
         #st.subheader(':blue[Keyword Search]')
 
         ########################## enable for query_rewrite ########################
-        rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
+        rewrite_query = st.checkbox('Auto-apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
         st.multiselect('Fields for "MUST" filter',
                 ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
    
