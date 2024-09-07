@@ -405,7 +405,7 @@ url = input_host + input_index
 # get_fileds = st.button('Get field metadata')
 
 
-ingest_data = st.button('Index data and deploy application',type = 'primary',on_click = ingest_data)
+ingest_data = st.button('(Re)Index data',type = 'primary',on_click = ingest_data)
 
 print("st.session_state.play_disabled")
 print(st.session_state.play_disabled )
@@ -414,7 +414,7 @@ if(st.session_state.play_disabled == "" or st.session_state.play_disabled == "Tr
 else:
     st.session_state.play_disabled  = False
 
-playground = st.button('Launch Search Playground', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
+playground = st.button('Launch playground', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
 if(playground):
     st.switch_page('pages/Semantic_Search.py')
 # if(get_fileds):
