@@ -17,10 +17,10 @@ def get_region():
 
     return st.session_state.REGION
 
+dynamo_client = boto3.client('dynamodb',region_name=get_region())
 
 
 def store_in_dynamo(key,val):
-    dynamo_client = boto3.client('dynamodb',region_name=st.session_state.REGION)
     response = dynamo_client.put_item(
     Item={
         'store_key': {
@@ -33,7 +33,6 @@ def store_in_dynamo(key,val):
 )
     
 def get_from_dynamo(key):
-    dynamo_client = boto3.client('dynamodb',region_name=st.session_state.REGION)
     res = dynamo_client.get_item( TableName='dynamo_store_key_value',Key = {'store_key': {'S': key}})
     if('Item' not in res):
         return ""
@@ -41,7 +40,6 @@ def get_from_dynamo(key):
         return res['Item']['store_val']['S']
     
 def update_in_dynamo(key,attr_name,attr_val):
-    dynamo_client = boto3.client('dynamodb',region_name=st.session_state.REGION)
     dynamo_client.update_item( TableName='dynamo_store_key_value',
                                           ExpressionAttributeNames={
                                                 '#Y': attr_name,
