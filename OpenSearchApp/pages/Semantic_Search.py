@@ -31,6 +31,7 @@ import amazon_rekognition
 #from st_click_detector import click_detector
 import llm_eval
 import all_search_execute
+import dynamo_state as ds
 
 
 st.set_page_config(
@@ -50,34 +51,8 @@ st.markdown("""
     </style>
     """,unsafe_allow_html=True)
 #ps = PorterStemmer()
-# Define the command
-command = "ec2-metadata --availability-zone | sed 's/.$//'"
 
-# Run the command and capture the output
-output = subprocess.check_output(command, shell=True, text=True)
-
-# Print the command output
-print("Command output:")
-st.session_state.REGION = output.split(":")[1].strip()
-dynamo_client = boto3.client('dynamodb',region_name=st.session_state.REGION)
-def get_from_dynamo(key):
-    res = dynamo_client.get_item( TableName='dynamo_store_key_value',Key = {'store_key': {'S': key}})
-    if('Item' not in res):
-        return ""
-    else:
-        return res['Item']['store_val']['S']
-    
-def store_in_dynamo(key,val):
-    response = dynamo_client.put_item(
-    Item={
-        'store_key': {
-            'S': key,
-    },
-             'store_val': {
-            'S': val,
-    }},
-    TableName='dynamo_store_key_value',
-)
+st.session_state.REGION = ds.get_region()
 
 
 #from langchain.callbacks.base import BaseCallbackHandler
@@ -225,10 +200,10 @@ if "bytes_for_rekog" not in st.session_state:
     st.session_state.bytes_for_rekog = ""
     
 if "OpenSearchDomainEndpoint" not in st.session_state:
-    st.session_state.OpenSearchDomainEndpoint = get_from_dynamo("OpenSearchDomainEndpoint")
+    st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
     
 if "max_selections" not in st.session_state:
-    st.session_state.max_selections = get_from_dynamo("max_selections")
+    st.session_state.max_selections = ds.get_from_dynamo("max_selections")
 
 host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
 service = 'es'
@@ -243,27 +218,27 @@ if(opensearch_search_pipeline!='{}'):
     st.session_state.max_selections = "None"
 else:
     st.session_state.max_selections = "1"
-store_in_dynamo('max_selections',st.session_state.max_selections )
+ds.store_in_dynamo('max_selections',st.session_state.max_selections )
     
     
 if "REGION" not in st.session_state:
     st.session_state.REGION = ""
     
 if "BEDROCK_MULTIMODAL_MODEL_ID" not in st.session_state:
-    st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
+    st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
     
 if "search_types" not in st.session_state:
-    st.session_state.search_types =get_from_dynamo("search_types")
+    st.session_state.search_types =ds.get_from_dynamo("search_types")
     
 if "KendraResourcePlanID" not in st.session_state:
-    st.session_state.KendraResourcePlanID= get_from_dynamo("KendraResourcePlanID")
+    st.session_state.KendraResourcePlanID= ds.get_from_dynamo("KendraResourcePlanID")
 
 
 if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
-    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
+    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
     
 if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
-    st.session_state.BEDROCK_TEXT_MODEL_ID = get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
+    st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
 #bytes_for_rekog = ""
 bedrock_ = boto3.client('bedrock-runtime',region_name=st.session_state.REGION)
 search_all_type = False

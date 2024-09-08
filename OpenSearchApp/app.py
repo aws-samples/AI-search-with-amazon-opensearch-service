@@ -13,6 +13,7 @@ import urllib.request
 import tarfile
 import subprocess
 from ruamel.yaml import YAML
+import dynamo_state as ds
 
 st.set_page_config(
     
@@ -22,73 +23,42 @@ st.set_page_config(
 )
 st.title("Intelligent Search with OpenSearch")
 
-# Define the command
-command = "ec2-metadata --availability-zone | sed 's/.$//'"
-
-# Run the command and capture the output
-output = subprocess.check_output(command, shell=True, text=True)
-
-# Print the command output
-print("Command output:")
-st.session_state.REGION = output.split(":")[1].strip()
-
-print(st.session_state.REGION)
-
-dynamo_client = boto3.client('dynamodb',region_name=st.session_state.REGION)
-
-def store_in_dynamo(key,val):
-    response = dynamo_client.put_item(
-    Item={
-        'store_key': {
-            'S': key,
-    },
-             'store_val': {
-            'S': val,
-    }},
-    TableName='dynamo_store_key_value',
-)
-    
-def get_from_dynamo(key):
-    res = dynamo_client.get_item( TableName='dynamo_store_key_value',Key = {'store_key': {'S': key}})
-    if('Item' not in res):
-        return ""
-    else:
-        return res['Item']['store_val']['S']
+st.session_state.REGION = ds.get_region()
 
 
 if "play_disabled" not in st.session_state:
-    st.session_state.play_disabled = get_from_dynamo("play_disabled")
+    st.session_state.play_disabled = ds.get_from_dynamo("play_disabled")
     
     
 if "KendraResourcePlanID" not in st.session_state:
-    st.session_state.KendraResourcePlanID= get_from_dynamo("KendraResourcePlanID")
+    st.session_state.KendraResourcePlanID= ds.get_from_dynamo("KendraResourcePlanID")
     
 if "index_map" not in st.session_state:
     st.session_state.index_map = {}
     
 if "OpenSearchDomainEndpoint" not in st.session_state:
-    st.session_state.OpenSearchDomainEndpoint = get_from_dynamo("OpenSearchDomainEndpoint")
+    st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
     
 if "REGION" not in st.session_state:
     st.session_state.REGION = ""
     
 if "BEDROCK_MULTIMODAL_MODEL_ID" not in st.session_state:
-    st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
+    st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
     
 if "max_selections" not in st.session_state:
-    st.session_state.max_selections = get_from_dynamo("max_selections")
+    st.session_state.max_selections = ds.get_from_dynamo("max_selections")
     
 if "search_types" not in st.session_state:
-    st.session_state.search_types =get_from_dynamo("search_types")
+    st.session_state.search_types =ds.get_from_dynamo("search_types")
     if(st.session_state.search_types == ""):
         st.session_state.search_types = "Keyword Search"
 
 
 if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
-    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
+    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
     
 if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
-    st.session_state.BEDROCK_TEXT_MODEL_ID = get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
+    st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
 #bytes_for_rekog = ""
     
     
@@ -189,11 +159,11 @@ print("account_id: "+account_id)
 print("OpenSearchDomainEndpoint: "+OpenSearchDomainEndpoint)
 
 st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
-store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
-store_in_dynamo('REGION',st.session_state.REGION )
+ds.store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
+ds.store_in_dynamo('REGION',st.session_state.REGION )
 
 st.session_state.KendraResourcePlanID = KendraResourcePlanID
-store_in_dynamo('KendraResourcePlanID',st.session_state.KendraResourcePlanID )
+ds.store_in_dynamo('KendraResourcePlanID',st.session_state.KendraResourcePlanID )
 
 host = 'https://'+OpenSearchDomainEndpoint+'/'
 service = 'es'
@@ -208,7 +178,7 @@ if(opensearch_search_pipeline!='{}'):
     st.session_state.max_selections = "None"
 else:
     st.session_state.max_selections = "1"
-store_in_dynamo('max_selections',st.session_state.max_selections )
+ds.store_in_dynamo('max_selections',st.session_state.max_selections )
 def ingest_data():
     
     ingest_flag = False
@@ -225,17 +195,17 @@ def ingest_data():
             if(key_ == 'text_embedding'):
                 search_types+='Vector Search,'
                 st.session_state.BEDROCK_TEXT_MODEL_ID = i[key_]['model_id']
-                store_in_dynamo('BEDROCK_TEXT_MODEL_ID',st.session_state.BEDROCK_TEXT_MODEL_ID )
+                ds.store_in_dynamo('BEDROCK_TEXT_MODEL_ID',st.session_state.BEDROCK_TEXT_MODEL_ID )
                 
             if(key_ == 'text_image_embedding'):
                 search_types+='Multimodal Search,'
                 st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = i[key_]['model_id']
-                store_in_dynamo('BEDROCK_MULTIMODAL_MODEL_ID',st.session_state.BEDROCK_MULTIMODAL_MODEL_ID )
+                ds.store_in_dynamo('BEDROCK_MULTIMODAL_MODEL_ID',st.session_state.BEDROCK_MULTIMODAL_MODEL_ID )
                 
             if(key_ == 'sparse_encoding'):
                 search_types+='NeuralSparse Search,'
                 st.session_state.SAGEMAKER_SPARSE_MODEL_ID = i[key_]['model_id']
-                store_in_dynamo('SAGEMAKER_SPARSE_MODEL_ID',st.session_state.SAGEMAKER_SPARSE_MODEL_ID )
+                ds.store_in_dynamo('SAGEMAKER_SPARSE_MODEL_ID',st.session_state.SAGEMAKER_SPARSE_MODEL_ID )
         
         
         search_types = search_types[0:-1]
@@ -244,7 +214,7 @@ def ingest_data():
         response = (dynamo_client.get_item( TableName='dynamo_store_key_value',Key = {'store_key': {'S': 'ml_ingest_pipeline'}}))
         if('Item' not in response):
             dynamo_res = '{}'
-            store_in_dynamo('ml_ingest_pipeline',opensearch_res)
+            ds.store_in_dynamo('ml_ingest_pipeline',opensearch_res)
             
             ingest_flag = True
             
@@ -276,7 +246,7 @@ def ingest_data():
             ingest_flag = True
     print(ingest_flag)
     
-    store_in_dynamo('search_types',search_types)
+    ds.store_in_dynamo('search_types',search_types)
     st.session_state.search_types = search_types
             
     if(ingest_flag == False):
@@ -385,7 +355,7 @@ def ingest_data():
     #Enable Playground
     
     st.session_state.play_disabled = 'False'
-    store_in_dynamo('play_disabled','False')
+    ds.store_in_dynamo('play_disabled','False')
     
     
     
