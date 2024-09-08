@@ -62,7 +62,6 @@ if "search_types" not in st.session_state:
     if(st.session_state.search_types == ""):
         st.session_state.search_types = "Keyword Search"
 
-
 if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
     
@@ -221,8 +220,8 @@ def ingest_data(col,default):
         search_types = search_types[0:-1]
         
         print(opensearch_models)
-        response = (dynamo_client.get_item( TableName='dynamo_store_key_value',Key = {'store_key': {'S': 'ml_ingest_pipeline'}}))
-        if('Item' not in response):
+        response = ds.get_from_dynamo("ml_ingest_pipeline")
+        if(response == ""):
             dynamo_res = '{}'
             ds.store_in_dynamo('ml_ingest_pipeline',opensearch_res)
             
@@ -230,25 +229,13 @@ def ingest_data(col,default):
             
             
         else:
-            dynamo_res = json.loads(response['Item']['store_val']['S'])
+            dynamo_res = json.loads(response)
             dynamo_models = {}
             for i in dynamo_res['ml_ingest_pipeline']['processors']:
                 key_ = list(i.keys())[0]
                 dynamo_models[list(i.keys())[0]] = i[key_]['model_id']
             if(opensearch_models!=dynamo_models):
-                dynamo_client.update_item( TableName='dynamo_store_key_value',
-                                          ExpressionAttributeNames={
-                                                '#Y': 'store_val',
-                                            },
-                                            ExpressionAttributeValues={
-                                                
-                                                ':y': {
-                                                    'S': opensearch_res,
-                                                },
-                                            },Key = {'store_key': {'S': 'ml_ingest_pipeline'}},
-                                                ReturnValues='ALL_NEW',
-                                                UpdateExpression='SET #Y = :y',
-                                            )
+                ds.update_in_dynamo('ml_ingest_pipeline','store_val',opensearch_res)
                 ingest_flag = True
     else:
         exists = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
