@@ -14,9 +14,7 @@ import tarfile
 import subprocess
 from ruamel.yaml import YAML
 import sys
-print(os.path.realpath(__file__))
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-1])+"/semantic_search")
-print("/".join(os.path.realpath(__file__).split("/")[0:-1])+"/semantic_search")
 import dynamo_state as ds
 
 st.set_page_config(
@@ -108,18 +106,10 @@ with st.expander("Preview data samples",expanded = False):
                 st.subheader("")
 
             st.image(fileshort,use_column_width="always")
+            st.write(payload['caption'])
             st.json(payload,expanded = False)
         if(count == 3):
             count = 0
-
-
-                                
-            
-            
-
-
-    
-
 
 cfn = boto3.client('cloudformation',region_name=st.session_state.REGION)
 
@@ -174,6 +164,14 @@ service = 'es'
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_state.REGION, service, session_token=credentials.token)
 headers = {"Content-Type": "application/json"}
+
+exists_ = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
+if(str(exists_) == '<Response [404]>'):
+    st.session_state.play_disabled = 'True'
+else:
+    st.session_state.play_disabled = 'False'
+ds.store_in_dynamo('play_disabled',st.session_state.play_disabled)
+    
 
 opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipeline', auth=awsauth,headers=headers)).text
 print("opensearch_search_pipeline")
@@ -388,6 +386,9 @@ if(st.session_state.play_disabled == "" or st.session_state.play_disabled == "Tr
     st.session_state.play_disabled  = True
 else:
     st.session_state.play_disabled  = False
+    
+print("st.session_state.play_disabled")
+print(st.session_state.play_disabled)
 
 with c3:
     playground = st.button('Launch playground', type = 'primary', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
