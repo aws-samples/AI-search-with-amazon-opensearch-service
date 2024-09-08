@@ -36,6 +36,19 @@
   gender_affinity: F
   where_visible: UI
   promoted: true
+- id: aedc65f7-684c-4e4a-bcd0-455dae355ced
+  current_stock: 13
+  name: Rust Slouchy Leather Handbag
+  category: accessories
+  style: handbag
+  description: Trendy rust leather handbag with slouchy silhouette offers spacious
+    main compartment and inner pockets to keep you organized. Adjustable strap and
+    top zip closure provide carrying comfort and security for the fashionable woman
+    on-the-go.
+  price: 126.99
+  image: aedc65f7-684c-4e4a-bcd0-455dae355ced.jpg
+  gender_affinity: F
+  where_visible: UI
 - id: a7fc7d65-a3c7-4793-8c60-8631d208f4a4
   current_stock: 11
   name: Navy Casual Jacket - Cozy All-Season Style
@@ -76,6 +89,18 @@
   gender_affinity: F
   where_visible: UI
   promoted: true
+- id: bdd60031-236f-4b31-81bc-d85c5d555e4f
+  current_stock: 8
+  name: Funky Retro Patterned Socks
+  category: apparel
+  style: socks
+  description: Make a vibrant, retro statement with these playfully patterned cotton
+    socks. The super soft material keeps feet cozy while the funky colors and designs
+    liven up any outfit.
+  price: 16.99
+  image: bdd60031-236f-4b31-81bc-d85c5d555e4f.jpg
+  gender_affinity: F
+  where_visible: UI
 - id: f4f2c80e-cd02-4026-8586-3ec3ff05bbb2
   current_stock: 18
   name: Stylish Lightweight Earrings
@@ -103,6 +128,42 @@
   image: 1e5f1f36-9ff4-4436-9555-74b4ef2bd5bf.jpg
   gender_affinity: F
   where_visible: UI
+- id: 7a52ede4-bed8-4720-9cf3-9cb6908d89f5
+  current_stock: 11
+  name: Sparkling Bracelet for Her Special Day
+  category: jewelry
+  style: bracelet
+  description: This sparkling bracelet for her features a timeless and elegant design
+    with subtle sparkle. Expertly crafted from the finest materials, it's a versatile
+    accessory that adds effortless glamour to any outfit, perfect for any special
+    woman.
+  price: 115.99
+  image: 7a52ede4-bed8-4720-9cf3-9cb6908d89f5.jpg
+  gender_affinity: F
+  where_visible: UI
+- id: 210907af-2675-4546-8693-f6a8506841ff
+  current_stock: 10
+  name: Captivating Bracelet for Her
+  category: jewelry
+  style: bracelet
+  description: Expertly crafted Ravishing Bracelet, a timeless and versatile jewelry
+    piece made with quality materials. This elegant bracelet complements any outfit
+    and makes a perfect gift for that special woman in your life.
+  price: 65.99
+  image: 210907af-2675-4546-8693-f6a8506841ff.jpg
+  gender_affinity: F
+  where_visible: UI
+- id: d78a318a-ca96-4bb3-9f9f-90847b105f2a
+  current_stock: 11
+  name: Scrub Away Dull Skin
+  category: beauty
+  style: bathing
+  description: Reinvigorate your bathing routine with the Scrub Ball, an innovative
+    exfoliator that deeply cleanses and polishes skin. Its textured surface scrubs
+    away impurities, leaving you smooth, refreshed, and ready to take on the day.
+  price: 9.99
+  image: d78a318a-ca96-4bb3-9f9f-90847b105f2a.jpg
+  where_visible: UI
 - id: 2f3f075b-66ff-475f-95e3-71b462f328c5
   category: beauty
   current_stock: 19
@@ -116,26 +177,81 @@
   style: grooming
   gender_affinity: F
   where_visible: UI
-- id: b20ba076-58a7-4602-9b56-4bee46e98388
-  name: Cheesy Beefy Nacho Platter
-  category: food service
-  style: nachos
-  description: Crispy tortilla chips piled high with melted cheese, seasoned beef,
-    beans, fresh pico de gallo, guacamole and sour cream. An irresistible Tex-Mex
-    fiesta of flavors in every hearty nacho bite.
-  price: 5.0
-  image: b20ba076-58a7-4602-9b56-4bee46e98388jpg
-  image_license: AWS Supplied
-  link: null
-  current_stock: 90
-- id: d78a318a-ca96-4bb3-9f9f-90847b105f2a
-  current_stock: 11
-  name: Scrub Away Dull Skin
+- id: ec981144-9f7d-473e-94a1-14da97152c5b
   category: beauty
-  style: bathing
-  description: Reinvigorate your bathing routine with the Scrub Ball, an innovative
-    exfoliator that deeply cleanses and polishes skin. Its textured surface scrubs
-    away impurities, leaving you smooth, refreshed, and ready to take on the day.
-  price: 9.99
-  image: d78a318a-ca96-4bb3-9f9f-90847b105f2a.jpg
+  current_stock: 9
+  description: Achieve flawless, stay-put eye makeup with this dynamic waterproof
+    eyeliner and volumizing mascara duo. The richly pigmented eyeliner glides on smoothly
+    for precise application, while the clump-free mascara builds from natural to dramatic
+    for up to 24 hours of perfect, waterproof wear.
+  image: ec981144-9f7d-473e-94a1-14da97152c5b.jpg
+  name: Volumizing Waterproof Eyeliner & Mascara Duo
+  price: 27.0
+  style: grooming
+  gender_affinity: F
   where_visible: UI
+- id: b6295ac1-d60b-42a6-b16b-ebb433562e18
+  category: beauty
+  current_stock: 6
+  description: Discover your perfect match with our Radiant 15-Shade Concealer Palette.
+    This luminous collection features 15 buildable, skin-loving tones to highlight
+    your natural beauty and conceal imperfections. Expertly formulated for all complexions.
+  gender_affinity: F
+  image: b6295ac1-d60b-42a6-b16b-ebb433562e18.jpg
+  image_license: Free for commercial use
+  link: https://www.pxfuel.com/en/free-photo-xidzw
+  name: Radiant Concealer for Your Perfect Match
+  price: 44.0
+  style: grooming
+  where_visible: UI
+  promoted: true
+- id: 25f47b5f-b4c7-4233-ad13-184da65d9bc8
+  current_stock: 9
+  name: Sturdy Connectivity Cable
+  category: electronics
+  style: cable
+  description: The Definitive Cable provides sturdy, shielded connectivity for electronics
+    at home or on the go. Gold-plated connectors and braided shielding prevent interference
+    for clear signal transmission. Durable PVC jacket protects flexible internal wiring.
+    Definitive cabling meets demanding connectivity needs.
+  price: 5.99
+  image: 25f47b5f-b4c7-4233-ad13-184da65d9bc8.jpg
+  where_visible: UI
+- id: bc24f94d-c4c3-4378-bf8b-0455ef1aa72b
+  current_stock: 7
+  name: Durable Braided USB Cable
+  category: electronics
+  style: cable
+  description: This durable braided USB-C to USB-A cable seamlessly connects all your
+    devices for hassle-free charging and data transfer. The 6-foot length provides
+    flexibility while the nylon exterior prevents tangles. The robust inner copper
+    wiring ensures reliable performance. This practical accessory handles any task
+    - the perfect gadget solution.
+  price: 5.99
+  image: bc24f94d-c4c3-4378-bf8b-0455ef1aa72b.jpg
+  where_visible: UI
+- id: c0abd282-4bc0-4bbd-936a-9b5ad0c2eeb7
+  current_stock: 16
+  name: Flexible Sturdy Electronics Cable
+  category: electronics
+  style: cable
+  description: Sleek yet sturdy, this 3ft flexible electronics cable connects your
+    devices with ease. Durable copper wiring and thick PVC coating ensure stable performance
+    for daily use. Charge, transfer data, and power peripherals with this versatile
+    USB and aux accessory you'll wonder how you lived without.
+  price: 10.99
+  image: c0abd282-4bc0-4bbd-936a-9b5ad0c2eeb7.jpg
+  where_visible: UI
+- id: 5d6929a4-570d-4eaa-a0c4-4b1aa350add6
+  current_stock: 18
+  name: Superior Connectivity Cable
+  category: electronics
+  style: cable
+  description: Unrivaled Premium Cable delivers unmatched connectivity and performance.
+    This expertly engineered, rigorously tested cable ensures crisp, clear transmission
+    for your devices. Get premium construction and advanced shielding for uncompromising
+    speed and fidelity.
+  price: 16.99
+  image: 5d6929a4-570d-4eaa-a0c4-4b1aa350add6.jpg
+  where_visible: UI
+  promoted: true

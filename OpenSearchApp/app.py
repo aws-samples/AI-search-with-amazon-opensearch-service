@@ -21,10 +21,17 @@ st.set_page_config(
     
     #page_title="Semantic Search using OpenSearch",
     layout="wide",
-    page_icon="/home/ubuntu/images/opensearch_mark_default.png"
+    page_icon="/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/opensearch_logo.png"
 )
-st.title("Intelligent Search with OpenSearch")
 
+col_0_1,col_0_2,col_0_3= st.columns([10,90,30])
+with col_0_1:
+    st.image("/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/opensearch_logo.png", use_column_width='always')
+with col_0_2:
+    st.header("Intelligent Search with Amazon OpenSearch service")
+st.write("")
+st.write("")
+st.write("")
 st.session_state.REGION = ds.get_region()
 
 
@@ -85,8 +92,8 @@ preview_contain = st.container()
 preview_items = yaml.load(open('/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/preview_data.yaml'))
 
 with st.expander("Preview data samples",expanded = False):
-    samp1, samp2,samp3  = st.columns([33,33,33])
-    col_array = [samp1, samp2,samp3]
+    samp1, samp2,samp3,samp4  = st.columns([25,25,25,25])
+    col_array = [samp1, samp2,samp3,samp4]
     count = 0
     for item in preview_items:
 
@@ -108,7 +115,7 @@ with st.expander("Preview data samples",expanded = False):
             st.image(fileshort,use_column_width="always")
             st.write(payload['caption'])
             st.json(payload,expanded = False)
-        if(count == 3):
+        if(count == 4):
             count = 0
 
 cfn = boto3.client('cloudformation',region_name=st.session_state.REGION)
@@ -181,7 +188,8 @@ if(opensearch_search_pipeline!='{}'):
 else:
     st.session_state.max_selections = "1"
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
-def ingest_data():
+
+def ingest_data(col,default):
     
     ingest_flag = False
     
@@ -336,6 +344,7 @@ def ingest_data():
             if(batch != last_batch):
                 body_ = ""
             
+            
                 
             #ingest the remaining rows
     response = aos_client.bulk(
@@ -344,6 +353,9 @@ def ingest_data():
             )
                     
     print("All "+str(last_batch)+" batches ingested into index")
+    
+    with col:
+        st.write(":white_check_mark:")
     
     
     
@@ -378,7 +390,9 @@ url = input_host + input_index
 st.write("----",divider = "rainbow")
 c1,c2,c3,c4 = st.columns([25,25,25,25])
 with c2:
-    ingest_data = st.button('(Re)Index data',type = 'primary',on_click = ingest_data)
+    inner_col1,inner_col2 = st.columns([55,70])
+    with inner_col1:
+        ingest_data = st.button('(Re)Index data',type = 'primary',on_click = ingest_data, args=(inner_col2,"default"))
 
 print("st.session_state.play_disabled")
 print(st.session_state.play_disabled )
