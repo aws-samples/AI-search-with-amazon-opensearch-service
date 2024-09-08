@@ -28,7 +28,7 @@ col_0_1,col_0_2,col_0_3= st.columns([10,90,30])
 with col_0_1:
     st.image("/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/opensearch_logo.png", use_column_width='always')
 with col_0_2:
-    st.header("Intelligent Search with Amazon OpenSearch service")
+    st.header("Intelligent search with Amazon OpenSearch Service")
 st.write("")
 st.write("")
 st.write("")
@@ -90,7 +90,7 @@ yaml = YAML()
 preview_contain = st.container()
 preview_items = yaml.load(open('/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/preview_data.yaml'))
 
-with st.expander("Preview data samples",expanded = False):
+with st.expander("Preview retail data samples",expanded = False):
     samp1, samp2,samp3,samp4  = st.columns([25,25,25,25])
     col_array = [samp1, samp2,samp3,samp4]
     count = 0
@@ -104,7 +104,16 @@ with st.expander("Preview data samples",expanded = False):
         payload['caption'] = item['name']
         payload['category'] = item['category']
         payload['price'] = item['price']
-        #payload['gender_affinity'] = item['gender_affinity']
+        if('gender_affinity' in item):
+            if(item['gender_affinity'] == 'M'):
+                payload['gender_affinity'] = 'Male'
+            else:
+                if(item['gender_affinity'] == 'F'):
+                    payload['gender_affinity'] = 'Female'
+                else:
+                    payload['gender_affinity'] = item['gender_affinity']
+        if('style' in item):          
+            payload['style'] = item['style']
         with col_array[count-1]:
             if(count == 1):
                 st.subheader(item['category'])
@@ -112,7 +121,7 @@ with st.expander("Preview data samples",expanded = False):
                 st.subheader("")
 
             st.image(fileshort,use_column_width="always")
-            st.write(payload['caption'])
+            st.write(":orange["+payload['caption']+"]")
             st.json(payload,expanded = False)
         if(count == 4):
             count = 0
@@ -172,7 +181,7 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_st
 headers = {"Content-Type": "application/json"}
 
 exists_ = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
-if(str(exists_) == '<Response [404]>'):
+if('404' in str(exists_)):
     st.session_state.play_disabled = 'True'
 else:
     st.session_state.play_disabled = 'False'
