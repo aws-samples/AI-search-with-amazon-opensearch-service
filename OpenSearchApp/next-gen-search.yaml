@@ -324,7 +324,7 @@ Resources:
       EngineVersion: 'OpenSearch_2.11'
       ClusterConfig:
         InstanceType: "r6g.2xlarge.search"
-        InstanceCount: 1
+        InstanceCount: 3
       EBSOptions:
         EBSEnabled: True
         VolumeSize: 20
