@@ -13,6 +13,10 @@ import urllib.request
 import tarfile
 import subprocess
 from ruamel.yaml import YAML
+import sys
+print(os.path.realpath(__file__))
+sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-1])+"/semantic_search")
+print("/".join(os.path.realpath(__file__).split("/")[0:-1])+"/semantic_search")
 import dynamo_state as ds
 
 st.set_page_config(
