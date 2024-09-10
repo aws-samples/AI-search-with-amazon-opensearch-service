@@ -177,6 +177,9 @@ headers = {"Content-Type": "application/json"}
 
 exists_ = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
 print(exists_)
+if('403' in str(exists_)):
+        st.error("Please add the backend role in OpenSearch dashboards",icon = "🚨")
+   
 if('404' in str(exists_) or '403' in str(exists_)):
     
     st.session_state.play_disabled = 'True'
@@ -196,10 +199,14 @@ ds.store_in_dynamo('max_selections',st.session_state.max_selections )
 
 def ingest_data(col,default):
     
+    
     ingest_flag = False
     
      
     opensearch_res = (requests.get(host+'_ingest/pipeline/ml_ingest_pipeline', auth=awsauth,headers=headers)).text
+    if('403' in str(opensearch_res)):
+        st.error("Please add the backend role in OpenSearch dashboards",icon = "🚨")
+        return ""
     print("opensearch_res:"+opensearch_res)
     search_types = 'Keyword Search,'
     if(opensearch_res!='{}'):
