@@ -27,7 +27,7 @@ import re
 # from nltk.stem import PorterStemmer
 # from nltk.tokenize import word_tokenize
 #import query_rewrite
-import amazon_rekognition
+#import amazon_rekognition
 #from st_click_detector import click_detector
 #import llm_eval
 import all_search_execute
@@ -424,7 +424,7 @@ def handle_input():
                 st.session_state.input_image = input_image
                 
             if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):  
-                st.session_state.bytes_for_rekog = Path(parent_dirname+"/uploaded_images/"+st.session_state.img_doc.name).read_bytes()
+                st.session_state.bytes_for_rekog = ""
        
                 
         
@@ -442,7 +442,7 @@ def handle_input():
     #     st.session_state.input_searchType = 'Keyword Search'
     if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):
         old_rekog_label = st.session_state.input_rekog_label
-        st.session_state.input_rekog_label = amazon_rekognition.extract_image_metadata(st.session_state.bytes_for_rekog)
+        st.session_state.input_rekog_label = ""#amazon_rekognition.extract_image_metadata(st.session_state.bytes_for_rekog)
         if(st.session_state.input_text == ""):
             st.session_state.input_text = st.session_state.input_rekog_label
             
@@ -553,13 +553,13 @@ def handle_input():
         st.session_state.input_sql_query = ""
         
     
-    if(st.session_state.input_is_rewrite_query == 'enabled' or (st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType)):
-        query_rewrite.get_new_query_res(st.session_state.input_text)
-        print("-------------------")
-        print(st.session_state.input_rewritten_query)
-        print("-------------------")
-    else:
-        st.session_state.input_rewritten_query = ""
+#     if(st.session_state.input_is_rewrite_query == 'enabled' or (st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType)):
+#         query_rewrite.get_new_query_res(st.session_state.input_text)
+#         print("-------------------")
+#         print(st.session_state.input_rewritten_query)
+#         print("-------------------")
+#     else:
+#         st.session_state.input_rewritten_query = ""
         
     # elif(st.session_state.input_rekog_label!="" and st.session_state.input_rekognition == 'enabled'):
     #     ans__ = amazon_rekognition.call(st.session_state.input_text,st.session_state.input_rekog_label)

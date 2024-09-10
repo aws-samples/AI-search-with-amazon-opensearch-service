@@ -177,7 +177,7 @@ headers = {"Content-Type": "application/json"}
 
 exists_ = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
 print(exists_)
-if('404' in str(exists_)):
+if('404' in str(exists_) or '403' in str(exists_)):
     
     st.session_state.play_disabled = 'True'
 else:

@@ -172,7 +172,7 @@ def handler(input_,session_id):
         },"size":k_,
         "highlight": {
     "fields": {
-    "description": {}
+    "product_description": {}
     }
     }}
     
