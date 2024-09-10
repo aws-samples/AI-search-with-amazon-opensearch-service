@@ -23,13 +23,13 @@ import urllib.request
 import base64
 import shutil
 import re
-import utilities.re_ranker as re_ranker
+#import utilities.re_ranker as re_ranker
 # from nltk.stem import PorterStemmer
 # from nltk.tokenize import word_tokenize
-import query_rewrite
+#import query_rewrite
 import amazon_rekognition
 #from st_click_detector import click_detector
-import llm_eval
+#import llm_eval
 import all_search_execute
 import dynamo_state as ds
 
@@ -739,12 +739,12 @@ if(search_all_type == True or 1==1):
         #st.subheader(':blue[Keyword Search]')
 
         ########################## enable for query_rewrite ########################
-        rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
-        st.multiselect('Fields for "MUST" filter',
-                ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
+        # rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
+        # st.multiselect('Fields for "MUST" filter',
+        #         ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
    
-                key = 'input_must',
-               )
+        #         key = 'input_must',
+        #        )
         ########################## enable for query_rewrite ########################
         
         
@@ -757,9 +757,9 @@ if(search_all_type == True or 1==1):
         st.session_state.input_is_sql_query = 'disabled'
         
         ########################## enable for query_rewrite ########################
-        if rewrite_query:
-            #st.write(st.session_state.inputs_)
-            st.session_state.input_is_rewrite_query = 'enabled'
+        # if rewrite_query:
+        #     #st.write(st.session_state.inputs_)
+        #     st.session_state.input_is_rewrite_query = 'enabled'
         # if sql_query:
         #     #st.write(st.session_state.inputs_)
         #     st.session_state.input_is_sql_query = 'enabled'
@@ -852,18 +852,21 @@ if(search_all_type == True or 1==1):
 
         #st.header('Select the ML Model for text embedding', divider='rainbow')
         #st.subheader('Note: The below selection applies only when the Search type is set to Vector or Hybrid Search')
-        st.subheader(':blue[Re-ranking]')
-        reranker = st.selectbox('Choose a Re-Ranker',
-        ('None','Cross Encoder','Kendra Rescore'
         
-        ),
+        #####################Re-ranking#####################
+        # st.subheader(':blue[Re-ranking]')
+        # reranker = st.selectbox('Choose a Re-Ranker',
+        # ('None','Cross Encoder','Kendra Rescore'
         
-        key = 'input_reranker',
-        help = 'Select the Re-Ranker type, select "None" to apply no re-ranking of the results',
-        #on_change = re_ranker.re_rank,
-        args=(st.session_state.questions, st.session_state.answers)
+        # ),
+        
+        # key = 'input_reranker',
+        # help = 'Select the Re-Ranker type, select "None" to apply no re-ranking of the results',
+        # #on_change = re_ranker.re_rank,
+        # args=(st.session_state.questions, st.session_state.answers)
 
-        )
+        # )
+        #####################Re-ranking#####################
         # st.write("---")
         # st.subheader('Text Embeddings Model')
         # model_type = st.selectbox('Select the Text Embeddings Model',
