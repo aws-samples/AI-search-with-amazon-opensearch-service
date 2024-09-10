@@ -39,8 +39,6 @@ if "play_disabled" not in st.session_state:
     st.session_state.play_disabled = ds.get_from_dynamo("play_disabled")
     
     
-if "KendraResourcePlanID" not in st.session_state:
-    st.session_state.KendraResourcePlanID= ds.get_from_dynamo("KendraResourcePlanID")
     
 if "index_map" not in st.session_state:
     st.session_state.index_map = {}
@@ -147,8 +145,7 @@ for output in cfn_outputs:
     if('OpenSearchDomainEndpoint' in output['OutputKey']):
         OpenSearchDomainEndpoint = output['OutputValue']
         
-    if('KendraResourcePlanID' in output['OutputKey']):
-        KendraResourcePlanID = output['OutputValue']
+    
         
         
         
@@ -171,8 +168,6 @@ st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
 ds.store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
 ds.store_in_dynamo('REGION',st.session_state.REGION )
 
-st.session_state.KendraResourcePlanID = KendraResourcePlanID
-ds.store_in_dynamo('KendraResourcePlanID',st.session_state.KendraResourcePlanID )
 
 host = 'https://'+OpenSearchDomainEndpoint+'/'
 service = 'es'
