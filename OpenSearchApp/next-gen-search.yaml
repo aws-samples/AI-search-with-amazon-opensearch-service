@@ -285,7 +285,7 @@ Resources:
               AWS: '*'
             Action: 'es:*'
             Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*/*
-      EngineVersion: 'OpenSearch_2.11'
+      EngineVersion: 'OpenSearch_2.15'
       ClusterConfig:
         InstanceType: "r6g.2xlarge.search"
         InstanceCount: 1
