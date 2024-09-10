@@ -86,6 +86,7 @@ Resources:
                   aws s3 cp /home/ec2-user/SageMaker/neural-sparse-biencoder.tar.gz s3://${s3Bucket}
                   cd AI-search-with-amazon-opensearch-service
                   sudo chmod -R 0777 /home/ec2-user/SageMaker
+                  sudo chmod +x /home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/deploy.sh
                   source /home/ec2-user/anaconda3/bin/activate python3
                   pip install --upgrade streamlit
                   pip install boto3
@@ -101,7 +102,6 @@ Resources:
                   pip install langchain-community
                   pip install langchain-experimental
                   pip install lark
-                  nohup streamlit run OpenSearchApp/app.py --server.baseUrlPath="/proxy/absolute/8501" &
                 - s3Bucket: !Ref s3BucketHosting
 
 
