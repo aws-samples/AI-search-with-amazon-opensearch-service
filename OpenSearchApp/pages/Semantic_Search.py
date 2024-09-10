@@ -575,10 +575,11 @@ def handle_input():
     st.session_state.answers_none_rank = st.session_state.answers
     if(st.session_state.input_reranker == "None"):
         st.session_state.answers = st.session_state.answers_none_rank 
-    else:
-        st.session_state.answers = re_ranker.re_rank("search",st.session_state.input_reranker,st.session_state.input_searchType,st.session_state.questions, st.session_state.answers)
-    if(st.session_state.input_evaluate) == "enabled":
-        llm_eval.eval(st.session_state.questions, st.session_state.answers)
+    # else:
+    #     st.session_state.answers = re_ranker.re_rank("search",st.session_state.input_reranker,st.session_state.input_searchType,st.session_state.questions, st.session_state.answers)
+    # if(st.session_state.input_evaluate) == "enabled":
+    #     llm_eval.eval(st.session_state.questions, st.session_state.answers)
+        
     #st.session_state.input_text=""
     #st.session_state.input_searchType=st.session_state.input_searchType
 
