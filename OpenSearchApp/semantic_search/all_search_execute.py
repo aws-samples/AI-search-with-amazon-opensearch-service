@@ -20,18 +20,21 @@ import boto3
 import streamlit as st
 
 
-DOMAIN_ENDPOINT =   "search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com" #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
-REGION = "us-east-1" #'us-west-2'#
-SAGEMAKER_MODEL_ID = 'uPQAE40BnrP7K1qW-Alx' #'P_vh7YsBNIVobUP3w7RJ' #
-BEDROCK_TEXT_MODEL_ID = 'iUvGQYwBuQkLO8mDfE0l'
-BEDROCK_MULTIMODAL_MODEL_ID = 'o6GykYwB08ySW4fgXdf3'
-SAGEMAKER_SPARSE_MODEL_ID = 'srrJ-owBQhe1aB-khx2n'
+
 
 current_date_time = (datetime.now()).isoformat()
 today_ = datetime.today().strftime('%Y-%m-%d')
 
 
 def handler(input_,session_id):
+    DOMAIN_ENDPOINT =   st.session_state.OpenSearchDomainEndpoint #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
+    REGION = st.session_state.REGION
+    #SAGEMAKER_MODEL_ID = st.session_state.SAGEMAKER_MODEL_ID
+    BEDROCK_TEXT_MODEL_ID = st.session_state.BEDROCK_TEXT_MODEL_ID
+    BEDROCK_MULTIMODAL_MODEL_ID = st.session_state.BEDROCK_MULTIMODAL_MODEL_ID
+    SAGEMAKER_SPARSE_MODEL_ID = st.session_state.SAGEMAKER_SPARSE_MODEL_ID
+    print("BEDROCK_TEXT_MODEL_ID")
+    print(BEDROCK_TEXT_MODEL_ID)
     
     ####### Hybrid Search weights logic for throwing warning to users for inappropriate weights #######
     
@@ -95,7 +98,7 @@ def handler(input_,session_id):
     k_ = input_["K"]
     image_upload = input_["imageUpload"]
     
-    path = "_search/pipeline/hybrid-search-pipeline" 
+    path = "_search/pipeline/ml-search-pipeline" 
     url = host + path
     
     num_queries = len(search_types)
@@ -145,14 +148,14 @@ def handler(input_,session_id):
     ######### Create the queries for hybrid search #########
     
     
-    path = "retail-ml-search-index/_search?search_pipeline=hybrid-search-pipeline" 
+    path = "demostore-search-index/_search?search_pipeline=ml-search-pipeline" 
     
     url = host + path
     
     hybrid_payload = {
         "_source": {
         "exclude": [
-            "desc_embedding_bedrock-multimodal","desc_embedding_bedrock-text"
+            "product_description_vector","product_multimodal_vector"
         ]
         },
         "query": {
@@ -179,7 +182,7 @@ def handler(input_,session_id):
         
         keyword_payload = {
                         "match": {
-                        "description": {
+                        "product_description": {
                             "query": query
                         }
                         }
@@ -198,19 +201,19 @@ def handler(input_,session_id):
         
         payload3 = {
         "parameters": {
-            "inputs": query
+            "inputText": query
             }
                 }
         
         r3 = requests.post(url3, auth=awsauth, json=payload3, headers=headers)
         vector_ = json.loads(r3.text)
-        
+        print(r3.text)
         query_vector = vector_['inference_results'][0]['output'][0]['data']
         #print(query_vector)
         
         vector_payload = {
                         "knn": {
-                        "desc_embedding_bedrock-text": {
+                        "product_description_vector": {
                             "vector":query_vector,
                             #"query_text": query,
                             #"model_id": BEDROCK_TEXT_MODEL_ID,
@@ -232,7 +235,7 @@ def handler(input_,session_id):
         
         ###### start of efficient filter applying #####
         if(st.session_state.input_rewritten_query!=""):
-            vector_payload['knn']['desc_embedding_bedrock-text']['filter'] = filter_['filter']
+            vector_payload['knn']['product_description_vector']['filter'] = filter_['filter']
         ###### end of efficient filter applying #####
         
         hybrid_payload["query"]["hybrid"]["queries"].append(vector_payload)
@@ -242,7 +245,7 @@ def handler(input_,session_id):
         multimodal_payload  = {
        
         "neural": {
-            "desc_embedding_bedrock-multimodal": {
+            "product_multimodal_vector": {
             
             "model_id": BEDROCK_MULTIMODAL_MODEL_ID,
             "k": k_
@@ -252,13 +255,13 @@ def handler(input_,session_id):
         
         
         if(image_upload == 'yes' and query == ""):
-            multimodal_payload["neural"]["desc_embedding_bedrock-multimodal"]["query_image"] =  img
+            multimodal_payload["neural"]["product_multimodal_vector"]["query_image"] =  img
         if(image_upload == 'no' and query != ""):
-            multimodal_payload["neural"]["desc_embedding_bedrock-multimodal"]["query_text"] =  query
+            multimodal_payload["neural"]["product_multimodal_vector"]["query_text"] =  query
         if(image_upload == 'yes' and query != ""):
             
-            multimodal_payload["neural"]["desc_embedding_bedrock-multimodal"]["query_image"] =  img
-            multimodal_payload["neural"]["desc_embedding_bedrock-multimodal"]["query_text"] =  query
+            multimodal_payload["neural"]["product_multimodal_vector"]["query_image"] =  img
+            multimodal_payload["neural"]["product_multimodal_vector"]["query_text"] =  query
         
         
         
@@ -292,7 +295,7 @@ def handler(input_,session_id):
         rank_features = []
         for key_ in query_sparse_sorted.keys():
             if(query_sparse_sorted[key_]>=st.session_state.input_sparse_filter):
-                feature = {"rank_feature": {"field": "desc_embedding_sparse."+key_,"boost":query_sparse_sorted[key_]}}
+                feature = {"rank_feature": {"field": "product_description_sparse_vector."+key_,"boost":query_sparse_sorted[key_]}}
                 rank_features.append(feature)
                 query_sparse_sorted_filtered[key_]=query_sparse_sorted[key_]
             else:
@@ -304,6 +307,8 @@ def handler(input_,session_id):
         ###### start of efficient filter applying #####
         if(st.session_state.input_rewritten_query!=""):
             sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
+            
+        
         ###### end of efficient filter applying #####
         
         
@@ -355,7 +360,7 @@ def handler(input_,session_id):
         #print(r.text)
         response_ = json.loads(r.text)
         print("-------------------------------------------------------------------")
-        print(response_)
+        #print(response_)
         docs = response_['hits']['hits']
     
     
@@ -377,9 +382,9 @@ def handler(input_,session_id):
             rrf_hits = []
             for i,query in enumerate(hybrid_payload["query"]["hybrid"]["queries"]):
                 payload_ =  {'_source': 
-                    {'exclude': ['desc_embedding_bedrock-multimodal', 'desc_embedding_bedrock-text']}, 
+                    {'exclude': ['desc_embedding_bedrock-multimodal', 'desc_embedding_bedrock-text', 'product_description_sparse_vector']}, 
                     'query': query, 
-                    'size': k_, 'highlight': {'fields': {'description': {}}}}
+                    'size': k_, 'highlight': {'fields': {'product_description': {}}}}
                 
                 r_ = requests.get(url, auth=awsauth, json=payload_, headers=headers)
                 resp = json.loads(r_.text)
@@ -415,32 +420,32 @@ def handler(input_,session_id):
     arr = []
     dup = []
     for doc in docs:
-        if(doc['_source']['image_s3_url'] not in dup):
+        if(doc['_source']['image_url'] not in dup):
             res_ = {
-                "desc":doc['_source']['description'],
-                "caption":doc['_source']['caption'],
-                "image_url":doc['_source']['image_s3_url'],
-                "category":doc['_source']['category'],
-                "price":doc['_source']['price'],
-                "gender_affinity":doc['_source']['gender_affinity'],
+                "desc":doc['_source']['product_description'],
+               "caption":doc['_source']['caption'],
+                "image_url":doc['_source']['image_url'],
+               "category":doc['_source']['category'],
+               "price":doc['_source']['price'],
+               "gender_affinity":doc['_source']['gender_affinity'],
                 "style":doc['_source']['style'],
                 
                 }
             if('highlight' in doc):
-                res_['highlight'] = doc['highlight']['description']
+                res_['highlight'] = doc['highlight']['product_description']
             if('NeuralSparse Search' in search_types):
-                res_['sparse'] = doc['_source']['desc_embedding_sparse']
+                res_['sparse'] = doc['_source']['product_description_sparse_vector']
                 res_['query_sparse'] = query_sparse_sorted_filtered
-            if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
-                res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}
+#             if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
+#                 res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}
             
             res_['id'] = doc['_id']
             res_['score'] = doc['_score']
-            res_['title'] = doc['_source']['description']
+            res_['title'] = doc['_source']['product_description']
             
         
             arr.append(res_)
-            dup.append(doc['_source']['image_s3_url'])
+            dup.append(doc['_source']['image_url'])
 
 
     return arr[0:k_]

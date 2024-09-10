@@ -6,12 +6,14 @@ import os
 import sys
 import boto3
 import requests
+from requests_aws4auth import AWS4Auth
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/semantic_search")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/RAG")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/utilities")
 from boto3 import Session
 from pathlib import Path    
 import botocore.session
+import subprocess
 #import os_index_df_sql
 import json
 import random
@@ -29,6 +31,7 @@ import amazon_rekognition
 #from st_click_detector import click_detector
 import llm_eval
 import all_search_execute
+import dynamo_state as ds
 
 
 st.set_page_config(
@@ -49,27 +52,17 @@ st.markdown("""
     """,unsafe_allow_html=True)
 #ps = PorterStemmer()
 
-bedrock_ = boto3.client('bedrock-runtime',region_name='us-east-1')
-#from langchain.callbacks.base import BaseCallbackHandler
-search_all_type = True
-if(search_all_type==True):
-    search_types = ['Keyword Search',
-    'Vector Search', 
-    'Multimodal Search',
-    'NeuralSparse Search',
-    ]
-else:
-    search_types = ['Keyword Search',
-   # 'Vector Search', 
-    #'Hybrid Search',
-    'Multimodal Search'
-    ]
+st.session_state.REGION = ds.get_region()
 
-USER_ICON = "images/user.png"
-AI_ICON = "images/opensearch-twitter-card.png"
-REGENERATE_ICON = "images/regenerate.png"
-IMAGE_ICON = "images/Image_Icon.png"
-TEXT_ICON = "images/text.png"
+
+#from langchain.callbacks.base import BaseCallbackHandler
+
+
+USER_ICON = "OpenSearchApp/images/user.png"
+AI_ICON = "OpenSearchApp/images/opensearch-twitter-card.png"
+REGENERATE_ICON = "OpenSearchApp/images/regenerate.png"
+IMAGE_ICON = "OpenSearchApp/images/Image_Icon.png"
+TEXT_ICON = "OpenSearchApp/images/text.png"
 s3_bucket_ = "pdf-repo-uploads"
             #"pdf-repo-uploads"
 
@@ -163,7 +156,7 @@ if "gen_image_str" not in st.session_state:
     st.session_state.gen_image_str=""
 
 if "input_searchType" not in st.session_state:
-    st.session_state.input_searchType = ["Keyword Search"]
+    st.session_state.input_searchType = ['Keyword Search']
     
 if "input_must" not in st.session_state:
     st.session_state.input_must = ["Category","Price","Gender","Style"]
@@ -205,8 +198,61 @@ if "image_prompt" not in st.session_state:
     
 if "bytes_for_rekog" not in st.session_state:
     st.session_state.bytes_for_rekog = ""
-#bytes_for_rekog = ""
+    
+if "OpenSearchDomainEndpoint" not in st.session_state:
+    st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
+    
+if "max_selections" not in st.session_state:
+    st.session_state.max_selections = ds.get_from_dynamo("max_selections")
 
+host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
+service = 'es'
+credentials = boto3.Session().get_credentials()
+awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_state.REGION, service, session_token=credentials.token)
+headers = {"Content-Type": "application/json"}
+
+opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_search_pipeline")
+print(opensearch_search_pipeline)
+if(opensearch_search_pipeline!='{}'):
+    st.session_state.max_selections = "None"
+else:
+    st.session_state.max_selections = "1"
+ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+    
+    
+if "REGION" not in st.session_state:
+    st.session_state.REGION = ""
+    
+if "BEDROCK_MULTIMODAL_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
+    
+if "search_types" not in st.session_state:
+    st.session_state.search_types =ds.get_from_dynamo("search_types")
+    
+if "KendraResourcePlanID" not in st.session_state:
+    st.session_state.KendraResourcePlanID= ds.get_from_dynamo("KendraResourcePlanID")
+
+
+if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
+    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
+    
+if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
+#bytes_for_rekog = ""
+bedrock_ = boto3.client('bedrock-runtime',region_name=st.session_state.REGION)
+search_all_type = False
+if(search_all_type==True):
+    search_types = ['Keyword Search',
+    'Vector Search', 
+    'Multimodal Search',
+    'NeuralSparse Search',
+    ]
+else:
+    print("st.session_state.search_types")
+    print(st.session_state.search_types) 
+    search_types = (st.session_state.search_types).split(",")
+    print(search_types)
 from streamlit.components.v1 import html
 # with st.container():
 #     html("""
@@ -659,9 +705,13 @@ col1, col3, col4 = st.columns([70,20,10])
 
 with col1:
     
-
+    if(st.session_state.max_selections == "" or st.session_state.max_selections == "1"):
+        st.session_state.max_selections = 1
+    if(st.session_state.max_selections == "None"):
+        st.session_state.max_selections = None
     search_type = st.multiselect('Select the Search type(s)',
     search_types,['Keyword Search'],
+    max_selections = st.session_state.max_selections,
    
     key = 'input_searchType',
     help = "Select the type of Search, adding more than one search type will activate hybrid search"#\n1. Conversational Search (Recommended) - This will include both the OpenSearch and LLM in the retrieval pipeline \n (note: This will put opensearch response as context to LLM to answer) \n2. OpenSearch vector search - This will put only OpenSearch's vector search in the pipeline, \n(Warning: this will lead to unformatted results )\n3. LLM Text Generation - This will include only LLM in the pipeline, \n(Warning: This will give hallucinated and out of context answers)"
@@ -679,35 +729,41 @@ with col4:
         st.session_state.input_evaluate = "disabled"
         
 
-if(search_all_type == True):
+if(search_all_type == True or 1==1):
     with st.sidebar:
-        st.page_link("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
+        st.page_link("/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
         #st.image('/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/service_logo.png', width = 300)
         #st.warning('Note: After changing any of the below settings, click "SEARCH" button or 🔄 to apply the changes', icon="⚠️")
         #st.header('     :gear: :orange[Fine-tune Search]')
         #st.write("Note: After changing any of the below settings, click 'SEARCH' button or '🔄' to apply the changes")
         #st.subheader(':blue[Keyword Search]')
 
+        ########################## enable for query_rewrite ########################
         rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
         st.multiselect('Fields for "MUST" filter',
                 ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
    
                 key = 'input_must',
                )
+        ########################## enable for query_rewrite ########################
         
-        sparse_filter = st.slider('Keep only sparse tokens with weight >=', 0.0, 1.0, 0.5,0.1,key = 'input_sparse_filter', help = 'Use this slider to set the minimum weight that the sparse vector token weights should meet, rest are filtered out')
+        
+        if('NeuralSparse Search' in st.session_state.search_types):
+            sparse_filter = st.slider('Keep only sparse tokens with weight >=', 0.0, 1.0, 0.5,0.1,key = 'input_sparse_filter', help = 'Use this slider to set the minimum weight that the sparse vector token weights should meet, rest are filtered out')
           
             
         #sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
         st.session_state.input_is_rewrite_query = 'disabled'
         st.session_state.input_is_sql_query = 'disabled'
+        
+        ########################## enable for query_rewrite ########################
         if rewrite_query:
             #st.write(st.session_state.inputs_)
             st.session_state.input_is_rewrite_query = 'enabled'
         # if sql_query:
         #     #st.write(st.session_state.inputs_)
         #     st.session_state.input_is_sql_query = 'enabled'
-        
+        ########################## enable for sql conversion ########################
         
         
         #st.markdown('---')
@@ -798,7 +854,7 @@ if(search_all_type == True):
         #st.subheader('Note: The below selection applies only when the Search type is set to Vector or Hybrid Search')
         st.subheader(':blue[Re-ranking]')
         reranker = st.selectbox('Choose a Re-Ranker',
-        ('None','Kendra Rescore','Cross Encoder'
+        ('None','Cross Encoder','Kendra Rescore'
         
         ),
         
@@ -836,10 +892,8 @@ def write_user_message(md,ans):
     col1, col2, col3 = st.columns([3,40,20])
     
     with col1:
-        
         st.image(USER_ICON, use_column_width='always')
     with col2:
-        
         #st.warning(md['question'])
         st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Text: </div><div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;font-style: italic;color:#e28743'>"+md['question']+"</div>", unsafe_allow_html = True)
         if('query_sparse' in ans):
@@ -936,7 +990,7 @@ def render_answer(answer,index):
         with col_1:
             inner_col_1,inner_col_2 = st.columns([8,92])
             with inner_col_2:
-                st.image(ans['image_url'].replace('https://retail-demo-store-us-east-1.s3.amazonaws.com/images/','/home/ubuntu/images_retail/'))
+                st.image(ans['image_url'])
 
                 if("highlight" in ans and 'Keyword Search' in st.session_state.input_searchType):
                     test_strs = ans["highlight"]
@@ -994,19 +1048,19 @@ def render_answer(answer,index):
                                 filtered_sparse[key] = round(sparse_[key], 2)
                         st.write(filtered_sparse)
                 with st.expander("Document Metadata:",expanded = False):
-                    if("rekog" in ans):
-                        div_size = [50,50]
-                    else:
-                        div_size = [99,1]
-                    div1,div2 = st.columns(div_size)
-                    with div1:
+                    # if("rekog" in ans):
+                    #     div_size = [50,50]
+                    # else:
+                    #     div_size = [99,1]
+                    # div1,div2 = st.columns(div_size)
+                    # with div1:
                         
-                        st.write(":green[default:]")
-                        st.json({"category:":ans['category'],"price":str(ans['price']),"gender_affinity":ans['gender_affinity'],"style":ans['style']},expanded = True)
-                    with div2:
-                        if("rekog" in ans):
-                            st.write(":green[enriched:]")
-                            st.json(ans['rekog'],expanded = True)
+                    st.write(":green[default:]")
+                    st.json({"category:":ans['category'],"price":str(ans['price']),"gender_affinity":ans['gender_affinity'],"style":ans['style']},expanded = True)
+                    #with div2:
+                    if("rekog" in ans):
+                        st.write(":green[enriched:]")
+                        st.json(ans['rekog'],expanded = True)
             with inner_col_1:
                 
                 if(st.session_state.input_evaluate == "enabled"):
