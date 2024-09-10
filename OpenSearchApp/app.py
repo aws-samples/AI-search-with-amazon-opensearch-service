@@ -181,7 +181,9 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_st
 headers = {"Content-Type": "application/json"}
 
 exists_ = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
+print(exists_)
 if('404' in str(exists_)):
+    
     st.session_state.play_disabled = 'True'
 else:
     st.session_state.play_disabled = 'False'
