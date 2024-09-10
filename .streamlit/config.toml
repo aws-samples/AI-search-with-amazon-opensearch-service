@@ -11,3 +11,7 @@ base="dark"
 font="sans serif"
 primaryColor="#e28743"
 backgroundColor ="#000000"
+
+
+[server]
+enableXsrfProtection=false
