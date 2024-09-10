@@ -613,53 +613,52 @@ def write_top_bar():
         st.image(IMAGE_ICON, use_column_width='always')
     with col6:   
         with st.expander(':green[Search by using an image]'):
-            tab2, tab1 = st.tabs(["Upload Image","Generate Image by AI"])
+            #tab2 = st.tabs(["Upload Image"])
             
-            with tab1:
-                c1,c2 = st.columns([80,20])
-                with c1:
-                    gen_images=st.text_area("Text to Image:",placeholder = "Enter the text prompt to generate images",height = 50, key = "image_prompt")
-                with c2:
-                    st.markdown("<div style = 'height:50px'></div>",unsafe_allow_html=True)
-                    st.button("Generate image",disabled=False,key = "generate",on_click = generate_images, args=(tab1,"default_img"))
+#             with tab1:
+#                 c1,c2 = st.columns([80,20])
+#                 with c1:
+#                     gen_images=st.text_area("Text to Image:",placeholder = "Enter the text prompt to generate images",height = 50, key = "image_prompt")
+#                 with c2:
+#                     st.markdown("<div style = 'height:50px'></div>",unsafe_allow_html=True)
+#                     st.button("Generate image",disabled=False,key = "generate",on_click = generate_images, args=(tab1,"default_img"))
                 
-                # image_select = st.select_slider(
-                #     "Select a image",
-                #     options=["Image 1","Image 2","Image 3"], value = None, disabled = st.session_state.radio_disabled,key = "image_select")
-                image_select = st.radio("Choose one image", ["Image 1","Image 2","Image 3"],index=None, horizontal = True,key = 'image_select',disabled = st.session_state.radio_disabled)
-                st.markdown("""
-                            <style>
-                            [role=radiogroup]{
-                                gap: 10rem;
-                            }
-                            </style>
-                            """,unsafe_allow_html=True)
-                if(st.session_state.image_select is not None and st.session_state.image_select !="" and len(st.session_state.img_gen)!=0):
-                    print("image_select")
-                    print("------------")
-                    print(st.session_state.image_select)
-                    st.session_state.input_rad_1 = st.session_state.image_select.split(" ")[1]
-                else:
-                    st.session_state.input_rad_1 = ""
-                # rad1, rad2,rad3  = st.columns([33,33,33])
-                # with rad1:
-                #     btn1 = st.button("choose image 1", disabled = st.session_state.radio_disabled)
-                # with rad2:
-                #     btn2 = st.button("choose image 2", disabled = st.session_state.radio_disabled)
-                # with rad3:
-                #     btn3 = st.button("choose image 3", disabled = st.session_state.radio_disabled)
-                # if(btn1):
-                #     st.session_state.input_rad_1 = "1" 
-                # if(btn2):
-                #     st.session_state.input_rad_1 = "2" 
-                # if(btn3):
-                #     st.session_state.input_rad_1 = "3" 
+#                 # image_select = st.select_slider(
+#                 #     "Select a image",
+#                 #     options=["Image 1","Image 2","Image 3"], value = None, disabled = st.session_state.radio_disabled,key = "image_select")
+#                 image_select = st.radio("Choose one image", ["Image 1","Image 2","Image 3"],index=None, horizontal = True,key = 'image_select',disabled = st.session_state.radio_disabled)
+#                 st.markdown("""
+#                             <style>
+#                             [role=radiogroup]{
+#                                 gap: 10rem;
+#                             }
+#                             </style>
+#                             """,unsafe_allow_html=True)
+#                 if(st.session_state.image_select is not None and st.session_state.image_select !="" and len(st.session_state.img_gen)!=0):
+#                     print("image_select")
+#                     print("------------")
+#                     print(st.session_state.image_select)
+#                     st.session_state.input_rad_1 = st.session_state.image_select.split(" ")[1]
+#                 else:
+#                     st.session_state.input_rad_1 = ""
+#                 # rad1, rad2,rad3  = st.columns([33,33,33])
+#                 # with rad1:
+#                 #     btn1 = st.button("choose image 1", disabled = st.session_state.radio_disabled)
+#                 # with rad2:
+#                 #     btn2 = st.button("choose image 2", disabled = st.session_state.radio_disabled)
+#                 # with rad3:
+#                 #     btn3 = st.button("choose image 3", disabled = st.session_state.radio_disabled)
+#                 # if(btn1):
+#                 #     st.session_state.input_rad_1 = "1" 
+#                 # if(btn2):
+#                 #     st.session_state.input_rad_1 = "2" 
+#                 # if(btn3):
+#                 #     st.session_state.input_rad_1 = "3" 
 
 
-        generate_images(tab1,gen_images)   
+#         generate_images(tab1,gen_images)   
             
             
-        with tab2:
             st.session_state.img_doc = st.file_uploader(
             "Upload image", accept_multiple_files=False,type = ['png', 'jpg'])
             
@@ -667,7 +666,7 @@ def write_top_bar():
         
         
 
-    return clear,tab1
+    return clear,""
 
 clear,tab_ = write_top_bar()
 
@@ -720,8 +719,8 @@ with col1:
 
 with col3:
     st.number_input("No. of docs", min_value=1, max_value=50, value=5, step=5,  key='input_K', help=None)
-# with col4:
-    # st.markdown("<p style='fontSize:14.5px'>Evaluate</p>",unsafe_allow_html=True)
+with col4:
+    st.markdown("<p style='fontSize:14.5px'>Evaluate</p>",unsafe_allow_html=True)
     # evaluate = st.toggle(' ', key = 'evaluate', disabled = False) #help = "Checking this box will use LLM to evaluate results as relevant and irrelevant. \n\n This option increases the latency")
     # if(evaluate):
     #     st.session_state.input_evaluate = "enabled"
