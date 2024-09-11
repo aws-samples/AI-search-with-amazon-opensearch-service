@@ -48,6 +48,9 @@ if "OpenSearchDomainEndpoint" not in st.session_state:
     
 if "REGION" not in st.session_state:
     st.session_state.REGION = ""
+   
+if "WebappRoleArn" not in st.session_state:
+    st.session_state.WebappRoleArn = ds.get_from_dynamo("WebappRoleArn")
     
 if "BEDROCK_MULTIMODAL_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
@@ -145,6 +148,9 @@ for output in cfn_outputs:
     if('OpenSearchDomainEndpoint' in output['OutputKey']):
         OpenSearchDomainEndpoint = output['OutputValue']
         
+    if('WebappRoleArn' in output['OutputKey']):
+        WebappRoleArn = output['OutputValue']
+        
     
         
         
@@ -163,9 +169,12 @@ print("stackname: "+stackname)
 print("account_id: "+account_id)  
 #print("region: "+region)
 print("OpenSearchDomainEndpoint: "+OpenSearchDomainEndpoint)
+print("WebappRoleArn: "+WebappRoleArn)
 
 st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
 ds.store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
+st.session_state.WebappRoleArn = WebappRoleArn
+ds.store_in_dynamo('WebappRoleArn',st.session_state.WebappRoleArn )
 ds.store_in_dynamo('REGION',st.session_state.REGION )
 
 
@@ -177,8 +186,9 @@ headers = {"Content-Type": "application/json"}
 
 exists_ = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
 print(exists_)
+url = 'https://'+OpenSearchDomainEndpoint+'/'+ '_dashboards/app/security-dashboards-plugin#/roles/edit/all_access/mapuser'
 if('403' in str(exists_)):
-        st.error("Please add the backend role in OpenSearch dashboards",icon = "🚨")
+        st.error('Please add the IAM role, "'+st.session_state.WebappRoleArn+'" to OpenSearch backend roles [here](%s)' % url ,icon = "🚨")
    
 if('404' in str(exists_) or '403' in str(exists_)):
     
