@@ -397,11 +397,3 @@ Outputs:
     Description: Name of the OpenSearch secret in Secrets Manager
     Value: !Ref OpenSearchSecret
   
-  WebApplicationURL:
-    Description: URL of the web application
-    Value: !Join
-      - ''
-      - - 'https://'
-        - !GetAtt SagemakerNotebookInstance.NotebookInstanceName
-        - '.'
-        - !Sub 'notebook.${AWS::Region}.sagemaker.aws/proxy/absolute/8501'
