@@ -55,6 +55,9 @@ if "WebappRoleArn" not in st.session_state:
 if "BEDROCK_MULTIMODAL_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
     
+if "BEDROCK_MULTIMODAL_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_CONNECTOR_ID")
+    
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = ds.get_from_dynamo("max_selections")
     
@@ -66,8 +69,14 @@ if "search_types" not in st.session_state:
 if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
     
+if "SAGEMAKER_SPARSE_CONNECTOR_ID" not in st.session_state:
+    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_CONNECTOR_ID")   
+    
 if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
+    
+if "BEDROCK_TEXT_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_CONNECTOR_ID")  
 #bytes_for_rekog = ""
     
     
@@ -183,13 +192,14 @@ service = 'es'
 credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_state.REGION, service, session_token=credentials.token)
 headers = {"Content-Type": "application/json"}
+dash_url = 'https://'+OpenSearchDomainEndpoint+'/'+ '_dashboards/app/security-dashboards-plugin#/roles/edit/all_access/mapuser'
 
 exists_ = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
 print(exists_)
-url = 'https://'+OpenSearchDomainEndpoint+'/'+ '_dashboards/app/security-dashboards-plugin#/roles/edit/all_access/mapuser'
+
 if('403' in str(exists_)):
-        st.error('Please add the IAM role, "'+st.session_state.WebappRoleArn+'" to OpenSearch backend roles [here](%s)' % url ,icon = "🚨")
-   
+    st.error('Please add the IAM role, "'+st.session_state.WebappRoleArn+'" to OpenSearch backend roles [here](%s)' % dash_url ,icon = "🚨")
+    st.stop()
 if('404' in str(exists_) or '403' in str(exists_)):
     
     st.session_state.play_disabled = 'True'
@@ -207,6 +217,98 @@ else:
     st.session_state.max_selections = "1"
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
 
+def create_ml_connectors():
+    
+    permissions = {
+    "persistent": {
+        "plugins.ml_commons.trusted_connector_endpoints_regex": [
+          "^https://runtime\\.sagemaker\\..*[a-z0-9-]\\.amazonaws\\.com/.*$",
+          "^https://bedrock-runtime\\..*[a-z0-9-]\\.amazonaws\\.com/.*$"
+            ]
+        }
+    }
+
+    permission_res = requests.put(host+'/_cluster/settings',json = permissions, auth=awsauth,headers=headers)
+    
+    
+
+
+    remote_ml = {
+               
+                
+                 "BEDROCK_TEXT":
+                {
+                     "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-text-v1/invoke",
+                    "pre_process_fun": "\n    StringBuilder builder = new StringBuilder();\n    builder.append(\"\\\"\");\n    String first = params.text_docs[0];\n    builder.append(first);\n    builder.append(\"\\\"\");\n    def parameters = \"{\" +\"\\\"inputText\\\":\" + builder + \"}\";\n    return  \"{\" +\"\\\"parameters\\\":\" + parameters + \"}\";",
+      
+                    "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    ',
+                    "request_body": "{ \"inputText\": \"${parameters.inputText}\"}"
+                 },
+                
+                 "BEDROCK_MULTIMODAL":
+                {
+                     "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
+                     "request_body": "{ \"inputText\": \"${parameters.inputText:-null}\", \"inputImage\": \"${parameters.inputImage:-null}\" }",
+                      "pre_process_fun": "\n    StringBuilder parametersBuilder = new StringBuilder(\"{\");\n    if (params.text_docs.length > 0 && params.text_docs[0] != null) {\n      parametersBuilder.append(\"\\\"inputText\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[0]);\n      parametersBuilder.append(\"\\\"\");\n      \n      if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n        parametersBuilder.append(\",\");\n      }\n    }\n    \n    \n    if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n      parametersBuilder.append(\"\\\"inputImage\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[1]);\n      parametersBuilder.append(\"\\\"\");\n    }\n    parametersBuilder.append(\"}\");\n    \n    return  \"{\" +\"\\\"parameters\\\":\" + parametersBuilder + \"}\";",
+                     "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    '
+                    }
+            }
+
+    connector_path_url = host+'_plugins/_ml/connectors/_create'
+    
+
+    for remote_ml_key in remote_ml.keys():
+        
+        #create connector
+        payload_1 = {
+        "name": remote_ml_key+": EMBEDDING",
+        "description": "Test connector for"+remote_ml_key+" remote embedding model",
+        "version": 1,
+        "protocol": "aws_sigv4",
+        "credential": {
+            "roleArn": "arn:aws:iam::"+account_id+":role/opensearch-sagemaker-role"
+        },
+        "parameters": {
+            "region": st.session_state.REGION,
+            "service_name": (remote_ml_key.split("_")[0]).lower()
+        },
+        "actions": [
+            {
+                "action_type": "predict",
+                "method": "POST",
+                "headers": {
+                    "content-type": "application/json"
+                },
+                "url": remote_ml[remote_ml_key]["endpoint_url"],
+                "pre_process_function": remote_ml[remote_ml_key]["pre_process_fun"],
+                "request_body": remote_ml[remote_ml_key]["request_body"],
+                #"post_process_function": remote_ml[remote_ml_key]["post_process_fun"]
+            }
+        ]
+        }
+        if(remote_ml_key != 'SAGEMAKER_SPARSE'):
+            payload_1["actions"][0]["post_process_function"] = remote_ml[remote_ml_key]["post_process_fun"]
+            
+        
+
+        r_1 = requests.post(connector_path_url, auth=awsauth, json=payload_1, headers=headers)
+        print(r_1.text)
+        remote_ml[remote_ml_key]["connector_id"] = json.loads(r_1.text)["connector_id"]
+        
+        st.session_state[remote_ml_key+"_CONNNECTOR_ID"] = json.loads(r_1.text)["connector_id"]
+        ds.store_in_dynamo(remote_ml_key+"_CONNNECTOR_ID",json.loads(r_1.text)["connector_id"] )
+        
+        
+        
+    
+    
+
+connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
+
+if(connector_res["hits"]["total"]["value"] == 0):
+    create_ml_connectors()
+    
+
 def ingest_data(col,default):
     
     
@@ -215,7 +317,8 @@ def ingest_data(col,default):
      
     opensearch_res = (requests.get(host+'_ingest/pipeline/ml_ingest_pipeline', auth=awsauth,headers=headers)).text
     if('403' in str(opensearch_res)):
-        st.error("Please add the backend role in OpenSearch dashboards",icon = "🚨")
+        st.error('Please add the IAM role, "'+st.session_state.WebappRoleArn+'" to OpenSearch backend roles [here](%s)' % dash_url ,icon = "🚨")
+
         return ""
     print("opensearch_res:"+opensearch_res)
     search_types = 'Keyword Search,'

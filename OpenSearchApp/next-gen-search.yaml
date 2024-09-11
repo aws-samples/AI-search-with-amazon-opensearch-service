@@ -372,6 +372,14 @@ Outputs:
       'Fn::GetAtt':
         - OpenSearchServiceDomain
         - DomainEndpoint
+  
+  OpenSearchDashboardsUrl:
+    Description: OpenSearch Dashboards URL
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt OpenSearchServiceDomain.DomainEndpoint
+        - '/_dashboards'
 
   DynamoDBTable:
     Description: DynamoDBTable
