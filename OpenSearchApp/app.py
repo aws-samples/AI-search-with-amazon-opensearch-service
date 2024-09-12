@@ -309,7 +309,7 @@ if(connector_res["hits"]["total"]["value"] == 0):
     create_ml_connectors()
     
 
-def ingest_data(col,default):
+def ingest_data(col,warning):
     
     
     ingest_flag = False
@@ -412,7 +412,9 @@ def ingest_data(col,default):
                 image.thumbnail((width, height))
                 image.save(f"{path}-resized.{file_type}")
         return file_type, path
-
+    with warning:
+        st.warning("Please wait while the data is ingested. Do not refresh the page !",icon = "⚠️")
+         
     for item in items_:
         count+=1
         fileshort = "/home/ec2-user/SageMaker/images_retail/"+item["category"]+"/"+item["image"]
@@ -466,9 +468,10 @@ def ingest_data(col,default):
             )
                     
     print("All "+str(last_batch)+" batches ingested into index")
-    
+    warning.empty()
     with col:
         st.write(":white_check_mark:")
+    
     
     
     
@@ -501,11 +504,12 @@ input_index = "raw-retail-ml-search-index"
 url = input_host + input_index
 # get_fileds = st.button('Get field metadata')
 st.write("----",divider = "rainbow")
+warning = st.empty()
 c1,c2,c3,c4 = st.columns([25,25,25,25])
 with c2:
     inner_col1,inner_col2 = st.columns([55,70])
     with inner_col1:
-        ingest_data = st.button('(Re)Index data',type = 'primary',on_click = ingest_data, args=(inner_col2,"default"))
+        ingest_data = st.button('(Re)Index data',type = 'primary',on_click = ingest_data, args=(inner_col2,warning))
 
 print("st.session_state.play_disabled")
 print(st.session_state.play_disabled )
