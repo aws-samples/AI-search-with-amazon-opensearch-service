@@ -155,11 +155,11 @@ if "input_ndcg" not in st.session_state:
 if "gen_image_str" not in st.session_state:
     st.session_state.gen_image_str=""
 
-if "input_searchType" not in st.session_state:
-    st.session_state.input_searchType = ['Keyword Search']
+# if "input_searchType" not in st.session_state:
+#     st.session_state.input_searchType = ['Keyword Search']
     
-if "input_must" not in st.session_state:
-    st.session_state.input_must = ["Category","Price","Gender","Style"]
+# if "input_must" not in st.session_state:
+#     st.session_state.input_must = ["Category","Price","Gender","Style"]
     
 if "input_NormType" not in st.session_state:
     st.session_state.input_NormType = "min_max"
