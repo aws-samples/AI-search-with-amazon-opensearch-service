@@ -701,7 +701,7 @@ if clear:
     # st.session_state.input_topP = 0.95
     # st.session_state.input_maxTokens = 1024
 
-col1, col3, col4 = st.columns([70,20,10])
+col1, col3 = st.columns([70,30])
 
 with col1:
     
@@ -719,8 +719,8 @@ with col1:
 
 with col3:
     st.number_input("No. of docs", min_value=1, max_value=50, value=5, step=5,  key='input_K', help=None)
-with col4:
-    st.markdown("<p style='fontSize:14.5px'>Evaluate</p>",unsafe_allow_html=True)
+# with col4:
+#     st.markdown("<p style='fontSize:14.5px'>Evaluate</p>",unsafe_allow_html=True)
     # evaluate = st.toggle(' ', key = 'evaluate', disabled = False) #help = "Checking this box will use LLM to evaluate results as relevant and irrelevant. \n\n This option increases the latency")
     # if(evaluate):
     #     st.session_state.input_evaluate = "enabled"
@@ -792,9 +792,9 @@ if(search_all_type == True or 1==1):
         
         #st.write("---")
         st.subheader(':blue[Hybrid Search]')
-        st.selectbox('Select the Hybrid Search type',
-         ("OpenSearch Hybrid Query","Reciprocal Rank Fusion"),key = 'input_hybridType')
-        # equal_weight = st.button("Give equal weights to selected searches")
+#         st.selectbox('Select the Hybrid Search type',
+#          ("OpenSearch Hybrid Query","Reciprocal Rank Fusion"),key = 'input_hybridType')
+#         # equal_weight = st.button("Give equal weights to selected searches")
         
                     
                 
@@ -914,7 +914,7 @@ def write_user_message(md,ans):
     with col3:   
         st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Image: </div>", unsafe_allow_html = True)
    
-        if(st.session_state.input_imageUpload == 'yes'):
+        if(st.session_state.input_imageUpload == 'yes' and st.session_state.img_doc is not None):
 
             if(st.session_state.input_rad_1 is not None and st.session_state.input_rad_1!=""):
                 num_str = str(int(st.session_state.input_rad_1.strip())-1)
