@@ -303,10 +303,12 @@ def create_ml_connectors():
     
     
 
-connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
-
-if(connector_res["hits"]["total"]["value"] == 0):
-    create_ml_connectors()
+# connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
+# print("connector_res")
+# print("--------------")
+# print(connector_res)
+# if(connector_res["hits"]["total"]["value"] == 0):
+#     create_ml_connectors()
     
 
 def ingest_data(col,warning):
@@ -430,10 +432,12 @@ def ingest_data(col,warning):
             else:
                 if(item['gender_affinity'] == 'F'):
                     payload['gender_affinity'] = 'Female'
-                else:
-                    payload['gender_affinity'] = item['gender_affinity']
+        else:
+            payload['gender_affinity'] = ""
         if('style' in item):
             payload['style'] = item['style']
+        else:
+            payload['style'] = ""
         #resize the image and generate image binary
         
         file_type, path = resize_image(fileshort, 2048, 2048)
