@@ -432,6 +432,8 @@ def ingest_data(col,warning):
             else:
                 if(item['gender_affinity'] == 'F'):
                     payload['gender_affinity'] = 'Female'
+                else:
+                    payload['gender_affinity'] = payload['gender_affinity']
         else:
             payload['gender_affinity'] = ""
         if('style' in item):
