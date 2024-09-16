@@ -234,7 +234,14 @@ def create_ml_connectors():
 
 
     remote_ml = {
-               
+                "SAGEMAKER_SPARSE":
+                 {
+                     "endpoint_url":"https://runtime.sagemaker."+st.session_state.REGION+".amazonaws.com/endpoints/"+SparseEmbeddingEndpointName+"/invocations",
+                     "pre_process_fun": '\n    StringBuilder builder = new StringBuilder();\n    builder.append("\\"");\n    builder.append(params.text_docs[0]);\n    builder.append("\\"");\n    def parameters = "{" +"\\"inputs\\":" + builder + "}";\n    return "{" +"\\"parameters\\":" + parameters + "}";\n    ', 
+                   #"post_process_fun": '\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.result == null || params.result.length == 0) {\n        return null;\n    }\n    def shape = [params.result[0].length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.result[0] +\n               "}";\n    return json;\n    ',
+                    "request_body": """["${parameters.inputs}"]"""
+             
+                 },
                 
                  "BEDROCK_TEXT":
                 {
@@ -303,10 +310,10 @@ def create_ml_connectors():
     
     
 
-connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
+# connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
 
-if(connector_res["hits"]["total"]["value"] == 0):
-    create_ml_connectors()
+# if(connector_res["hits"]["total"]["value"] == 0):
+#     create_ml_connectors()
     
 
 def ingest_data(col,warning):
@@ -431,9 +438,13 @@ def ingest_data(col,warning):
                 if(item['gender_affinity'] == 'F'):
                     payload['gender_affinity'] = 'Female'
                 else:
-                    payload['gender_affinity'] = item['gender_affinity']
+                    payload['gender_affinity'] = payload['gender_affinity']
+        else:
+            payload['gender_affinity'] = ""
         if('style' in item):
             payload['style'] = item['style']
+        else:
+            payload['style'] = ""
         #resize the image and generate image binary
         
         file_type, path = resize_image(fileshort, 2048, 2048)
