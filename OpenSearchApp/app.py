@@ -56,7 +56,7 @@ if "BEDROCK_MULTIMODAL_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_MODEL_ID")
     
 if "BEDROCK_MULTIMODAL_CONNECTOR_ID" not in st.session_state:
-    st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_CONNECTOR_ID")
+    st.session_state.BEDROCK_MULTIMODAL_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_MULTIMODAL_CONNECTOR_ID")
     
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = ds.get_from_dynamo("max_selections")
@@ -70,13 +70,13 @@ if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
     
 if "SAGEMAKER_SPARSE_CONNECTOR_ID" not in st.session_state:
-    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_CONNECTOR_ID")   
+    st.session_state.SAGEMAKER_SPARSE_CONNECTOR_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_CONNECTOR_ID")   
     
 if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
     
 if "BEDROCK_TEXT_CONNECTOR_ID" not in st.session_state:
-    st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_CONNECTOR_ID")  
+    st.session_state.BEDROCK_TEXT_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_TEXT_CONNECTOR_ID")  
 #bytes_for_rekog = ""
     
     
