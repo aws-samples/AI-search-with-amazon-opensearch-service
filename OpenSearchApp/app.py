@@ -303,12 +303,12 @@ def create_ml_connectors():
     
     
 
-# connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
-# print("connector_res")
-# print("--------------")
-# print(connector_res)
-# if(connector_res["hits"]["total"]["value"] == 0):
-#     create_ml_connectors()
+connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
+print("connector_res")
+print("--------------")
+print(connector_res)
+if(connector_res["hits"]["total"]["value"] == 0):
+    create_ml_connectors()
     
 
 def ingest_data(col,warning):
