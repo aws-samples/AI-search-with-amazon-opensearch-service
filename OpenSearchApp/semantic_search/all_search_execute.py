@@ -105,7 +105,7 @@ def handler(input_,session_id):
     
     weights = []
     
-    searches = ['Keyword','Vector','Multimodal','NeuralSparse']
+    searches = ['Keyword','Vector','Multimodal']
     for i in searches:
         weight = input_['weightage'][i+'-weight']/100
         if(weight>0.0):

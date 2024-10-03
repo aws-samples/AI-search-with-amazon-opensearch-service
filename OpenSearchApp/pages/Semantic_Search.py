@@ -810,7 +810,7 @@ if(search_all_type == True or 1==1):
             st.number_input("Keyword %", min_value=0, max_value=100, value=100, step=5,  key='input_Keyword-weight', help=None)
             st.number_input("Vector %", min_value=0, max_value=100, value=0, step=5,  key='input_Vector-weight', help=None)
             st.number_input("Multimodal %", min_value=0, max_value=100, value=0, step=5,  key='input_Multimodal-weight', help=None)
-            st.number_input("NeuralSparse %", min_value=0, max_value=100, value=0, step=5,  key='input_NeuralSparse-weight', help=None)
+            
         
         # if(equal_weight):
         #     counter = 0
