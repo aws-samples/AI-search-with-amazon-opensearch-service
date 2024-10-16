@@ -93,7 +93,7 @@ if not isExist:
     file.extractall('/home/ec2-user/SageMaker/images_retail')
     file.close()
     #remove images.tar.gz
-    os.remove('/home/ec2-user/SageMaker/images_retail/images.tar.gz')
+    #os.remove('/home/ec2-user/SageMaker/images_retail/images.tar.gz')
     
 preview_data = ["footwear","jewelry","apparel","beauty","housewares"]
 yaml = YAML()
@@ -434,7 +434,7 @@ def ingest_data(col,warning):
     
     
     yaml = YAML()
-    items_ = yaml.load(open('/home/ec2-user/SageMaker/images_retail/products.yaml'))
+    items_ = yaml.load(open('/home/ec2-user/SageMaker/products.yaml'))
 
     batch = 0
     count = 0
