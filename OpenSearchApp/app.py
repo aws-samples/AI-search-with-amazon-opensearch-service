@@ -86,10 +86,10 @@ if "BEDROCK_TEXT_CONNECTOR_ID" not in st.session_state:
 isExist = os.path.exists("/home/ec2-user/SageMaker/images_retail")
 if not isExist:   
     os.makedirs('/home/ec2-user/SageMaker/images_retail')
-    metadata_file = urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/products-data.yml', '/home/ec2-user/SageMaker/images_retail/products.yaml')
-    img_filename,headers= urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/images.tar.gz', '/home/ec2-user/SageMaker/images_retail/images.tar.gz')              
-    print(img_filename)
-    file = tarfile.open('/home/ec2-user/SageMaker/images_retail/images.tar.gz')
+#     metadata_file = urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/products-data-embedding.yaml', '/home/ec2-user/SageMaker/images_retail/products.yaml')
+#     img_filename,headers= urllib.request.urlretrieve('https://aws-blogs-artifacts-public.s3.amazonaws.com/BDB-3144/images.tar.gz', '/home/ec2-user/SageMaker/images_retail/images.tar.gz')              
+#     print(img_filename)
+    file = tarfile.open('/home/ec2-user/SageMaker/images.tar.gz')
     file.extractall('/home/ec2-user/SageMaker/images_retail')
     file.close()
     #remove images.tar.gz
@@ -411,6 +411,9 @@ def ingest_data(col,warning):
         exists = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
         if(str(exists) == '<Response [404]>'):
             ingest_flag = True
+            #create index
+            requests.put(host+'demostore-search-index', auth=awsauth,headers=headers,json = {"mappings":{"_source": {"excludes": ["product_image"]}}})
+            
     print(ingest_flag)
     
     ds.store_in_dynamo('search_types',search_types)
@@ -420,7 +423,8 @@ def ingest_data(col,warning):
         return ""
     
     
-    
+    with warning:
+        st.warning("Please wait while the data is ingested. Do not refresh the page !",icon = "⚠️")
     aos_client = OpenSearch(
     hosts = [{'host': OpenSearchDomainEndpoint, 'port': 443}],
     http_auth = awsauth,
@@ -435,7 +439,7 @@ def ingest_data(col,warning):
     batch = 0
     count = 0
     body_ = ''
-    batch_size = 50
+    batch_size = 300
     last_batch = int(len(items_)/batch_size)
     action = json.dumps({ 'index': { '_index': 'demostore-search-index' } })
     
@@ -456,9 +460,21 @@ def ingest_data(col,warning):
                 image.thumbnail((width, height))
                 image.save(f"{path}-resized.{file_type}")
         return file_type, path
-    with warning:
-        st.warning("Please wait while the data is ingested. Do not refresh the page !",icon = "⚠️")
-         
+    
+    
+    
+    #remove ingest pipeline set by the user
+    print("------------ deleting index ------------")
+    index_exists = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
+    if(str(index_exists) != '<Response [404]>'):
+        delete_index = requests.delete(host+'demostore-search-index', auth=awsauth,headers=headers)
+        print(delete_index.text)
+    
+    print("------------ creating index ------------")
+    create_index = requests.put(host+'demostore-search-index', auth=awsauth,headers=headers,json = {         "settings": {    "index.knn": True},         "mappings":{"_source": {"excludes": ["product_image"]},"properties": {        "image_url": {          "type": "text"        },        "product_description": {          "type": "text"        },    "product_multimodal_vector": {          "type": "knn_vector",          "dimension": 1024,          "method": {            "engine": "faiss",            "space_type": "l2",            "name": "hnsw",            "parameters": {}          }        },     "product_description_vector": {          "type": "knn_vector",          "dimension": 1536,          "method": {            "engine": "faiss",            "space_type": "l2",            "name": "hnsw",            "parameters": {}          }        }      }}    })
+    print(create_index.text)
+    print("------------ index created------------")
+            
     for item in items_:
         count+=1
         fileshort = "/home/ec2-user/SageMaker/images_retail/"+item["category"]+"/"+item["image"]
@@ -482,15 +498,24 @@ def ingest_data(col,warning):
             payload['style'] = item['style']
         else:
             payload['style'] = ""
+        
+        if('Vector Search' in search_types):
+            lis1=item['product_description_vector'].split(",")
+            payload['product_description_vector'] = [float(i) for i in lis1]
+        if('Multimodal Search' in search_types):
+            lis2=item['product_multimodal_vector'].split(",")
+            payload['product_multimodal_vector'] = [float(j) for j in lis2]
         #resize the image and generate image binary
         
         file_type, path = resize_image(fileshort, 2048, 2048)
+        
+        if(st.session_state.BEDROCK_MULTIMODAL_MODEL_ID != ""):
+            
+            with open(fileshort.split(".")[0]+"-resized."+file_type, "rb") as image_file:
+                input_image = base64.b64encode(image_file.read()).decode("utf8")
 
-        with open(fileshort.split(".")[0]+"-resized."+file_type, "rb") as image_file:
-            input_image = base64.b64encode(image_file.read()).decode("utf8")
-    
-        os.remove(fileshort.split(".")[0]+"-resized."+file_type)
-        payload['product_image'] = input_image
+            os.remove(fileshort.split(".")[0]+"-resized."+file_type)
+            payload['product_image'] = input_image
     
         
         body_ = body_ + action + "\n" + json.dumps(payload) + "\n"
@@ -515,7 +540,7 @@ def ingest_data(col,warning):
             index = 'demostore-search-index',
             body = body_
             )
-                    
+    #print(response.text)               
     print("All "+str(last_batch)+" batches ingested into index")
     warning.empty()
     with col:
