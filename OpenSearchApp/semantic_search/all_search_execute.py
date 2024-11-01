@@ -99,8 +99,7 @@ def handler(input_,session_id):
     k_ = input_["K"]
     image_upload = input_["imageUpload"]
     
-    path = "_search/pipeline/ml_search_pipeline" 
-    url = host + path
+    
     
     num_queries = len(search_types)
     
@@ -114,8 +113,8 @@ def handler(input_,session_id):
             
       
         
-    ######## Create Search pipeline #######   
-    print("Creating Search pipeline")        
+    ######## Updating hybrid Search pipeline #######   
+    print("Updating Search pipeline with new weights")        
     s_pipeline_payload = {"version": 1234}
     s_pipeline_payload["phase_results_processors"] = [
                 {
@@ -133,28 +132,28 @@ def handler(input_,session_id):
                 }
                 ]
             
-    if(st.session_state.re_ranker == "true"):
-        s_pipeline_payload["response_processors"] =  [
-      {
-        "rerank": {
-          "ml_opensearch": {
-            "model_id": SAGEMAKER_CrossEncoder_MODEL_ID
-          },
-          "context": {
-            "document_fields": [
-              "product_description"
-            ]
-          }
-        }
-      }
-    ]
-    #if(len(list(s_pipeline_payload.keys()))>=2):     
-    opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipeline', auth=awsauth,headers=headers)).text
+
+        
+    opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
     print("opensearch_search_pipeline")
     print(opensearch_search_pipeline)
     if(opensearch_search_pipeline!='{}'):
+        path = "_search/pipeline/hybrid_search_pipeline" 
+        url = host + path
         r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
-        print("Search Pipeline Creation: "+str(r.status_code))
+        print("Hybrid Search Pipeline updated: "+str(r.status_code))
+        ######## Combining hybrid+rerank pipeline ####### 
+        opensearch_rerank_pipeline = (requests.get(host+'_search/pipeline/rerank_pipeline', auth=awsauth,headers=headers)).text
+        print("opensearch_rerank_pipeline")
+        print(opensearch_rerank_pipeline)
+        if(opensearch_rerank_pipeline!='{}'):
+            total_pipeline = json.loads(opensearch_rerank_pipeline)
+            s_pipeline_payload['response_processors'] = total_pipeline['rerank_pipeline']['response_processors']
+            path = "_search/pipeline/hybrid_rerank_pipeline" 
+            url = host + path
+            r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
+        print("hybrid_rerank_pipeline Creation: "+str(r.status_code))
+            
     
     ######## start of Applying LLM filters ####### 
     if(st.session_state.input_rewritten_query!=""):
@@ -226,7 +225,7 @@ def handler(input_,session_id):
         
         r3 = requests.post(url3, auth=awsauth, json=payload3, headers=headers)
         vector_ = json.loads(r3.text)
-        print(r3.text)
+        #print(r3.text)
         query_vector = vector_['inference_results'][0]['output'][0]['data']
         #print(query_vector)
         
@@ -375,7 +374,7 @@ def handler(input_,session_id):
         hybrid_payload["query"] = single_query
         # print("-------final query--------")
         if(st.session_state.re_ranker == 'true' and st.session_state.input_reranker == 'Cross Encoder'):
-            path = "demostore-search-index/_search?search_pipeline=ml_search_pipeline" 
+            path = "demostore-search-index/_search?search_pipeline=rerank_pipeline" 
             url = host + path
             hybrid_payload["ext"] = {"rerank": {
                                           "query_context": {
@@ -384,6 +383,7 @@ def handler(input_,session_id):
                                         }}
             
         print(hybrid_payload)
+        print(url)
         r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
         print(r.status_code)
         #print(r.text)
@@ -395,14 +395,29 @@ def handler(input_,session_id):
     
     else:
          
-        url = url + "?search_pipeline=ml_search_pipeline" 
+        
+        print("hybrid_payload")
+        print(hybrid_payload)
+        print("-------------------------------------------------------------------")
         
         if( st.session_state.input_hybridType == "OpenSearch Hybrid Query"):
-            r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
+            url_ = url + "?search_pipeline=hybrid_search_pipeline" 
+            
+            if(st.session_state.re_ranker == 'true' and st.session_state.input_reranker == 'Cross Encoder'):
+                
+                url_ = url + "?search_pipeline=hybrid_rerank_pipeline" 
+            
+                hybrid_payload["ext"] = {"rerank": {
+                                          "query_context": {
+                                             "query_text": query
+                                          }
+                                        }}
+            print(url_)
+            r = requests.get(url_, auth=awsauth, json=hybrid_payload, headers=headers)
             print(r.status_code)
             response_ = json.loads(r.text)
             print("-------------------------------------------------------------------")
-            #print(response_)
+            print(response_)
             docs = response_['hits']['hits']
         
         else:

@@ -3,9 +3,8 @@ from botocore.exceptions import ClientError
 import pprint
 import time
 import streamlit as st
-import dynamo_state as ds
 #from sentence_transformers import CrossEncoder
-st.session_state.REGION = ds.get_region()
+
 #model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", max_length=512)
 kendra_ranking = boto3.client("kendra-ranking",region_name = st.session_state.REGION)
 

@@ -226,29 +226,32 @@ else:
     st.session_state.play_disabled = 'False'
 ds.store_in_dynamo('play_disabled',st.session_state.play_disabled)
     
-
-opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipeline', auth=awsauth,headers=headers)).text
+###### check for search pipelines #######
+opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
 print("opensearch_search_pipeline")
 print(opensearch_search_pipeline)
 if(opensearch_search_pipeline!='{}'):
-    total_pipeline = json.loads(opensearch_search_pipeline)
-    if(('phase_results_processors' in total_pipeline['ml_search_pipeline'].keys() and 'version' not in total_pipeline['ml_search_pipeline'].keys() ) or st.session_state.max_selections == "None"):
-        st.session_state.max_selections = "None"
-    else:
-        st.session_state.max_selections = "1"
-    if('response_processors' in total_pipeline['ml_search_pipeline'].keys()):
-        st.session_state.re_ranker = "true"
-        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['ml_search_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
-        ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
-        
-    else:
-        st.session_state.re_ranker = "false"
+    st.session_state.max_selections = "None"
 else:
     st.session_state.max_selections = "1"
-    st.session_state.re_ranker = "false"
-    
+        
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+        
+opensearch_rerank_pipeline = (requests.get(host+'_search/pipeline/rerank_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_rerank_pipeline")
+print(opensearch_rerank_pipeline)
+if(opensearch_rerank_pipeline!='{}'):
+    st.session_state.re_ranker = "true"
+    total_pipeline = json.loads(opensearch_rerank_pipeline)
+    if('response_processors' in total_pipeline['rerank_pipeline'].keys()):
+        st.session_state.re_ranker = "true"
+        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+        ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
+        
+else:
+    st.session_state.re_ranker = "false"
 ds.store_in_dynamo('re_ranker',st.session_state.re_ranker )
+###### check for search pipelines #######
 
 def create_ml_connectors():
     

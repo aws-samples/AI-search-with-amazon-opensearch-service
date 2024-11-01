@@ -214,28 +214,33 @@ credentials = boto3.Session().get_credentials()
 awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_state.REGION, service, session_token=credentials.token)
 headers = {"Content-Type": "application/json"}
 
-opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_search_pipeline-----------------")
+###### check for search pipelines #######
+opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_search_pipeline")
 print(opensearch_search_pipeline)
 if(opensearch_search_pipeline!='{}'):
-    total_pipeline = json.loads(opensearch_search_pipeline)
-    if(('phase_results_processors' in total_pipeline['ml_search_pipeline'].keys() and 'version' not in total_pipeline['ml_search_pipeline'].keys() ) or st.session_state.max_selections == "None"):
-        st.session_state.max_selections = "None"
-    else:
-        st.session_state.max_selections = "1"
-    if('response_processors' in total_pipeline['ml_search_pipeline'].keys()):
-        st.session_state.re_ranker = "true"
-        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['ml_search_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
-        ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
-        
-    else:
-        st.session_state.re_ranker = "false"
+    st.session_state.max_selections = "None"
 else:
     st.session_state.max_selections = "1"
-    st.session_state.re_ranker = "false"
-    
+        
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+        
+opensearch_rerank_pipeline = (requests.get(host+'_search/pipeline/rerank_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_rerank_pipeline")
+print(opensearch_rerank_pipeline)
+if(opensearch_rerank_pipeline!='{}'):
+    st.session_state.re_ranker = "true"
+    total_pipeline = json.loads(opensearch_rerank_pipeline)
+    if('response_processors' in total_pipeline['rerank_pipeline'].keys()):
+        st.session_state.re_ranker = "true"
+        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+        ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
+        
+else:
+    st.session_state.re_ranker = "false"
 ds.store_in_dynamo('re_ranker',st.session_state.re_ranker )
+###### check for search pipelines #######
+
 
     
 if "REGION" not in st.session_state:
@@ -250,7 +255,10 @@ if "search_types" not in st.session_state:
 if "KendraResourcePlanID" not in st.session_state:
     st.session_state.KendraResourcePlanID= ds.get_from_dynamo("KendraResourcePlanID")
 
-
+if "SAGEMAKER_CrossEncoder_MODEL_ID" not in st.session_state:
+    st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_CrossEncoder_MODEL_ID")   
+    
+    
 if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
     
@@ -768,9 +776,10 @@ if(search_all_type == True or 1==1):
         
         
         if('NeuralSparse Search' in st.session_state.search_types):
+            st.subheader(':blue[Neural Sparse Search]')
             sparse_filter = st.slider('Keep only sparse tokens with weight >=', 0.0, 1.0, 0.5,0.1,key = 'input_sparse_filter', help = 'Use this slider to set the minimum weight that the sparse vector token weights should meet, rest are filtered out')
-          
-            
+
+
         #sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
         st.session_state.input_is_rewrite_query = 'disabled'
         st.session_state.input_is_sql_query = 'disabled'
@@ -811,21 +820,22 @@ if(search_all_type == True or 1==1):
         
         
         #st.write("---")
+        #if(st.session_state.max_selections == "None"):
         st.subheader(':blue[Hybrid Search]')
         st.selectbox('Select the Hybrid Search type',
          ("OpenSearch Hybrid Query","Reciprocal Rank Fusion"),key = 'input_hybridType')
         # equal_weight = st.button("Give equal weights to selected searches")
-        
-                    
-                
-                
-             
-            
+
+
+
+
+
+
         #st.warning('Weight of each of the selected search type should be greater than 0 and the total weight of all the selected search type(s) should be equal to 100',icon = "⚠️")
-            
-        
+
+
         #st.markdown("<p style = 'font-size:14.5px;font-style:italic;'>Set Weights</p>",unsafe_allow_html=True)
-        
+
         with st.expander("Set query Weightage:"):
             st.number_input("Keyword %", min_value=0, max_value=100, value=100, step=5,  key='input_Keyword-weight', help=None)
             st.number_input("Vector %", min_value=0, max_value=100, value=0, step=5,  key='input_Vector-weight', help=None)
