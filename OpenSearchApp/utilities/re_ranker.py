@@ -3,9 +3,10 @@ from botocore.exceptions import ClientError
 import pprint
 import time
 import streamlit as st
-from sentence_transformers import CrossEncoder
-
-model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", max_length=512)
+import dynamo_state as ds
+#from sentence_transformers import CrossEncoder
+st.session_state.REGION = ds.get_region()
+#model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", max_length=512)
 kendra_ranking = boto3.client("kendra-ranking",region_name = st.session_state.REGION)
 
 
@@ -117,35 +118,36 @@ def re_rank(self_, rerank_type, search_type, question, answers):
         
 
     if(rerank_type == 'Cross Encoder'):
+        return ""
 
-        scores = model.predict(
-                    ques_ans
-                        )
+#         scores = model.predict(
+#                     ques_ans
+#                         )
         
-        print("scores")
-        print(scores)
-        index__ = 0
-        for i in ans:
-            i['new_score'] = scores[index__]
-            index__ = index__+1
+#         print("scores")
+#         print(scores)
+#         index__ = 0
+#         for i in ans:
+#             i['new_score'] = scores[index__]
+#             index__ = index__+1
 
-        ans_sorted = sorted(ans, key=lambda d: d['new_score'],reverse=True) 
+#         ans_sorted = sorted(ans, key=lambda d: d['new_score'],reverse=True) 
         
         
-        def retreive_only_text(item):
-            return item['text']
+#         def retreive_only_text(item):
+#             return item['text']
             
-        if(self_ == 'rag'):
-            return list(map(retreive_only_text, ans_sorted)) 
+#         if(self_ == 'rag'):
+#             return list(map(retreive_only_text, ans_sorted)) 
 
        
-        re_ranked[0]['answer']=[]
-        for j in ans_sorted:
-            pos_ = ids.index(j['Id'])
-            re_ranked[0]['answer'].append(answers[0]['answer'][pos_])
-        re_ranked[0]['search_type']= search_type,
-        re_ranked[0]['id'] = len(question)
-        return re_ranked
+#         re_ranked[0]['answer']=[]
+#         for j in ans_sorted:
+#             pos_ = ids.index(j['Id'])
+#             re_ranked[0]['answer'].append(answers[0]['answer'][pos_])
+#         re_ranked[0]['search_type']= search_type,
+#         re_ranked[0]['id'] = len(question)
+#         return re_ranked
 
 
 

@@ -46,6 +46,9 @@ if "index_map" not in st.session_state:
 if "OpenSearchDomainEndpoint" not in st.session_state:
     st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
     
+if "KendraResourcePlanID" not in st.session_state:
+    st.session_state.KendraResourcePlanID = ds.get_from_dynamo("KendraResourcePlanID")
+    
 if "REGION" not in st.session_state:
     st.session_state.REGION = ""
    
@@ -61,6 +64,9 @@ if "BEDROCK_MULTIMODAL_CONNECTOR_ID" not in st.session_state:
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = ds.get_from_dynamo("max_selections")
     
+if "re_ranker" not in st.session_state:
+    st.session_state.re_ranker = ds.get_from_dynamo("re_ranker")
+    
 if "search_types" not in st.session_state:
     st.session_state.search_types =ds.get_from_dynamo("search_types")
     if(st.session_state.search_types == ""):
@@ -71,6 +77,13 @@ if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     
 if "SAGEMAKER_SPARSE_CONNECTOR_ID" not in st.session_state:
     st.session_state.SAGEMAKER_SPARSE_CONNECTOR_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_CONNECTOR_ID")   
+    
+    
+if "SAGEMAKER_CrossEncoder_MODEL_ID" not in st.session_state:
+    st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_CrossEncoder_MODEL_ID")   
+    
+if "SAGEMAKER_CrossEncoder_CONNECTOR_ID" not in st.session_state:
+    st.session_state.SAGEMAKER_CrossEncoder_CONNECTOR_ID = ds.get_from_dynamo("SAGEMAKER_CrossEncoder_CONNECTOR_ID")  
     
 if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
@@ -160,6 +173,10 @@ for output in cfn_outputs:
     if('WebappRoleArn' in output['OutputKey']):
         WebappRoleArn = output['OutputValue']
         
+    if('KendraResourcePlanID' in output['OutputKey']):
+        KendraResourcePlanID = output['OutputValue']
+    
+        
     
         
         
@@ -181,6 +198,8 @@ print("OpenSearchDomainEndpoint: "+OpenSearchDomainEndpoint)
 print("WebappRoleArn: "+WebappRoleArn)
 
 st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
+st.session_state.KendraResourcePlanID = KendraResourcePlanID
+ds.store_in_dynamo('KendraResourcePlanID',st.session_state.KendraResourcePlanID )
 ds.store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
 st.session_state.WebappRoleArn = WebappRoleArn
 ds.store_in_dynamo('WebappRoleArn',st.session_state.WebappRoleArn )
@@ -212,10 +231,24 @@ opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipe
 print("opensearch_search_pipeline")
 print(opensearch_search_pipeline)
 if(opensearch_search_pipeline!='{}'):
-    st.session_state.max_selections = "None"
+    total_pipeline = json.loads(opensearch_search_pipeline)
+    if(('phase_results_processors' in total_pipeline['ml_search_pipeline'].keys() and 'version' not in total_pipeline['ml_search_pipeline'].keys() ) or st.session_state.max_selections == "None"):
+        st.session_state.max_selections = "None"
+    else:
+        st.session_state.max_selections = "1"
+    if('response_processors' in total_pipeline['ml_search_pipeline'].keys()):
+        st.session_state.re_ranker = "true"
+        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['ml_search_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+        ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
+        
+    else:
+        st.session_state.re_ranker = "false"
 else:
     st.session_state.max_selections = "1"
+    st.session_state.re_ranker = "false"
+    
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+ds.store_in_dynamo('re_ranker',st.session_state.re_ranker )
 
 def create_ml_connectors():
     
@@ -236,10 +269,20 @@ def create_ml_connectors():
     remote_ml = {
                 "SAGEMAKER_SPARSE":
                  {
-                     "endpoint_url":"https://runtime.sagemaker."+st.session_state.REGION+".amazonaws.com/endpoints/"+SparseEmbeddingEndpointName+"/invocations",
+                     "endpoint_url":"https://runtime.sagemaker."+st.session_state.REGION+".amazonaws.com/endpoints/neural-sparse-model/invocations",
                      "pre_process_fun": '\n    StringBuilder builder = new StringBuilder();\n    builder.append("\\"");\n    builder.append(params.text_docs[0]);\n    builder.append("\\"");\n    def parameters = "{" +"\\"inputs\\":" + builder + "}";\n    return "{" +"\\"parameters\\":" + parameters + "}";\n    ', 
                    #"post_process_fun": '\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.result == null || params.result.length == 0) {\n        return null;\n    }\n    def shape = [params.result[0].length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.result[0] +\n               "}";\n    return json;\n    ',
                     "request_body": """["${parameters.inputs}"]"""
+             
+                 },
+        "SAGEMAKER_CrossEncoder":
+                 {
+                     
+                      "endpoint_url": "https://runtime.sagemaker."+st.session_state.REGION+".amazonaws.com/endpoints/cross-encoder-model/invocations",
+            "request_body": "{ \"inputs\": ${parameters.inputs} }",
+      "pre_process_fun": "\n    String escape(def input) { \n       if (input.contains(\"\\\\\")) {\n        input = input.replace(\"\\\\\", \"\\\\\\\\\");\n      }\n      if (input.contains(\"\\\"\")) {\n        input = input.replace(\"\\\"\", \"\\\\\\\"\");\n      }\n      if (input.contains('\r')) {\n        input = input = input.replace('\r', '\\\\r');\n      }\n      if (input.contains(\"\\\\t\")) {\n        input = input.replace(\"\\\\t\", \"\\\\\\\\\\\\t\");\n      }\n      if (input.contains('\n')) {\n        input = input.replace('\n', '\\\\n');\n      }\n      if (input.contains('\b')) {\n        input = input.replace('\b', '\\\\b');\n      }\n      if (input.contains('\f')) {\n        input = input.replace('\f', '\\\\f');\n      }\n      return input;\n    }\n\n   String query = params.query_text;\n   StringBuilder builder = new StringBuilder('[');\n    \n    for (int i=0; i<params.text_docs.length; i ++) {\n      builder.append('{\"text\":\"');\n      builder.append(escape(query));\n      builder.append('\", \"text_pair\":\"');\n      builder.append(escape(params.text_docs[i]));\n      builder.append('\"}');\n      if (i<params.text_docs.length - 1) {\n        builder.append(',');\n      }\n    }\n    builder.append(']');\n    \n    def parameters = '{ \"inputs\": ' + builder + ' }';\n    return  '{\"parameters\": ' + parameters + '}';\n     ",
+      "post_process_fun": "\n      \n      def dataType = \"FLOAT32\";\n      \n      \n      if (params.result == null)\n      {\n          return 'no result generated';\n          //return params.response;\n      }\n      def outputs = params.result;\n      \n      \n      def resultBuilder = new StringBuilder('[ ');\n      for (int i=0; i<outputs.length; i++) {\n        resultBuilder.append(' {\"name\": \"similarity\", \"data_type\": \"FLOAT32\", \"shape\": [1],');\n        //resultBuilder.append('{\"name\": \"similarity\"}');\n        \n        resultBuilder.append('\"data\": [');\n        resultBuilder.append(outputs[i].score);\n        resultBuilder.append(']}');\n        if (i<outputs.length - 1) {\n          resultBuilder.append(',');\n        }\n      }\n      resultBuilder.append(']');\n      \n      return resultBuilder.toString();\n    "
+  
              
                  },
                 
@@ -310,10 +353,12 @@ def create_ml_connectors():
     
     
 
-# connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
+connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
 
-# if(connector_res["hits"]["total"]["value"] == 0):
-#     create_ml_connectors()
+print(connector_res)
+
+if(connector_res["hits"]["total"]["value"] == 0):
+    create_ml_connectors()
     
 
 def ingest_data(col,warning):
@@ -378,6 +423,7 @@ def ingest_data(col,warning):
     
     ds.store_in_dynamo('search_types',search_types)
     st.session_state.search_types = search_types
+    
             
     if(ingest_flag == False):
         return ""

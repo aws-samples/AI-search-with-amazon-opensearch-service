@@ -204,6 +204,9 @@ if "OpenSearchDomainEndpoint" not in st.session_state:
     
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = ds.get_from_dynamo("max_selections")
+    
+if "re_ranker" not in st.session_state:
+    st.session_state.re_ranker = ds.get_from_dynamo("re_ranker")
 
 host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
 service = 'es'
@@ -212,14 +215,28 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_st
 headers = {"Content-Type": "application/json"}
 
 opensearch_search_pipeline = (requests.get(host+'_search/pipeline/ml_search_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_search_pipeline")
+print("opensearch_search_pipeline-----------------")
 print(opensearch_search_pipeline)
 if(opensearch_search_pipeline!='{}'):
-    st.session_state.max_selections = "None"
+    total_pipeline = json.loads(opensearch_search_pipeline)
+    if(('phase_results_processors' in total_pipeline['ml_search_pipeline'].keys() and 'version' not in total_pipeline['ml_search_pipeline'].keys() ) or st.session_state.max_selections == "None"):
+        st.session_state.max_selections = "None"
+    else:
+        st.session_state.max_selections = "1"
+    if('response_processors' in total_pipeline['ml_search_pipeline'].keys()):
+        st.session_state.re_ranker = "true"
+        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['ml_search_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+        ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
+        
+    else:
+        st.session_state.re_ranker = "false"
 else:
     st.session_state.max_selections = "1"
-ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+    st.session_state.re_ranker = "false"
     
+ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+ds.store_in_dynamo('re_ranker',st.session_state.re_ranker )
+
     
 if "REGION" not in st.session_state:
     st.session_state.REGION = ""
@@ -576,7 +593,8 @@ def handle_input():
     if(st.session_state.input_reranker == "None"):
         st.session_state.answers = st.session_state.answers_none_rank 
     else:
-        st.session_state.answers = re_ranker.re_rank("search",st.session_state.input_reranker,st.session_state.input_searchType,st.session_state.questions, st.session_state.answers)
+        if(st.session_state.input_reranker == 'Kendra Rescore'):
+            st.session_state.answers = re_ranker.re_rank("search",st.session_state.input_reranker,st.session_state.input_searchType,st.session_state.questions, st.session_state.answers)
     if(st.session_state.input_evaluate) == "enabled":
         llm_eval.eval(st.session_state.questions, st.session_state.answers)
     #st.session_state.input_text=""
@@ -739,8 +757,9 @@ if(search_all_type == True or 1==1):
         #st.subheader(':blue[Keyword Search]')
 
         ########################## enable for query_rewrite ########################
-        rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
-        st.multiselect('Fields for "MUST" filter',
+        if(1!=1):
+            rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
+            st.multiselect('Fields for "MUST" filter',
                 ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
    
                 key = 'input_must',
@@ -757,9 +776,10 @@ if(search_all_type == True or 1==1):
         st.session_state.input_is_sql_query = 'disabled'
         
         ########################## enable for query_rewrite ########################
-        if rewrite_query:
+        if(1!=1):
+            if rewrite_query:
             #st.write(st.session_state.inputs_)
-            st.session_state.input_is_rewrite_query = 'enabled'
+                st.session_state.input_is_rewrite_query = 'enabled'
         # if sql_query:
         #     #st.write(st.session_state.inputs_)
         #     st.session_state.input_is_sql_query = 'enabled'
@@ -852,18 +872,19 @@ if(search_all_type == True or 1==1):
 
         #st.header('Select the ML Model for text embedding', divider='rainbow')
         #st.subheader('Note: The below selection applies only when the Search type is set to Vector or Hybrid Search')
-        st.subheader(':blue[Re-ranking]')
-        reranker = st.selectbox('Choose a Re-Ranker',
-        ('None','Cross Encoder','Kendra Rescore'
-        
-        ),
-        
-        key = 'input_reranker',
-        help = 'Select the Re-Ranker type, select "None" to apply no re-ranking of the results',
-        #on_change = re_ranker.re_rank,
-        args=(st.session_state.questions, st.session_state.answers)
+        if(st.session_state.re_ranker == "true"):
+            st.subheader(':blue[Re-ranking]')
+            reranker = st.selectbox('Choose a Re-Ranker',
+            ('None','Cross Encoder','Kendra Rescore'
 
-        )
+            ),
+
+            key = 'input_reranker',
+            help = 'Select the Re-Ranker type, select "None" to apply no re-ranking of the results',
+            #on_change = re_ranker.re_rank,
+            args=(st.session_state.questions, st.session_state.answers)
+
+            )
         # st.write("---")
         # st.subheader('Text Embeddings Model')
         # model_type = st.selectbox('Select the Text Embeddings Model',
