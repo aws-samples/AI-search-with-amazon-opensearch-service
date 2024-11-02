@@ -175,6 +175,8 @@ for output in cfn_outputs:
         
     if('KendraResourcePlanID' in output['OutputKey']):
         KendraResourcePlanID = output['OutputValue']
+    else:
+        KendraResourcePlanID = ""
     
         
     
