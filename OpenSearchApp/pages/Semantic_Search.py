@@ -868,8 +868,8 @@ if(search_all_type == True or 1==1):
         #st.write("---")
         #if(st.session_state.max_selections == "None"):
         st.subheader(':blue[Hybrid Search]')
-        st.selectbox('Select the Hybrid Search type',
-         ("OpenSearch Hybrid Query","Reciprocal Rank Fusion"),key = 'input_hybridType')
+        # st.selectbox('Select the Hybrid Search type',
+        #  ("OpenSearch Hybrid Query","Reciprocal Rank Fusion"),key = 'input_hybridType')
         # equal_weight = st.button("Give equal weights to selected searches")
 
 
@@ -931,7 +931,7 @@ if(search_all_type == True or 1==1):
         if(st.session_state.re_ranker == "true"):
             st.subheader(':blue[Re-ranking]')
             reranker = st.selectbox('Choose a Re-Ranker',
-            ('None','Cross Encoder','Kendra Rescore'
+            ('None','Cross Encoder'#'Kendra Rescore'
 
             ),
 
