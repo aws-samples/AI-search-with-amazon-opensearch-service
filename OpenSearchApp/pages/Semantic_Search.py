@@ -101,6 +101,9 @@ if "questions" not in st.session_state:
 if "clear_" not in st.session_state:
     st.session_state.clear_ = False
     
+# if "input_clear_filter" not in st.session_state:
+#     st.session_state.input_clear_filter = False
+    
  
 if "radio_disabled" not in st.session_state:
     st.session_state.radio_disabled = True
@@ -108,10 +111,17 @@ if "radio_disabled" not in st.session_state:
 if "input_rad_1" not in st.session_state:
     st.session_state.input_rad_1 = ""
 
+if "input_manual_filter" not in st.session_state:
+    st.session_state.input_manual_filter = False
 
-
-if "input_is_sql_query" not in st.session_state:
-    st.session_state.input_is_sql_query = ""
+if "input_category" not in st.session_state:
+    st.session_state.input_category = None
+    
+if "input_gender" not in st.session_state:
+    st.session_state.input_gender = None
+    
+if "input_price" not in st.session_state:
+    st.session_state.input_price = (0,0)
     
 if "input_sql_query" not in st.session_state:
     st.session_state.input_sql_query = ""
@@ -773,7 +783,39 @@ if(search_all_type == True or 1==1):
                 key = 'input_must',
                )
         ########################## enable for query_rewrite ########################
+        ####### Filters   #########
         
+        st.subheader(':blue[Filters]')
+        filter_place_holder = st.container()
+        with filter_place_holder:
+            st.selectbox("Select one Category", ("accessories", "books","floral","furniture","hot_dispensed","jewelry","tools","apparel","cold_dispensed","food_service","groceries","housewares","outdoors","salty_snacks","videos","beauty","electronics","footwear","homedecor","instruments","seasonal"),index = None,key = "input_category")
+            st.selectbox("Select one Gender", ("male","female"),index = None,key = "input_gender")
+            st.slider("Select a range of price", 0, 2000, (0, 0),50, key = "input_price")
+        if(st.session_state.input_category!=None or st.session_state.input_gender!=None or st.session_state.input_price!=(0,0)):
+            st.session_state.input_manual_filter=True
+        else:
+            st.session_state.input_manual_filter=False
+            
+#         clear_filter = st.button("Clear Filters")
+#         if(clear_filter):
+#             filter_place_holder = st.container()
+#             with filter_place_holder:
+#                 st.selectbox("Select one Category", ("accessories", "books","floral","furniture","hot_dispensed","jewelry","tools","apparel","cold_dispensed","food_service","groceries","housewares","outdoors","salty_snacks","videos","beauty","electronics","footwear","homedecor","instruments","seasonal"),index = None,key = "input_category")
+#                 st.selectbox("Select one Gender", ("male","female"),index = None,key = "input_gender")
+#                 st.slider("Select a range of price", 0, 2000, (0, 0),50, key = "input_price")
+#             st.session_state.input_manual_filter=False
+#             st.session_state.input_category=None
+#             st.session_state.input_gender=None
+#             st.session_state.input_price=(0,0)
+            
+        print("--------------------filters---------------")    
+        print(st.session_state.input_gender)
+        print(st.session_state.input_manual_filter)
+        print("--------------------filters---------------") 
+        
+        
+        
+        ####### Filters   #########
         
         if('NeuralSparse Search' in st.session_state.search_types):
             st.subheader(':blue[Neural Sparse Search]')
@@ -816,6 +858,10 @@ if(search_all_type == True or 1==1):
         #st.markdown('---')
         #st.header('Fine-tune Hybrid Search', divider='rainbow')
         #st.subheader('Note: The below parameters apply only when the Search type is set to Hybrid Search')
+        
+        
+        
+        
         
         
         

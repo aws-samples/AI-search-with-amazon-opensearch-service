@@ -207,7 +207,27 @@ def handler(input_,session_id):
                     }
         if(st.session_state.input_rewritten_query !=""):
             keyword_payload = st.session_state.input_rewritten_query['query']
+            
+        if(st.session_state.input_manual_filter):
+            keyword_payload['bool']={'filter':[]}
+            if(st.session_state.input_category!=None):
+                keyword_payload['bool']['filter'].append({"term": {"category": st.session_state.input_category}})
+            if(st.session_state.input_gender!=None):
+                keyword_payload['bool']['filter'].append({"term": {"gender_affinity": st.session_state.input_gender}})
+            if(st.session_state.input_price!=(0,0)):
+                keyword_payload['bool']['filter'].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
         
+            keyword_payload['bool']['must'] = [{
+                        "match": {
+                        "product_description": {
+                            "query": query
+                        }
+                        }
+                    }]            
+            del keyword_payload['match']
+#         print("keyword_payload**************")   
+#         print(keyword_payload)
+                    
         
         hybrid_payload["query"]["hybrid"]["queries"].append(keyword_payload)
         
@@ -254,6 +274,19 @@ def handler(input_,session_id):
         ###### start of efficient filter applying #####
         if(st.session_state.input_rewritten_query!=""):
             vector_payload['knn']['product_description_vector']['filter'] = filter_['filter']
+            
+        if(st.session_state.input_manual_filter):
+            vector_payload['knn']['product_description_vector']['filter'] = {"bool":{"must":[]}}
+            if(st.session_state.input_category!=None):
+                vector_payload['knn']['product_description_vector']['filter']["bool"]["must"].append({"term": {"category": st.session_state.input_category}})
+            if(st.session_state.input_gender!=None):
+                vector_payload['knn']['product_description_vector']['filter']["bool"]["must"].append({"term": {"gender_affinity": st.session_state.input_gender}})
+            if(st.session_state.input_price!=(0,0)):
+                vector_payload['knn']['product_description_vector']['filter']["bool"]["must"].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
+        
+#         print("vector_payload**************")   
+#         print(vector_payload)    
+        
         ###### end of efficient filter applying #####
         
         hybrid_payload["query"]["hybrid"]["queries"].append(vector_payload)
@@ -325,6 +358,19 @@ def handler(input_,session_id):
         ###### start of efficient filter applying #####
         if(st.session_state.input_rewritten_query!=""):
             sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
+            
+        if(st.session_state.input_manual_filter):
+            sparse_payload['bool']['filter']=[]
+            if(st.session_state.input_category!=None):
+                sparse_payload['bool']['filter'].append({"term": {"category": st.session_state.input_category}})
+            if(st.session_state.input_gender!=None):
+                sparse_payload['bool']['filter'].append({"term": {"gender_affinity": st.session_state.input_gender}})
+            if(st.session_state.input_price!=(0,0)):
+                sparse_payload['bool']['filter'].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
+        
+            
+#         print("sparse_payload**************")   
+#         print(sparse_payload)
             
         
         ###### end of efficient filter applying #####
