@@ -101,8 +101,8 @@ if "questions" not in st.session_state:
 if "clear_" not in st.session_state:
     st.session_state.clear_ = False
     
-# if "input_clear_filter" not in st.session_state:
-#     st.session_state.input_clear_filter = False
+if "input_clear_filter" not in st.session_state:
+    st.session_state.input_clear_filter = False
     
  
 if "radio_disabled" not in st.session_state:
@@ -112,7 +112,7 @@ if "input_rad_1" not in st.session_state:
     st.session_state.input_rad_1 = ""
 
 if "input_manual_filter" not in st.session_state:
-    st.session_state.input_manual_filter = False
+    st.session_state.input_manual_filter = ds.get_from_dynamo("input_manual_filter")
 
 if "input_category" not in st.session_state:
     st.session_state.input_category = None
@@ -307,6 +307,11 @@ from streamlit.components.v1 import html
 #         decoration.style.backgroundSize = "unset"; // Remove background size
 #     </script>
 # """, width=0, height=0)
+
+
+
+    
+    
 def generate_images(tab,inp_):
         #write_top_bar()
         seed = random.randint(1, 10)
@@ -786,24 +791,35 @@ if(search_all_type == True or 1==1):
         ####### Filters   #########
         
         st.subheader(':blue[Filters]')
+        def clear_filter():
+            st.session_state.input_manual_filter="False"
+            ds.store_in_dynamo('input_manual_filter',st.session_state.input_manual_filter )
+            st.session_state.input_category=None
+            st.session_state.input_gender=None
+            st.session_state.input_price=(0,0)
+            handle_input()
         filter_place_holder = st.container()
         with filter_place_holder:
             st.selectbox("Select one Category", ("accessories", "books","floral","furniture","hot_dispensed","jewelry","tools","apparel","cold_dispensed","food_service","groceries","housewares","outdoors","salty_snacks","videos","beauty","electronics","footwear","homedecor","instruments","seasonal"),index = None,key = "input_category")
             st.selectbox("Select one Gender", ("male","female"),index = None,key = "input_gender")
             st.slider("Select a range of price", 0, 2000, (0, 0),50, key = "input_price")
+        
         if(st.session_state.input_category!=None or st.session_state.input_gender!=None or st.session_state.input_price!=(0,0)):
-            st.session_state.input_manual_filter=True
+            st.session_state.input_manual_filter="True"
         else:
-            st.session_state.input_manual_filter=False
+            st.session_state.input_manual_filter="False"
+
+        ds.store_in_dynamo('input_manual_filter',st.session_state.input_manual_filter )
+   
+        clear_filter = st.button("Clear Filters",on_click=clear_filter)
+        
             
-#         clear_filter = st.button("Clear Filters")
-#         if(clear_filter):
 #             filter_place_holder = st.container()
 #             with filter_place_holder:
 #                 st.selectbox("Select one Category", ("accessories", "books","floral","furniture","hot_dispensed","jewelry","tools","apparel","cold_dispensed","food_service","groceries","housewares","outdoors","salty_snacks","videos","beauty","electronics","footwear","homedecor","instruments","seasonal"),index = None,key = "input_category")
 #                 st.selectbox("Select one Gender", ("male","female"),index = None,key = "input_gender")
 #                 st.slider("Select a range of price", 0, 2000, (0, 0),50, key = "input_price")
-#             st.session_state.input_manual_filter=False
+             
 #             st.session_state.input_category=None
 #             st.session_state.input_gender=None
 #             st.session_state.input_price=(0,0)
@@ -1166,8 +1182,8 @@ def render_answer(answer,index):
 
             rdn_key = ''.join([random.choice(string.ascii_letters)
                               for _ in range(10)])
-            currentValue = "".join(st.session_state.input_searchType)+st.session_state.input_imageUpload+json.dumps(st.session_state.input_weightage)+st.session_state.input_NormType+st.session_state.input_CombineType+str(st.session_state.input_K)+st.session_state.input_sparse+st.session_state.input_reranker+st.session_state.input_is_rewrite_query+st.session_state.input_evaluate+st.session_state.input_image+st.session_state.input_rad_1+st.session_state.input_reranker+st.session_state.input_hybridType
-            oldValue = "".join(st.session_state.inputs_["searchType"])+st.session_state.inputs_["imageUpload"]+str(st.session_state.inputs_["weightage"])+st.session_state.inputs_["NormType"]+st.session_state.inputs_["CombineType"]+str(st.session_state.inputs_["K"])+st.session_state.inputs_["sparse"]+st.session_state.inputs_["reranker"]+st.session_state.inputs_["is_rewrite_query"]+st.session_state.inputs_["evaluate"]+st.session_state.inputs_["image"]+st.session_state.inputs_["rad_1"]+st.session_state.inputs_["reranker"]+st.session_state.inputs_["hybridType"]
+            currentValue = "".join(st.session_state.input_searchType)+st.session_state.input_imageUpload+json.dumps(st.session_state.input_weightage)+st.session_state.input_NormType+st.session_state.input_CombineType+str(st.session_state.input_K)+st.session_state.input_sparse+st.session_state.input_reranker+st.session_state.input_is_rewrite_query+st.session_state.input_evaluate+st.session_state.input_image+st.session_state.input_rad_1+st.session_state.input_reranker+st.session_state.input_hybridType+st.session_state.input_manual_filter
+            oldValue = "".join(st.session_state.inputs_["searchType"])+st.session_state.inputs_["imageUpload"]+str(st.session_state.inputs_["weightage"])+st.session_state.inputs_["NormType"]+st.session_state.inputs_["CombineType"]+str(st.session_state.inputs_["K"])+st.session_state.inputs_["sparse"]+st.session_state.inputs_["reranker"]+st.session_state.inputs_["is_rewrite_query"]+st.session_state.inputs_["evaluate"]+st.session_state.inputs_["image"]+st.session_state.inputs_["rad_1"]+st.session_state.inputs_["reranker"]+st.session_state.inputs_["hybridType"]+st.session_state.inputs_["manual_filter"]
             
             def on_button_click():
                 if(currentValue!=oldValue):
