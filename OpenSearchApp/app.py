@@ -313,10 +313,14 @@ def create_ml_connectors():
     
 
     for remote_ml_key in remote_ml.keys():
-        
+        if(remote_ml_key == "SAGEMAKER_CrossEncoder"):
+            name = "CROSS_ENCODER: RE-RANKING"
+        else:
+            name = remote_ml_key+": EMBEDDING"
+            
         #create connector
         payload_1 = {
-        "name": remote_ml_key+": EMBEDDING",
+        "name": name,
         "description": "Test connector for"+remote_ml_key+" remote embedding model",
         "version": 1,
         "protocol": "aws_sigv4",
@@ -433,7 +437,8 @@ def ingest_data(col,warning):
     if(ingest_flag == False):
         return ""
     
-    
+    with warning:
+        st.warning("Please wait while the data is ingested. Do not refresh the page !",icon = "⚠️")
     
     aos_client = OpenSearch(
     hosts = [{'host': OpenSearchDomainEndpoint, 'port': 443}],
@@ -470,8 +475,6 @@ def ingest_data(col,warning):
                 image.thumbnail((width, height))
                 image.save(f"{path}-resized.{file_type}")
         return file_type, path
-    with warning:
-        st.warning("Please wait while the data is ingested. Do not refresh the page !",icon = "⚠️")
          
     for item in items_:
         count+=1
