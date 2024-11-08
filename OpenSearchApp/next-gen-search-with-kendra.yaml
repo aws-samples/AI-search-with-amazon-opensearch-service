@@ -56,6 +56,14 @@ Resources:
       Name: !Sub OpenSearchSecret-${AWS::StackName}
       Description: OpenSearch username and password
       SecretString: !Sub '{ "username" : "${OpenSearchMasterUsername}", "password" : "${OpenSearchMasterPassword}" }'
+
+  KendraRescore:
+    Type: AWS::KendraRanking::ExecutionPlan
+    Properties:
+      CapacityUnits: 
+        RescoreCapacityUnits: 2
+      Description: "re-ranking using kendra"
+      Name: "kendra-rerank"
       
   NotebookInstanceLifecycleConfiguration:
     Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
@@ -72,12 +80,10 @@ Resources:
                   sudo yum install awscli
                   sudo yum install zip
                   sudo yum -y install git
-                  if [ ! -d "AI-search-with-amazon-opensearch-service" ]; then
                   git clone -b Next-Gen-Search-Workshop https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
                   echo ${s3Bucket}
                   wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-biencoder.tar.gz
                   aws s3 cp /home/ec2-user/SageMaker/neural-sparse-biencoder.tar.gz s3://${s3Bucket}
-                  fi
                   cd AI-search-with-amazon-opensearch-service
                   sudo chmod -R 0777 /home/ec2-user/SageMaker
                   sudo chmod +x /home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/deploy.sh
@@ -135,7 +141,7 @@ Resources:
     Type: AWS::SageMaker::NotebookInstance
     Properties:
       NotebookInstanceName: ml-search-opensearch
-      InstanceType: ml.m6i.4xlarge
+      InstanceType: ml.c5.18xlarge
       RoleArn: !GetAtt NBRole.Arn
       VolumeSizeInGB: 1000
       LifecycleConfigName: !GetAtt NotebookInstanceLifecycleConfiguration.NotebookInstanceLifecycleConfigName
@@ -422,6 +428,10 @@ Outputs:
   WebappRoleArn:
     Description: This role is used by the web application to interact with OpenSearch
     Value: !GetAtt NBRole.Arn
+
+  KendraResourcePlanID:
+    Description: KendraResourcePlanID for Kendra rescore plugin
+    Value: !Ref KendraRescore
   
   OpenSearchSecret:
     Description: Name of the OpenSearch secret in Secrets Manager
