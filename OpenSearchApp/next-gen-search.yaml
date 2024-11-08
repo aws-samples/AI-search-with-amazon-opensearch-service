@@ -91,6 +91,8 @@ Resources:
                   pip install sentence-transformers==3.1.0
                   pip install nltk
                   pip install ruamel_yaml
+                  pip install unstructured
+                  pip install pdfminer
                   pip install langchain==0.2.16
                   pip install langchain-core==0.2.39
                   pip install langchain-community==0.2.16

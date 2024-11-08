@@ -120,8 +120,8 @@ if "input_category" not in st.session_state:
 if "input_gender" not in st.session_state:
     st.session_state.input_gender = None
     
-if "input_price" not in st.session_state:
-    st.session_state.input_price = (0,0)
+# if "input_price" not in st.session_state:
+#     st.session_state.input_price = (0,0)
     
 if "input_sql_query" not in st.session_state:
     st.session_state.input_sql_query = ""

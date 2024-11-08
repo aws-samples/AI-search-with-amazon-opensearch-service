@@ -13,6 +13,8 @@ import urllib.request
 import tarfile
 import subprocess
 from ruamel.yaml import YAML
+from PIL import Image
+import base64
 import sys
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-1])+"/semantic_search")
 import dynamo_state as ds
@@ -91,10 +93,6 @@ if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
 if "BEDROCK_TEXT_CONNECTOR_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_TEXT_CONNECTOR_ID")  
 #bytes_for_rekog = ""
-    
-    
-
-    
 
 isExist = os.path.exists("/home/ec2-user/SageMaker/images_retail")
 if not isExist:   
@@ -457,9 +455,7 @@ def ingest_data(col,warning):
     batch_size = 50
     last_batch = int(len(items_)/batch_size)
     action = json.dumps({ 'index': { '_index': 'demostore-search-index' } })
-    
-    from PIL import Image
-    import base64
+  
 
     def resize_image(photo, width, height):
         Image.MAX_IMAGE_PIXELS = 100000000
