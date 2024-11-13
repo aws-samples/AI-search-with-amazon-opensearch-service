@@ -498,13 +498,13 @@ def ingest_data(col,warning):
         #resize the image and generate image binary
         
         file_type, path = resize_image(fileshort, 2048, 2048)
-
-        with open(fileshort.split(".")[0]+"-resized."+file_type, "rb") as image_file:
-            input_image = base64.b64encode(image_file.read()).decode("utf8")
-    
-        os.remove(fileshort.split(".")[0]+"-resized."+file_type)
-        payload['product_image'] = input_image
-    
+        if(st.session_state.BEDROCK_MULTIMODAL_MODEL_ID != ""):
+            with open(fileshort.split(".")[0]+"-resized."+file_type, "rb") as image_file:
+                input_image = base64.b64encode(image_file.read()).decode("utf8")
+        
+            os.remove(fileshort.split(".")[0]+"-resized."+file_type)
+            payload['product_image'] = input_image
+        
         
         body_ = body_ + action + "\n" + json.dumps(payload) + "\n"
         
