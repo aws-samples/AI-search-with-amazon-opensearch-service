@@ -3,9 +3,11 @@ from botocore.exceptions import ClientError
 import pprint
 import time
 import streamlit as st
+import dynamo_state as ds
 #from sentence_transformers import CrossEncoder
 
 #model = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2", max_length=512)
+st.session_state.REGION = ds.get_region()
 kendra_ranking = boto3.client("kendra-ranking",region_name = st.session_state.REGION)
 
 
@@ -94,9 +96,7 @@ def re_rank(self_, rerank_type, search_type, question, answers):
             Documents = ans
         )
     
-            
-        #[{'DocumentId': 'DocId1', 'Score': 2.0}, {'DocumentId': 'DocId2', 'Score': 1.0}]   
-            
+             
         
         re_ranked[0]['answer']=[]
         for result in rescore_response["ResultItems"]:
@@ -107,7 +107,6 @@ def re_rank(self_, rerank_type, search_type, question, answers):
         re_ranked[0]['search_type']=search_type,
         re_ranked[0]['id'] = len(question)
 
-        #st.session_state.answers_none_rank = st.session_state.answers
         return re_ranked
         
 

@@ -233,56 +233,56 @@ def handler(input_,session_id):
         
     if('Vector Search' in search_types):
         
-        path3 =  "_plugins/_ml/models/"+BEDROCK_TEXT_MODEL_ID+"/_predict"
+#         path3 =  "_plugins/_ml/models/"+BEDROCK_TEXT_MODEL_ID+"/_predict"
         
-        url3 = host+path3
+#         url3 = host+path3
         
-        payload3 = {
-        "parameters": {
-            "inputText": query
-            }
-                }
+#         payload3 = {
+#         "parameters": {
+#             "inputText": query
+#             }
+#                 }
         
-        r3 = requests.post(url3, auth=awsauth, json=payload3, headers=headers)
-        vector_ = json.loads(r3.text)
-        #print(r3.text)
-        query_vector = vector_['inference_results'][0]['output'][0]['data']
-        #print(query_vector)
+#         r3 = requests.post(url3, auth=awsauth, json=payload3, headers=headers)
+#         vector_ = json.loads(r3.text)
+#         #print(r3.text)
+#         query_vector = vector_['inference_results'][0]['output'][0]['data']
+#         #print(query_vector)
         
+#         vector_payload = {
+#                         "knn": {
+#                         "product_description_vector": {
+#                             "vector":query_vector,
+#                             #"query_text": query,
+#                             #"model_id": BEDROCK_TEXT_MODEL_ID,
+#                             "k": k_
+#                         }
+#                         }
+#                     }
+        
+        #using neural query 
         vector_payload = {
-                        "knn": {
+                        "neural": {
                         "product_description_vector": {
-                            "vector":query_vector,
-                            #"query_text": query,
-                            #"model_id": BEDROCK_TEXT_MODEL_ID,
+                            "query_text": query,
+                            "model_id": BEDROCK_TEXT_MODEL_ID,
                             "k": k_
                         }
                         }
                     }
         
-        # using neural query (without efficient filters)
-        # vector_payload = {
-        #                 "neural": {
-        #                 "desc_embedding_bedrock-text": {
-        #                     "query_text": query,
-        #                     "model_id": BEDROCK_TEXT_MODEL_ID,
-        #                     "k": k_
-        #                 }
-        #                 }
-        #             }
-        
         ###### start of efficient filter applying #####
         if(st.session_state.input_rewritten_query!=""):
-            vector_payload['knn']['product_description_vector']['filter'] = filter_['filter']
+            vector_payload['neural']['product_description_vector']['filter'] = filter_['filter']
             
         if(st.session_state.input_manual_filter):
-            vector_payload['knn']['product_description_vector']['filter'] = {"bool":{"must":[]}}
+            vector_payload['neural']['product_description_vector']['filter'] = {"bool":{"must":[]}}
             if(st.session_state.input_category!=None):
-                vector_payload['knn']['product_description_vector']['filter']["bool"]["must"].append({"term": {"category": st.session_state.input_category}})
+                vector_payload['neural']['product_description_vector']['filter']["bool"]["must"].append({"term": {"category": st.session_state.input_category}})
             if(st.session_state.input_gender!=None):
-                vector_payload['knn']['product_description_vector']['filter']["bool"]["must"].append({"term": {"gender_affinity": st.session_state.input_gender}})
+                vector_payload['neural']['product_description_vector']['filter']["bool"]["must"].append({"term": {"gender_affinity": st.session_state.input_gender}})
             if(st.session_state.input_price!=(0,0)):
-                vector_payload['knn']['product_description_vector']['filter']["bool"]["must"].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
+                vector_payload['neural']['product_description_vector']['filter']["bool"]["must"].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
         
 #         print("vector_payload**************")   
 #         print(vector_payload)    
@@ -314,7 +314,23 @@ def handler(input_,session_id):
             multimodal_payload["neural"]["product_multimodal_vector"]["query_image"] =  img
             multimodal_payload["neural"]["product_multimodal_vector"]["query_text"] =  query
         
+        ###### start of efficient filter applying #####
+        if(st.session_state.input_rewritten_query!=""):
+            multimodal_payload['neural']['product_multimodal_vector']['filter'] = filter_['filter']
+            
+        if(st.session_state.input_manual_filter):
+            multimodal_payload['neural']['product_multimodal_vector']['filter'] = {"bool":{"must":[]}}
+            if(st.session_state.input_category!=None):
+                multimodal_payload['neural']['product_multimodal_vector']['filter']["bool"]["must"].append({"term": {"category": st.session_state.input_category}})
+            if(st.session_state.input_gender!=None):
+                multimodal_payload['neural']['product_multimodal_vector']['filter']["bool"]["must"].append({"term": {"gender_affinity": st.session_state.input_gender}})
+            if(st.session_state.input_price!=(0,0)):
+                multimodal_payload['neural']['product_multimodal_vector']['filter']["bool"]["must"].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
         
+#         print("vector_payload**************")   
+#         print(vector_payload)    
+        
+        ###### end of efficient filter applying #####
         
         hybrid_payload["query"]["hybrid"]["queries"].append(multimodal_payload)
           
