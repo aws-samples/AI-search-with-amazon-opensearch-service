@@ -742,7 +742,7 @@ if clear:
     # st.session_state.input_topP = 0.95
     # st.session_state.input_maxTokens = 1024
 
-col1, col3, col4 = st.columns([70,20,10])
+col1, col3, col4 = st.columns([70,28,2])
 
 with col1:
     
@@ -760,14 +760,14 @@ with col1:
 
 with col3:
     st.number_input("No. of docs", min_value=1, max_value=50, value=5, step=5,  key='input_K', help=None)
-with col4:
-    st.markdown("<p style='fontSize:14.5px'>Evaluate</p>",unsafe_allow_html=True)
-    evaluate = st.toggle(' ', key = 'evaluate', disabled = False) #help = "Checking this box will use LLM to evaluate results as relevant and irrelevant. \n\n This option increases the latency")
-    if(evaluate):
-        st.session_state.input_evaluate = "enabled"
-        #llm_eval.eval(st.session_state.questions, st.session_state.answers)
-    else:
-        st.session_state.input_evaluate = "disabled"
+# with col4:
+#     st.markdown("<p style='fontSize:14.5px'>Evaluate</p>",unsafe_allow_html=True)
+#     evaluate = st.toggle(' ', key = 'evaluate', disabled = False) #help = "Checking this box will use LLM to evaluate results as relevant and irrelevant. \n\n This option increases the latency")
+#     if(evaluate):
+#         st.session_state.input_evaluate = "enabled"
+#         #llm_eval.eval(st.session_state.questions, st.session_state.answers)
+#     else:
+#         st.session_state.input_evaluate = "disabled"
         
 
 if(search_all_type == True or 1==1):
