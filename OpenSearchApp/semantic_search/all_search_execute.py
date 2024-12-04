@@ -319,6 +319,7 @@ def handler(input_,session_id):
             multimodal_payload['neural']['product_multimodal_vector']['filter'] = filter_['filter']
             
         if(st.session_state.input_manual_filter):
+            print("presence of filters------------")
             multimodal_payload['neural']['product_multimodal_vector']['filter'] = {"bool":{"must":[]}}
             if(st.session_state.input_category!=None):
                 multimodal_payload['neural']['product_multimodal_vector']['filter']["bool"]["must"].append({"term": {"category": st.session_state.input_category}})

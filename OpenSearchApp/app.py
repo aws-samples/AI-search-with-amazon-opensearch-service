@@ -301,9 +301,49 @@ def create_ml_connectors():
                  "BEDROCK_MULTIMODAL":
                 {
                      "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
-                     "request_body": "{ \"inputText\": \"${parameters.inputText:-null}\", \"inputImage\": \"${parameters.inputImage:-null}\" }",
-                      "pre_process_fun": "\n    StringBuilder parametersBuilder = new StringBuilder(\"{\");\n    if (params.text_docs.length > 0 && params.text_docs[0] != null) {\n      parametersBuilder.append(\"\\\"inputText\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[0]);\n      parametersBuilder.append(\"\\\"\");\n      \n      if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n        parametersBuilder.append(\",\");\n      }\n    }\n    \n    \n    if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n      parametersBuilder.append(\"\\\"inputImage\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[1]);\n      parametersBuilder.append(\"\\\"\");\n    }\n    parametersBuilder.append(\"}\");\n    \n    return  \"{\" +\"\\\"parameters\\\":\" + parametersBuilder + \"}\";",
-                     "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    '
+                     "request_body": """{ "inputText": "${parameters.inputText:-null}", "inputImage": "${parameters.inputImage:-null}" }""",
+                      "pre_process_fun": """
+    StringBuilder parametersBuilder = new StringBuilder("{");
+    if (params.text_docs.length > 0 && params.text_docs[0] != null) {
+      parametersBuilder.append("\\\"inputText\\\":");
+      parametersBuilder.append("\\\"");
+      parametersBuilder.append(params.text_docs[0]);
+      parametersBuilder.append("\\\"");
+      
+      if (params.text_docs.length > 1 && params.text_docs[1] != null) {
+        parametersBuilder.append(",");
+      }
+    }
+
+    if (params.text_docs.length > 1 && params.text_docs[1] != null) {
+        parametersBuilder.append("\\\"inputImage\\\":");
+        parametersBuilder.append("\\\"");
+        parametersBuilder.append(params.text_docs[1]);
+        parametersBuilder.append("\\\"");
+        }
+    parametersBuilder.append("}");
+
+    return  "{" +"\\\"parameters\\\":" + parametersBuilder + "}";
+    """,
+                    
+                    
+                    
+                       "post_process_fun":"""
+    def name = "sentence_embedding";
+    def dataType = "FLOAT32";
+    if (params.embedding == null || params.embedding.length == 0) {
+      return null;
+    }
+    def shape = [params.embedding.length];
+    def json = "{" +
+               "\\\"name\\\":" + "\\\"" + name + "\\\"" + "," +
+               "\\\"data_type\\\":" + "\\\"" + dataType + "\\\"" + "," +
+               "\\\"shape\\\":" + shape + "," +
+               "\\\"data\\\":" + params.embedding +
+               "}";
+    return json;
+    """
+                 
                     }
             }
 
@@ -327,7 +367,8 @@ def create_ml_connectors():
         },
         "parameters": {
             "region": st.session_state.REGION,
-            "service_name": (remote_ml_key.split("_")[0]).lower()
+            "service_name": (remote_ml_key.split("_")[0]).lower(),
+            "input_docs_processed_step_size": "2"
         },
         "actions": [
             {
