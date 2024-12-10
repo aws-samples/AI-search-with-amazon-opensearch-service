@@ -9,7 +9,7 @@ This repository covers all search types of Amazon openSearch service that involv
 5. Sparse Search
 6. Conversational Search
 
-## Deploy and play with the application
+## Deploy and play with a sample retail search application
 
 Refer the [Build the next-gen retail search with Amazon OpenSearch Service workshop](https://catalog.workshops.aws/opensearch-ml-search/en-US) for instructions to deploy and play with different search types available in Amazon OpenSearch service 
 
