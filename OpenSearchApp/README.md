@@ -13,7 +13,7 @@ This repository covers all search types of Amazon openSearch service that involv
 
 Refer the [Build the next-gen retail search with Amazon OpenSearch Service workshop](https://catalog.workshops.aws/opensearch-ml-search/en-US) for instructions to deploy a sample retail search application and play with different search types available in Amazon OpenSearch service.
 
-![NextGen retail search application]{src="../static/search-query-filters.gif"}
+![NextGen retail search application](../static/search-query-filters.gif")
 
 
 ## Security
