@@ -423,7 +423,7 @@ def create_ml_connectors():
 
     for remote_ml_key in remote_ml.keys():
         if(remote_ml_key == "SAGEMAKER_CrossEncoder" or remote_ml_key == "BEDROCK_RERANK"):
-            name = remote_ml_key.split("_")[0]+"_CROSS_ENCODER: RE-RANKING"
+            name = remote_ml_key.split("_")[0]+": RE-RANKING"
         else:
             name = remote_ml_key+": EMBEDDING"
             
