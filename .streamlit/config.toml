@@ -2,6 +2,8 @@
 [client]
 toolbarMode = "viewer"
 showSidebarNavigation = false
+showErrorDetails = false
+
 
 [browser]
 gatherUsageStats = false
@@ -12,6 +14,6 @@ font="sans serif"
 primaryColor="#e28743"
 backgroundColor ="#000000"
 
-
-[server]
-enableXsrfProtection=false
+[global]
+disableWidgetStateDuplicationWarning = false
+showWarningOnDirectExecution = false

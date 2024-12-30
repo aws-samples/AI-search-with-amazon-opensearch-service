@@ -215,8 +215,11 @@ if "OpenSearchDomainEndpoint" not in st.session_state:
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = ds.get_from_dynamo("max_selections")
     
-if "re_ranker" not in st.session_state:
-    st.session_state.re_ranker = ds.get_from_dynamo("re_ranker")
+if "sagemaker_re_ranker" not in st.session_state:
+    st.session_state.sagemaker_re_ranker = ds.get_from_dynamo("sagemaker_re_ranker")
+    
+if "bedrock_re_ranker" not in st.session_state:
+    st.session_state.bedrock_re_ranker = ds.get_from_dynamo("bedrock_re_ranker")
 
 host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
 service = 'es'
@@ -235,20 +238,34 @@ else:
         
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
         
-opensearch_rerank_pipeline = (requests.get(host+'_search/pipeline/rerank_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_rerank_pipeline")
-print(opensearch_rerank_pipeline)
-if(opensearch_rerank_pipeline!='{}'):
-    st.session_state.re_ranker = "true"
-    total_pipeline = json.loads(opensearch_rerank_pipeline)
-    if('response_processors' in total_pipeline['rerank_pipeline'].keys()):
-        st.session_state.re_ranker = "true"
-        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_sagemaker_rerank_pipeline")
+print(opensearch_sagemaker_rerank_pipeline)
+if(opensearch_sagemaker_rerank_pipeline!='{}'):
+    st.session_state.sagemaker_re_ranker = "true"
+    total_pipeline = json.loads(opensearch_sagemaker_rerank_pipeline)
+    if('response_processors' in total_pipeline['sagemaker_rerank_pipeline'].keys()):
+        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['sagemaker_rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
         ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
         
 else:
-    st.session_state.re_ranker = "false"
-ds.store_in_dynamo('re_ranker',st.session_state.re_ranker )
+    st.session_state.sagemaker_re_ranker = "false"
+ds.store_in_dynamo('sagemaker_re_ranker',st.session_state.sagemaker_re_ranker )
+
+
+opensearch_bedrock_rerank_pipeline = (requests.get(host+'_search/pipeline/bedrock_rerank_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_bedrock_rerank_pipeline")
+print(opensearch_bedrock_rerank_pipeline)
+if(opensearch_bedrock_rerank_pipeline!='{}'):
+    st.session_state.bedrock_re_ranker = "true"
+    total_pipeline = json.loads(opensearch_bedrock_rerank_pipeline)
+    if('response_processors' in total_pipeline['bedrock_rerank_pipeline'].keys()):
+        st.session_state.BEDROCK_Rerank_MODEL_ID = total_pipeline['bedrock_rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+        ds.store_in_dynamo('BEDROCK_Rerank_MODEL_ID',st.session_state.BEDROCK_Rerank_MODEL_ID )
+        
+else:
+    st.session_state.bedrock_re_ranker = "false"
+ds.store_in_dynamo('bedrock_re_ranker',st.session_state.bedrock_re_ranker )
 ###### check for search pipelines #######
 
 
@@ -612,12 +629,12 @@ def handle_input():
         'id': len(st.session_state.questions)
     })
     
-    st.session_state.answers_none_rank = st.session_state.answers
-    if(st.session_state.input_reranker == "None"):
-        st.session_state.answers = st.session_state.answers_none_rank 
-    else:
-        if(st.session_state.input_reranker == 'Kendra Rescore'):
-            st.session_state.answers = re_ranker.re_rank("search",st.session_state.input_reranker,st.session_state.input_searchType,st.session_state.questions, st.session_state.answers)
+#     st.session_state.answers_none_rank = st.session_state.answers
+#     if(st.session_state.input_reranker == "None"):
+#         st.session_state.answers = st.session_state.answers_none_rank 
+#     else:
+#         if(st.session_state.input_reranker == 'Kendra Rescore'):
+#             st.session_state.answers = re_ranker.re_rank("search",st.session_state.input_reranker,st.session_state.input_searchType,st.session_state.questions, st.session_state.answers)
     if(st.session_state.input_evaluate) == "enabled":
         llm_eval.eval(st.session_state.questions, st.session_state.answers)
     #st.session_state.input_text=""
@@ -944,12 +961,15 @@ if(search_all_type == True or 1==1):
 
         #st.header('Select the ML Model for text embedding', divider='rainbow')
         #st.subheader('Note: The below selection applies only when the Search type is set to Vector or Hybrid Search')
-        if(st.session_state.re_ranker == "true"):
+        if(st.session_state.sagemaker_re_ranker == "true" or st.session_state.bedrock_re_ranker == "true"):
+            rerank_options = ["None"]
+            if(st.session_state.sagemaker_re_ranker == "true"):
+                rerank_options.append("SageMaker Cross Encoder")
+            if(st.session_state.bedrock_re_ranker == "true"):
+                rerank_options.append("Bedrock Rerank")
+            rerank_options_tuple = tuple(rerank_options)
             st.subheader(':blue[Re-ranking]')
-            reranker = st.selectbox('Choose a Re-Ranker',
-            ('None','Cross Encoder'#'Kendra Rescore'
-
-            ),
+            reranker = st.selectbox('Choose a Re-Ranker',rerank_options,
 
             key = 'input_reranker',
             help = 'Select the Re-Ranker type, select "None" to apply no re-ranking of the results',

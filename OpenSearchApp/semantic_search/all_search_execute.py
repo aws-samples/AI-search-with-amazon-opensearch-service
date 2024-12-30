@@ -143,16 +143,25 @@ def handler(input_,session_id):
         r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
         print("Hybrid Search Pipeline updated: "+str(r.status_code))
         ######## Combining hybrid+rerank pipeline ####### 
-        opensearch_rerank_pipeline = (requests.get(host+'_search/pipeline/rerank_pipeline', auth=awsauth,headers=headers)).text
-        print("opensearch_rerank_pipeline")
-        print(opensearch_rerank_pipeline)
-        if(opensearch_rerank_pipeline!='{}'):
-            total_pipeline = json.loads(opensearch_rerank_pipeline)
-            s_pipeline_payload['response_processors'] = total_pipeline['rerank_pipeline']['response_processors']
-            path = "_search/pipeline/hybrid_rerank_pipeline" 
-            url = host + path
-            r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
-        print("hybrid_rerank_pipeline Creation: "+str(r.status_code))
+        if(st.session_state.input_reranker!= 'None'):
+            opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
+            print("opensearch_sagemaker_rerank_pipeline")
+            print(opensearch_sagemaker_rerank_pipeline)
+            opensearch_bedrock_rerank_pipeline = (requests.get(host+'_search/pipeline/bedrock_rerank_pipeline', auth=awsauth,headers=headers)).text
+            print("opensearch_bedrock_rerank_pipeline")
+            print(opensearch_bedrock_rerank_pipeline)
+            if(opensearch_sagemaker_rerank_pipeline!='{}' or opensearch_bedrock_rerank_pipeline!='{}'):
+                if(opensearch_sagemaker_rerank_pipeline!='{}' and st.session_state.input_reranker == 'SageMaker Cross Encoder'):
+                    total_pipeline = json.loads(opensearch_sagemaker_rerank_pipeline)
+                    sagemaker_or_bedrock = 'sagemaker_rerank_pipeline'
+                if(opensearch_bedrock_rerank_pipeline!='{}' and st.session_state.input_reranker == 'Bedrock Rerank'):
+                    total_pipeline = json.loads(opensearch_bedrock_rerank_pipeline)
+                    sagemaker_or_bedrock = 'bedrock_rerank_pipeline'
+                s_pipeline_payload['response_processors'] = total_pipeline[sagemaker_or_bedrock]['response_processors']
+                path = "_search/pipeline/hybrid_rerank_pipeline" 
+                url = host + path
+                r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
+            print("hybrid_rerank_pipeline Creation: "+str(r.status_code))
             
     
     ######## start of Applying LLM filters ####### 
@@ -208,7 +217,7 @@ def handler(input_,session_id):
         if(st.session_state.input_rewritten_query !=""):
             keyword_payload = st.session_state.input_rewritten_query['query']
             
-        if(st.session_state.input_manual_filter):
+        if(st.session_state.input_manual_filter == "True"):
             keyword_payload['bool']={'filter':[]}
             if(st.session_state.input_category!=None):
                 keyword_payload['bool']['filter'].append({"term": {"category": st.session_state.input_category}})
@@ -275,7 +284,7 @@ def handler(input_,session_id):
         if(st.session_state.input_rewritten_query!=""):
             vector_payload['neural']['product_description_vector']['filter'] = filter_['filter']
             
-        if(st.session_state.input_manual_filter):
+        if(st.session_state.input_manual_filter == "True"):
             vector_payload['neural']['product_description_vector']['filter'] = {"bool":{"must":[]}}
             if(st.session_state.input_category!=None):
                 vector_payload['neural']['product_description_vector']['filter']["bool"]["must"].append({"term": {"category": st.session_state.input_category}})
@@ -318,7 +327,7 @@ def handler(input_,session_id):
         if(st.session_state.input_rewritten_query!=""):
             multimodal_payload['neural']['product_multimodal_vector']['filter'] = filter_['filter']
             
-        if(st.session_state.input_manual_filter):
+        if(st.session_state.input_manual_filter == "True"):
             print("presence of filters------------")
             multimodal_payload['neural']['product_multimodal_vector']['filter'] = {"bool":{"must":[]}}
             if(st.session_state.input_category!=None):
@@ -376,7 +385,7 @@ def handler(input_,session_id):
         if(st.session_state.input_rewritten_query!=""):
             sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
             
-        if(st.session_state.input_manual_filter):
+        if(st.session_state.input_manual_filter == "True"):
             sparse_payload['bool']['filter']=[]
             if(st.session_state.input_category!=None):
                 sparse_payload['bool']['filter'].append({"term": {"category": st.session_state.input_category}})
@@ -420,8 +429,10 @@ def handler(input_,session_id):
 
         
     print("hybrid_payload") 
-    print(st.session_state.re_ranker)
     print("---------------")  
+    print(st.session_state.bedrock_re_ranker)
+    print(st.session_state.input_reranker)
+    
     docs = []
     
     if(st.session_state.input_sql_query!=""):
@@ -436,8 +447,16 @@ def handler(input_,session_id):
         del hybrid_payload["query"]["hybrid"]
         hybrid_payload["query"] = single_query
         # print("-------final query--------")
-        if(st.session_state.re_ranker == 'true' and st.session_state.input_reranker == 'Cross Encoder'):
-            path = "demostore-search-index/_search?search_pipeline=rerank_pipeline" 
+        if(st.session_state.sagemaker_re_ranker == 'true' and st.session_state.input_reranker == 'SageMaker Cross Encoder'):
+            path = "demostore-search-index/_search?search_pipeline=sagemaker_rerank_pipeline" 
+            url = host + path
+            hybrid_payload["ext"] = {"rerank": {
+                                          "query_context": {
+                                             "query_text": query
+                                          }
+                                        }}
+        if(st.session_state.bedrock_re_ranker == 'true' and st.session_state.input_reranker == 'Bedrock Rerank'):
+            path = "demostore-search-index/_search?search_pipeline=bedrock_rerank_pipeline" 
             url = host + path
             hybrid_payload["ext"] = {"rerank": {
                                           "query_context": {
@@ -466,7 +485,7 @@ def handler(input_,session_id):
         if( st.session_state.input_hybridType == "OpenSearch Hybrid Query"):
             url_ = url + "?search_pipeline=hybrid_search_pipeline" 
             
-            if(st.session_state.re_ranker == 'true' and st.session_state.input_reranker == 'Cross Encoder'):
+            if(st.session_state.input_reranker == 'SageMaker Cross Encoder' or st.session_state.bedrock_re_ranker == 'Bedrock Rerank'):
                 
                 url_ = url + "?search_pipeline=hybrid_rerank_pipeline" 
             

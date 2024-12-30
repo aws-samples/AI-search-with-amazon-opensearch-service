@@ -66,8 +66,11 @@ if "BEDROCK_MULTIMODAL_CONNECTOR_ID" not in st.session_state:
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = ds.get_from_dynamo("max_selections")
     
-if "re_ranker" not in st.session_state:
-    st.session_state.re_ranker = ds.get_from_dynamo("re_ranker")
+if "sagemaker_re_ranker" not in st.session_state:
+    st.session_state.sagemaker_re_ranker = ds.get_from_dynamo("sagemaker_re_ranker")
+    
+if "bedrock_re_ranker" not in st.session_state:
+    st.session_state.bedrock_re_ranker = ds.get_from_dynamo("bedrock_re_ranker")
     
 if "search_types" not in st.session_state:
     st.session_state.search_types =ds.get_from_dynamo("search_types")
@@ -79,7 +82,12 @@ if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     
 if "SAGEMAKER_SPARSE_CONNECTOR_ID" not in st.session_state:
     st.session_state.SAGEMAKER_SPARSE_CONNECTOR_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_CONNECTOR_ID")   
+
+if "BEDROCK_Rerank_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Rerank_MODEL_ID = ds.get_from_dynamo("BEDROCK_Rerank_MODEL_ID")   
     
+if "BEDROCK_Rerank_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_Rerank_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Rerank_CONNECTOR_ID") 
     
 if "SAGEMAKER_CrossEncoder_MODEL_ID" not in st.session_state:
     st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_CrossEncoder_MODEL_ID")   
@@ -237,20 +245,35 @@ else:
         
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
         
-opensearch_rerank_pipeline = (requests.get(host+'_search/pipeline/rerank_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_rerank_pipeline")
-print(opensearch_rerank_pipeline)
-if(opensearch_rerank_pipeline!='{}'):
-    st.session_state.re_ranker = "true"
-    total_pipeline = json.loads(opensearch_rerank_pipeline)
-    if('response_processors' in total_pipeline['rerank_pipeline'].keys()):
-        st.session_state.re_ranker = "true"
-        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_sagemaker_rerank_pipeline")
+print(opensearch_sagemaker_rerank_pipeline)
+if(opensearch_sagemaker_rerank_pipeline!='{}'):
+    st.session_state.sagemaker_re_ranker = "true"
+    total_pipeline = json.loads(opensearch_sagemaker_rerank_pipeline)
+    if('response_processors' in total_pipeline['sagemaker_rerank_pipeline'].keys()):
+        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['sagemaker_rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
         ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
         
 else:
-    st.session_state.re_ranker = "false"
-ds.store_in_dynamo('re_ranker',st.session_state.re_ranker )
+    st.session_state.sagemaker_re_ranker = "false"
+ds.store_in_dynamo('sagemaker_re_ranker',st.session_state.sagemaker_re_ranker )
+
+
+opensearch_bedrock_rerank_pipeline = (requests.get(host+'_search/pipeline/bedrock_rerank_pipeline', auth=awsauth,headers=headers)).text
+print("opensearch_bedrock_rerank_pipeline")
+print(opensearch_bedrock_rerank_pipeline)
+if(opensearch_bedrock_rerank_pipeline!='{}'):
+    st.session_state.bedrock_re_ranker = "true"
+    total_pipeline = json.loads(opensearch_bedrock_rerank_pipeline)
+    if('response_processors' in total_pipeline['bedrock_rerank_pipeline'].keys()):
+        st.session_state.BEDROCK_Rerank_MODEL_ID = total_pipeline['bedrock_rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
+        ds.store_in_dynamo('BEDROCK_Rerank_MODEL_ID',st.session_state.BEDROCK_Rerank_MODEL_ID )
+        
+else:
+    st.session_state.bedrock_re_ranker = "false"
+ds.store_in_dynamo('bedrock_re_ranker',st.session_state.bedrock_re_ranker )
+
 ###### check for search pipelines #######
 
 def create_ml_connectors():
@@ -297,6 +320,54 @@ def create_ml_connectors():
                     "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    ',
                     "request_body": "{ \"inputText\": \"${parameters.inputText}\"}"
                  },
+                
+                "BEDROCK_RERANK":
+        {
+          
+              "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.rerank-v1:0/invoke",  
+            "request_body": "{ \"query\": \"${parameters.query}\", \"documents\": ${parameters.documents} }",
+            "pre_process_fun": """
+        def query_text = params.query_text;
+        def text_docs = params.text_docs;
+        def textDocsBuilder = new StringBuilder('[');
+        for (int i=0; i<text_docs.length; i++) {
+          textDocsBuilder.append('\"');
+          textDocsBuilder.append(text_docs[i]);
+          textDocsBuilder.append('\"');
+          if (i<text_docs.length - 1) {
+            textDocsBuilder.append(',');
+          }
+        }
+        textDocsBuilder.append(']');
+        def parameters = '{ \"query\": \"' + query_text + '\",  \"documents\": ' + textDocsBuilder.toString() + ' }';
+        return  '{\"parameters\": ' + parameters + '}';
+      """,
+          "post_process_fun": """
+        if (params.results == null) {
+          return "no result generated";
+        }
+        def outputs = params.results;
+        def relevance_scores = new Double[outputs.length];
+        for (int i=0; i<outputs.length; i++) {
+          def index = new BigDecimal(outputs[i].index.toString()).intValue();
+          relevance_scores[index] = outputs[i].relevance_score;
+        }
+        def resultBuilder = new StringBuilder('[');
+        for (int i=0; i<relevance_scores.length; i++) {
+          resultBuilder.append(' {\"name\": \"similarity\", \"data_type\": \"FLOAT32\", \"shape\": [1],');
+          resultBuilder.append('\"data\": [');
+          resultBuilder.append(relevance_scores[i]);
+          resultBuilder.append(']}');
+          if (i<outputs.length - 1) {
+            resultBuilder.append(',');
+          }
+        }
+        resultBuilder.append(']');
+        return resultBuilder.toString();
+      """
+        
+        
+        },
                 
                  "BEDROCK_MULTIMODAL":
                 {
@@ -351,15 +422,15 @@ def create_ml_connectors():
     
 
     for remote_ml_key in remote_ml.keys():
-        if(remote_ml_key == "SAGEMAKER_CrossEncoder"):
-            name = "CROSS_ENCODER: RE-RANKING"
+        if(remote_ml_key == "SAGEMAKER_CrossEncoder" or remote_ml_key == "BEDROCK_RERANK"):
+            name = remote_ml_key.split("_")[0]+"_CROSS_ENCODER: RE-RANKING"
         else:
             name = remote_ml_key+": EMBEDDING"
             
         #create connector
         payload_1 = {
-        "name": name,
-        "description": "Test connector for"+remote_ml_key+" remote embedding model",
+        "name": name, 
+        "description": "Test connector for "+remote_ml_key+" remote model",
         "version": 1,
         "protocol": "aws_sigv4",
         "credential": {
