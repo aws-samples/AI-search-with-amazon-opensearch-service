@@ -1081,7 +1081,11 @@ def write_user_message(md,ans):
     with col1:
         st.image(USER_ICON, use_column_width='always')
     with col2:
-        #st.warning(md['question'])
+#         if(st.session_state.input_rewritten_query !=""):
+#             display_query = st.session_state.input_rewritten_query['bool']["must"][0]["match"]["product_description"]["query"]
+#         else:
+#             display_query = md['question']
+            
         st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Text: </div><div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;font-style: italic;color:#e28743'>"+md['question']+"</div>", unsafe_allow_html = True)
         if('query_sparse' in ans):
             with st.expander("Expanded Query:"):
@@ -1090,7 +1094,7 @@ def write_user_message(md,ans):
                 for key in query_sparse:
                     filtered_query_sparse[key] = round(query_sparse[key], 2)
                 st.write(filtered_query_sparse)
-        if(st.session_state.input_is_rewrite_query == "enabled" and st.session_state.input_rewritten_query !=""):
+        if(st.session_state.input_is_rewrite_query == 'enabled' and st.session_state.input_rewritten_query !=""):
             with st.expander("Re-written Query:"):
                 st.json(st.session_state.input_rewritten_query,expanded = True)
                 

@@ -784,10 +784,19 @@ if(playground):
 #         submit = st.button("Submit",on_click = create_ml_components)
         
         
-          
+            
+# connector search query - LLM filters  
+# POST /_plugins/_ml/connectors/_search
+# {"size":1,
+#   "query": {
+#     "match": {"name":"BEDROCK_Claude3_text: LLM"}
+#   }
+# }
+
+# Search pipeline for LLM filters       
 # PUT /_search/pipeline/LLM_search_request_pipeline
 # {
-#   "description": "Generate filters for queries",
+#   "description": "Generate filters for queries through LLM",
 #   "request_processors": [
 #     {
 #         "ml_inference": {
@@ -807,9 +816,18 @@ if(playground):
 #   ]
 # }
 
+# connector search query - LLM image captions 
+# POST /_plugins/_ml/connectors/_search
+# {"size":1,
+#   "query": {
+#     "match": {"name":"BEDROCK_Claude3_image: LLM"}
+#   }
+# }  
+
+# Search pipeline for LLM image captions 
 # PUT /_search/pipeline/LLM_search_request_pipeline_image
 # {
-#   "description": "Generate filters for queries",
+#   "description": "Generate captions for images through LLM",
 #   "request_processors": [
 #    {
 #       "ml_inference": {
@@ -827,4 +845,7 @@ if(playground):
 #       }
 #     }
 #   ]
-# }pl-c4f719ad
+# }
+
+
+# pl-c4f719ad winjr - tech talk webinar

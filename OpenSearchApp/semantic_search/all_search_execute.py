@@ -17,6 +17,7 @@ from requests_aws4auth import AWS4Auth
 from requests.auth import HTTPBasicAuth
 from datetime import datetime
 import boto3
+import re
 import streamlit as st
 
 
@@ -34,6 +35,7 @@ def handler(input_,session_id):
     BEDROCK_MULTIMODAL_MODEL_ID = st.session_state.BEDROCK_MULTIMODAL_MODEL_ID
     SAGEMAKER_SPARSE_MODEL_ID = st.session_state.SAGEMAKER_SPARSE_MODEL_ID
     SAGEMAKER_CrossEncoder_MODEL_ID = st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID
+    profile = False
     print("BEDROCK_TEXT_MODEL_ID")
     print(BEDROCK_TEXT_MODEL_ID)
     
@@ -219,31 +221,34 @@ def handler(input_,session_id):
             
     if('Keyword Search' in search_types):
         if(st.session_state.input_is_rewrite_query == 'enabled' or st.session_state.input_imageUpload == 'yes'):
-            if(st.session_state.input_is_rewrite_query == 'enabled'):
-                query_ = query
-            if(st.session_state.input_imageUpload == 'yes'):
-                query_ = st.session_state.input_image
-            
-               
+            profile = True
             keyword_payload = {  
                    "bool":{  
                             "must":[
                                   {
-                                    "match": {"product_description": {"query":query_}}
+                                    "match": {"product_description": {"query":""}}
                                   }
-                                    ],
-                             "should":[
+                                    ]
+                         
+                          }}
+            if(st.session_state.input_is_rewrite_query == 'enabled'):
+                keyword_payload['bool']["must"][0]["match"]["product_description"]["query"] = query
+                keyword_payload['bool']["should"]=[
                                   {
                                      "multi_match" : {
-                                            "query": "male apparel",
+                                            "query": "",
                                             "type": "cross_fields",
                                             "fields": [ "gender_affinity","category"],
                                             "operator": "and"}
                                                       }
-                                         ]
+                                                    ]
 
-
-                          }}
+            if(st.session_state.input_imageUpload == 'yes'):
+                keyword_payload['bool']["must"][0]["match"]["product_description"]["query"] = st.session_state.input_image
+                
+            
+               
+            
         else:
             keyword_payload = {
                         "match": {
@@ -492,6 +497,7 @@ def handler(input_,session_id):
             path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline" 
         if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType and st.session_state.llm_search_request_pipeline_image == "true"):    
             path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline_image"
+            
         if(st.session_state.input_is_rewrite_query == 'enabled' and st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType and st.session_state.llm_search_request_pipeline_image == "true"):
             path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline_text_image"
         url = host + path
@@ -513,15 +519,34 @@ def handler(input_,session_id):
                                              "query_text": query
                                           }
                                         }}
-            
+        if(profile):
+            hybrid_payload['profile'] = "true"  
         print(hybrid_payload)
         print(url)
         r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
         print(r.status_code)
         #print(r.text)
         response_ = json.loads(r.text)
+        st.session_state.input_rewritten_query = ""
+        if('profile' in hybrid_payload):
+            split_arr = response_['profile']['shards'][0]['searches'][0]['query'][0]['description'].split("product_description:")
+            print(split_arr)
+            if(st.session_state.input_is_rewrite_query == 'enabled'):
+                x = split_arr[-1].split(" (")[1]
+                filters = ' '.join(set((' '.join(re.sub(r'[^a-zA-Z0-9]', ' ', x.replace("category","").replace("gender_affinity","")).split())).split(" ")))
+                hybrid_payload['query']['bool']["should"][0]["multi_match"]["query"] = filters
+                st.session_state.input_rewritten_query = hybrid_payload['query']
+            if(st.session_state.input_imageUpload == 'yes'):
+                split_arr[-1] = split_arr[-1].split(" (")[0]
+                trans_query = re.sub(r"[^a-zA-Z0-9]+", ' ',''.join(split_arr)).strip()
+                hybrid_payload['query']['bool']["must"][0]["match"]["product_description"]["query"] = trans_query
+                st.session_state.input_text = trans_query
+                st.session_state.input_rewritten_query = hybrid_payload['query']
+            
+            
+            
         print("-------------------------------------------------------------------")
-        #print(response_)
+        print(st.session_state.input_rewritten_query)
         docs = response_['hits']['hits']
     
     
