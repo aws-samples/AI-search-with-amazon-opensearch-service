@@ -72,6 +72,9 @@ if "sagemaker_re_ranker" not in st.session_state:
 if "bedrock_re_ranker" not in st.session_state:
     st.session_state.bedrock_re_ranker = ds.get_from_dynamo("bedrock_re_ranker")
     
+if "llm_search_request_pipeline" not in st.session_state:
+    st.session_state.llm_search_request_pipeline = ds.get_from_dynamo("llm_search_request_pipeline")
+    
 if "search_types" not in st.session_state:
     st.session_state.search_types =ds.get_from_dynamo("search_types")
     if(st.session_state.search_types == ""):
@@ -100,7 +103,19 @@ if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     
 if "BEDROCK_TEXT_CONNECTOR_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_TEXT_CONNECTOR_ID")  
-#bytes_for_rekog = ""
+    
+if "BEDROCK_Claude3_image_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_image_MODEL_ID = ds.get_from_dynamo("BEDROCK_Claude3_image_MODEL_ID")   
+    
+if "BEDROCK_Claude3_image_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_image_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Claude3_image_CONNECTOR_ID")  
+    
+if "BEDROCK_Claude3_text_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_text_MODEL_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_MODEL_ID")   
+    
+if "BEDROCK_Claude3_text_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_text_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_CONNECTOR_ID")  
+    
 
 isExist = os.path.exists("/home/ec2-user/SageMaker/images_retail")
 if not isExist:   
@@ -236,8 +251,8 @@ ds.store_in_dynamo('play_disabled',st.session_state.play_disabled)
     
 ###### check for search pipelines #######
 opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_search_pipeline")
-print(opensearch_search_pipeline)
+#print("opensearch_search_pipeline")
+#print(opensearch_search_pipeline)
 if(opensearch_search_pipeline!='{}'):
     st.session_state.max_selections = "None"
 else:
@@ -246,8 +261,8 @@ else:
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
         
 opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_sagemaker_rerank_pipeline")
-print(opensearch_sagemaker_rerank_pipeline)
+#print("opensearch_sagemaker_rerank_pipeline")
+#print(opensearch_sagemaker_rerank_pipeline)
 if(opensearch_sagemaker_rerank_pipeline!='{}'):
     st.session_state.sagemaker_re_ranker = "true"
     total_pipeline = json.loads(opensearch_sagemaker_rerank_pipeline)
@@ -261,8 +276,8 @@ ds.store_in_dynamo('sagemaker_re_ranker',st.session_state.sagemaker_re_ranker )
 
 
 opensearch_bedrock_rerank_pipeline = (requests.get(host+'_search/pipeline/bedrock_rerank_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_bedrock_rerank_pipeline")
-print(opensearch_bedrock_rerank_pipeline)
+#print("opensearch_bedrock_rerank_pipeline")
+#print(opensearch_bedrock_rerank_pipeline)
 if(opensearch_bedrock_rerank_pipeline!='{}'):
     st.session_state.bedrock_re_ranker = "true"
     total_pipeline = json.loads(opensearch_bedrock_rerank_pipeline)
@@ -273,6 +288,38 @@ if(opensearch_bedrock_rerank_pipeline!='{}'):
 else:
     st.session_state.bedrock_re_ranker = "false"
 ds.store_in_dynamo('bedrock_re_ranker',st.session_state.bedrock_re_ranker )
+
+###### 4. LLM request search pipeline (text) #######
+
+opensearch_llm_search_request_pipeline = (requests.get(host+'_search/pipeline/LLM_search_request_pipeline', auth=awsauth,headers=headers)).text
+#print("LLM_search_request_pipeline")
+#print(opensearch_llm_search_request_pipeline)
+if(opensearch_llm_search_request_pipeline!='{}'):
+    st.session_state.llm_search_request_pipeline = "true"
+    total_pipeline = json.loads(opensearch_llm_search_request_pipeline)
+    if('request_processors' in total_pipeline['LLM_search_request_pipeline'].keys()):
+        st.session_state.BEDROCK_Claude3_text_MODEL_ID  = total_pipeline['LLM_search_request_pipeline']['request_processors'][0]['ml_inference']['model_id']
+        ds.store_in_dynamo('BEDROCK_Claude3_text_MODEL_ID', st.session_state.BEDROCK_Claude3_text_MODEL_ID )
+else:
+    st.session_state.llm_search_request_pipeline = "false"
+ds.store_in_dynamo('llm_search_request_pipeline',st.session_state.llm_search_request_pipeline )
+
+###### 5. LLM request search pipeline (image) #######
+
+opensearch_llm_search_request_pipeline_image = (requests.get(host+'_search/pipeline/LLM_search_request_pipeline_image', auth=awsauth,headers=headers)).text
+#print("LLM_search_request_pipeline_image")
+#print(opensearch_llm_search_request_pipeline_image)
+if(opensearch_llm_search_request_pipeline_image!='{}'):
+    st.session_state.llm_search_request_pipeline_image = "true"
+    total_pipeline = json.loads(opensearch_llm_search_request_pipeline_image)
+    if('request_processors' in total_pipeline['LLM_search_request_pipeline_image'].keys()):
+        st.session_state.BEDROCK_Claude3_image_MODEL_ID  = total_pipeline['LLM_search_request_pipeline_image']['request_processors'][0]['ml_inference']['model_id']
+        ds.store_in_dynamo('BEDROCK_Claude3_image_MODEL_ID', st.session_state.BEDROCK_Claude3_image_MODEL_ID )
+            
+else:
+    st.session_state.llm_search_request_pipeline_image = "false"
+ds.store_in_dynamo('llm_search_request_pipeline_image',st.session_state.llm_search_request_pipeline_image )
+
 
 ###### check for search pipelines #######
 
@@ -365,11 +412,19 @@ def create_ml_connectors():
         resultBuilder.append(']');
         return resultBuilder.toString();
       """
-        
-        
+        },
+        "BEDROCK_Claude3_text":
+        {
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
+            "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"For the given retail search query tell the product category and gender that applies. The options for product category are (accessories, books,floral,furniture,hot_dispensed,jewelry,tools,apparel,cold_dispensed,food_service,groceries,housewares,outdoors,salty_snacks,videos,beauty,electronics,footwear,homedecor,instruments,seasonal). The options for gender are (male,female). Choose only one option for both. Respond in the given format only. Format: 'gender product_category' where 'gender' corresponds your answer on gender and 'product_category' corresponds to your answer on product category. When you cannot exactly tell the gender or the query does not talk about any gender, leave 'gender' empty in the format. Example 1: Query: jacket for men. Answer: male apparel. Example 2: Query: women necklace. Answer: female jewelry. Example 3: Query: black jacket. Answer: apparel. Query: ${parameters.inputs} \"}]}]}"
+             },
+        "BEDROCK_Claude3_image":
+        {
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
+            "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"The image has a retail product, generate a short caption in less than 5 words for the product.\"}]}]}" 
         },
                 
-                 "BEDROCK_MULTIMODAL":
+         "BEDROCK_MULTIMODAL":
                 {
                      "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
                      "request_body": """{ "inputText": "${parameters.inputText:-null}", "inputImage": "${parameters.inputImage:-null}" }""",
@@ -396,10 +451,7 @@ def create_ml_connectors():
 
     return  "{" +"\\\"parameters\\\":" + parametersBuilder + "}";
     """,
-                    
-                    
-                    
-                       "post_process_fun":"""
+     "post_process_fun":"""
     def name = "sentence_embedding";
     def dataType = "FLOAT32";
     if (params.embedding == null || params.embedding.length == 0) {
@@ -424,13 +476,15 @@ def create_ml_connectors():
     for remote_ml_key in remote_ml.keys():
         if(remote_ml_key == "SAGEMAKER_CrossEncoder" or remote_ml_key == "BEDROCK_RERANK"):
             name = remote_ml_key.split("_")[0]+": RE-RANKING"
+        elif("BEDROCK_Claude3" in remote_ml_key):
+            name = remote_ml_key+": LLM"
         else:
             name = remote_ml_key+": EMBEDDING"
             
         #create connector
         payload_1 = {
         "name": name, 
-        "description": "Test connector for "+remote_ml_key+" remote model",
+        "description": "Connector for "+remote_ml_key+" remote model",
         "version": 1,
         "protocol": "aws_sigv4",
         "credential": {
@@ -449,19 +503,23 @@ def create_ml_connectors():
                     "content-type": "application/json"
                 },
                 "url": remote_ml[remote_ml_key]["endpoint_url"],
-                "pre_process_function": remote_ml[remote_ml_key]["pre_process_fun"],
+                #"pre_process_function": remote_ml[remote_ml_key]["pre_process_fun"],
                 "request_body": remote_ml[remote_ml_key]["request_body"],
                 #"post_process_function": remote_ml[remote_ml_key]["post_process_fun"]
             }
         ]
         }
-        if(remote_ml_key != 'SAGEMAKER_SPARSE'):
+        if(remote_ml_key != 'SAGEMAKER_SPARSE' and "BEDROCK_Claude3" not in remote_ml_key):
             payload_1["actions"][0]["post_process_function"] = remote_ml[remote_ml_key]["post_process_fun"]
+        if("BEDROCK_Claude3" not in remote_ml_key):  
+            payload_1["actions"][0]["pre_process_function"] = remote_ml[remote_ml_key]["pre_process_fun"]
+        if("BEDROCK_Claude3" in remote_ml_key):
+            payload_1["parameters"]["response_filter"] = "$.content[0].text"
             
         
 
         r_1 = requests.post(connector_path_url, auth=awsauth, json=payload_1, headers=headers)
-        print(r_1.text)
+        #print(r_1.text)
         remote_ml[remote_ml_key]["connector_id"] = json.loads(r_1.text)["connector_id"]
         
         st.session_state[remote_ml_key+"_CONNNECTOR_ID"] = json.loads(r_1.text)["connector_id"]
@@ -494,6 +552,7 @@ def ingest_data(col,warning):
     print("opensearch_res:"+opensearch_res)
     search_types = 'Keyword Search,'
     if(opensearch_res!='{}'):
+        #print("------------------"+opensearch_res)
         opensearch_models = {}
         for i in json.loads(opensearch_res)['ml_ingest_pipeline']['processors']:
             key_ = list(i.keys())[0]
@@ -535,6 +594,7 @@ def ingest_data(col,warning):
                 ds.update_in_dynamo('ml_ingest_pipeline','store_val',opensearch_res)
                 ingest_flag = True
     else:
+        #print("------------------"+opensearch_res)
         exists = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
         if(str(exists) == '<Response [404]>'):
             ingest_flag = True
@@ -724,4 +784,47 @@ if(playground):
 #         submit = st.button("Submit",on_click = create_ml_components)
         
         
-    
+          
+# PUT /_search/pipeline/LLM_search_request_pipeline
+# {
+#   "description": "Generate filters for queries",
+#   "request_processors": [
+#     {
+#         "ml_inference": {
+#         "model_id": "-SK2O5QBy-EKFiweJ80W",
+#         "input_map": [
+#           {
+#             "inputs": "query.bool.must[0].match.product_description.query"
+#           }
+#         ],
+#         "output_map": [
+#           {
+#             "query.bool.should[0].multi_match.query": "response"
+#           }
+#         ]
+#       }
+#     }
+#   ]
+# }
+
+# PUT /_search/pipeline/LLM_search_request_pipeline_image
+# {
+#   "description": "Generate filters for queries",
+#   "request_processors": [
+#    {
+#       "ml_inference": {
+#         "model_id": "_SKPPJQBy-EKFiwemc0c",
+#         "input_map": [
+#           {
+#             "inputs": "query.bool.must[0].match.product_description.query"
+#           }
+#         ],
+#         "output_map": [
+#           {
+#             "query.bool.must[0].match.product_description.query": "response"
+#           }
+#         ]
+#       }
+#     }
+#   ]
+# }pl-c4f719ad

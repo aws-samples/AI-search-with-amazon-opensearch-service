@@ -162,15 +162,27 @@ def handler(input_,session_id):
                 url = host + path
                 r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
             print("hybrid_rerank_pipeline Creation: "+str(r.status_code))
-            
+    if(st.session_state.input_is_rewrite_query == 'enabled' and st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType and st.session_state.llm_search_request_pipeline_image == "true"):    
+        llm_text = json.loads((requests.get(host+'_search/pipeline/LLM_search_request_pipeline', auth=awsauth,headers=headers)).text)
+        llm_image = json.loads((requests.get(host+'_search/pipeline/LLM_search_request_pipeline_image', auth=awsauth,headers=headers)).text)
+        new_desc = "combined LLM text and image pipeline"
+        new_processors = llm_image['LLM_search_request_pipeline_image']['request_processors']
+        new_processors.append(llm_text['LLM_search_request_pipeline']['request_processors'][0])
+        new_payload = {"description":new_desc,"request_processors":new_processors}
+        path = "_search/pipeline/LLM_search_request_pipeline_text_image" 
+        url = host + path
+        r = requests.put(url, auth=awsauth, json=new_payload, headers=headers)
+        print("combined LLM text and image pipeline Creation: "+str(r.status_code))
+        
     
     ######## start of Applying LLM filters ####### 
-    if(st.session_state.input_rewritten_query!=""):
-            filter_ = {"filter": {
-                 "bool": {
-                     "must": []}}}
-            filter_['filter']['bool']['must'] = st.session_state.input_rewritten_query['query']['bool']['must']
-    ######## end of Applying LLM filters ####### 
+#     if(st.session_state.input_is_rewrite_query == 'enabled'):
+#         if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):
+#             filter_ = {"filter": {
+#                  "bool": {
+#                      "must": []}}}
+#             filter_['filter']['bool']['must'] = st.session_state.input_rewritten_query['query']['bool']['must']
+#     ######## end of Applying LLM filters ####### 
     
     ######### Create the queries for hybrid search #########
     
@@ -206,16 +218,45 @@ def handler(input_,session_id):
     
             
     if('Keyword Search' in search_types):
-        
-        keyword_payload = {
+        if(st.session_state.input_is_rewrite_query == 'enabled' or st.session_state.input_imageUpload == 'yes'):
+            if(st.session_state.input_is_rewrite_query == 'enabled'):
+                query_ = query
+            if(st.session_state.input_imageUpload == 'yes'):
+                query_ = st.session_state.input_image
+            
+               
+            keyword_payload = {  
+                   "bool":{  
+                            "must":[
+                                  {
+                                    "match": {"product_description": {"query":query_}}
+                                  }
+                                    ],
+                             "should":[
+                                  {
+                                     "multi_match" : {
+                                            "query": "male apparel",
+                                            "type": "cross_fields",
+                                            "fields": [ "gender_affinity","category"],
+                                            "operator": "and"}
+                                                      }
+                                         ]
+
+
+                          }}
+        else:
+            keyword_payload = {
                         "match": {
                         "product_description": {
                             "query": query
                         }
                         }
                     }
-        if(st.session_state.input_rewritten_query !=""):
-            keyword_payload = st.session_state.input_rewritten_query['query']
+        
+        
+#         if(st.session_state.input_imageUpload == 'yes'):
+#             keyword_payload = st.session_state.input_rewritten_query['query']
+        
             
         if(st.session_state.input_manual_filter == "True"):
             keyword_payload['bool']={'filter':[]}
@@ -281,8 +322,8 @@ def handler(input_,session_id):
                     }
         
         ###### start of efficient filter applying #####
-        if(st.session_state.input_rewritten_query!=""):
-            vector_payload['neural']['product_description_vector']['filter'] = filter_['filter']
+#         if(st.session_state.input_rewritten_query!=""):
+#             vector_payload['neural']['product_description_vector']['filter'] = filter_['filter']
             
         if(st.session_state.input_manual_filter == "True"):
             vector_payload['neural']['product_description_vector']['filter'] = {"bool":{"must":[]}}
@@ -324,8 +365,8 @@ def handler(input_,session_id):
             multimodal_payload["neural"]["product_multimodal_vector"]["query_text"] =  query
         
         ###### start of efficient filter applying #####
-        if(st.session_state.input_rewritten_query!=""):
-            multimodal_payload['neural']['product_multimodal_vector']['filter'] = filter_['filter']
+#         if(st.session_state.input_rewritten_query!=""):
+#             multimodal_payload['neural']['product_multimodal_vector']['filter'] = filter_['filter']
             
         if(st.session_state.input_manual_filter == "True"):
             print("presence of filters------------")
@@ -382,8 +423,8 @@ def handler(input_,session_id):
         sparse_payload = {"bool":{"should":rank_features}}
         
         ###### start of efficient filter applying #####
-        if(st.session_state.input_rewritten_query!=""):
-            sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
+#         if(st.session_state.input_rewritten_query!=""):
+#             sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
             
         if(st.session_state.input_manual_filter == "True"):
             sparse_payload['bool']['filter']=[]
@@ -446,6 +487,15 @@ def handler(input_,session_id):
         single_query = hybrid_payload["query"]["hybrid"]["queries"][0]
         del hybrid_payload["query"]["hybrid"]
         hybrid_payload["query"] = single_query
+        print("***************************"+st.session_state.input_is_rewrite_query)
+        if(st.session_state.input_is_rewrite_query == 'enabled'):
+            path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline" 
+        if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType and st.session_state.llm_search_request_pipeline_image == "true"):    
+            path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline_image"
+        if(st.session_state.input_is_rewrite_query == 'enabled' and st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType and st.session_state.llm_search_request_pipeline_image == "true"):
+            path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline_text_image"
+        url = host + path
+            
         # print("-------final query--------")
         if(st.session_state.sagemaker_re_ranker == 'true' and st.session_state.input_reranker == 'SageMaker Cross Encoder'):
             path = "demostore-search-index/_search?search_pipeline=sagemaker_rerank_pipeline" 

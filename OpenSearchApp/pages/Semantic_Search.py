@@ -41,15 +41,15 @@ st.set_page_config(
 )
 parent_dirname = "/".join((os.path.dirname(__file__)).split("/")[0:-1])
 st.markdown("""
-    <style>
-    [data-testid=column]:nth-of-type(2) [data-testid=stVerticalBlock]{
-        gap: 0rem;
-    }
-    [data-testid=column]:nth-of-type(1) [data-testid=stVerticalBlock]{
-        gap: 0rem;
-    }
-    </style>
-    """,unsafe_allow_html=True)
+        <style>
+               .block-container {
+                    padding-top: 2.75rem;
+                    padding-bottom: 0rem;
+                    padding-left: 5rem;
+                    padding-right: 5rem;
+                }
+        </style>
+        """, unsafe_allow_html=True)
 #ps = PorterStemmer()
 
 st.session_state.REGION = ds.get_region()
@@ -221,6 +221,9 @@ if "sagemaker_re_ranker" not in st.session_state:
 if "bedrock_re_ranker" not in st.session_state:
     st.session_state.bedrock_re_ranker = ds.get_from_dynamo("bedrock_re_ranker")
 
+if "llm_search_request_pipeline" not in st.session_state:
+    st.session_state.llm_search_request_pipeline = ds.get_from_dynamo("llm_search_request_pipeline")
+
 host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
 service = 'es'
 credentials = boto3.Session().get_credentials()
@@ -228,6 +231,9 @@ awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, st.session_st
 headers = {"Content-Type": "application/json"}
 
 ###### check for search pipelines #######
+
+
+###### 1. hybrid search pipeline #######
 opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
 print("opensearch_search_pipeline")
 print(opensearch_search_pipeline)
@@ -237,7 +243,8 @@ else:
     st.session_state.max_selections = "1"
         
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
-        
+
+###### 2. sagemaker rerank search pipeline #######
 opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
 print("opensearch_sagemaker_rerank_pipeline")
 print(opensearch_sagemaker_rerank_pipeline)
@@ -252,7 +259,7 @@ else:
     st.session_state.sagemaker_re_ranker = "false"
 ds.store_in_dynamo('sagemaker_re_ranker',st.session_state.sagemaker_re_ranker )
 
-
+###### 3. Bedrock rerank search pipeline #######
 opensearch_bedrock_rerank_pipeline = (requests.get(host+'_search/pipeline/bedrock_rerank_pipeline', auth=awsauth,headers=headers)).text
 print("opensearch_bedrock_rerank_pipeline")
 print(opensearch_bedrock_rerank_pipeline)
@@ -266,7 +273,63 @@ if(opensearch_bedrock_rerank_pipeline!='{}'):
 else:
     st.session_state.bedrock_re_ranker = "false"
 ds.store_in_dynamo('bedrock_re_ranker',st.session_state.bedrock_re_ranker )
-###### check for search pipelines #######
+
+###### 4. LLM request search pipeline (text) #######
+
+# opensearch_llm_search_request_pipeline = (requests.get(host+'_search/pipeline/LLM_search_request_pipeline', auth=awsauth,headers=headers)).text
+# print("LLM_search_request_pipeline")
+# print(opensearch_llm_search_request_pipeline)
+# if(opensearch_llm_search_request_pipeline!='{}'):
+#     st.session_state.llm_search_request_pipeline = "true"
+#     total_pipeline = json.loads(opensearch_llm_search_request_pipeline)
+#     if('request_processors' in total_pipeline['LLM_search_request_pipeline'].keys()):
+#         if(len(total_pipeline['LLM_search_request_pipeline']['request_processors'])>1):
+#             st.session_state.BEDROCK_Claude3_image_MODEL_ID = total_pipeline['LLM_search_request_pipeline']['request_processors'][0]['ml_inference']['model_id']
+#             ds.store_in_dynamo('BEDROCK_Claude3_image_MODEL_ID', st.session_state.BEDROCK_Claude3_image_MODEL_ID)
+#             st.session_state.BEDROCK_Claude3_text_MODEL_ID  = total_pipeline['LLM_search_request_pipeline']['request_processors'][1]['ml_inference']['model_id']
+#         else:
+#             st.session_state.BEDROCK_Claude3_text_MODEL_ID  = total_pipeline['LLM_search_request_pipeline']['request_processors'][0]['ml_inference']['model_id']
+#         ds.store_in_dynamo('BEDROCK_Claude3_text_MODEL_ID', st.session_state.BEDROCK_Claude3_text_MODEL_ID )
+            
+        
+# else:
+#     st.session_state.llm_search_request_pipeline = "false"
+# ds.store_in_dynamo('llm_search_request_pipeline',st.session_state.llm_search_request_pipeline )
+
+###### 4. LLM request search pipeline (text) #######
+
+opensearch_llm_search_request_pipeline = (requests.get(host+'_search/pipeline/LLM_search_request_pipeline', auth=awsauth,headers=headers)).text
+print("LLM_search_request_pipeline")
+print(opensearch_llm_search_request_pipeline)
+if(opensearch_llm_search_request_pipeline!='{}'):
+    st.session_state.llm_search_request_pipeline = "true"
+    total_pipeline = json.loads(opensearch_llm_search_request_pipeline)
+    if('request_processors' in total_pipeline['LLM_search_request_pipeline'].keys()):
+        st.session_state.BEDROCK_Claude3_text_MODEL_ID  = total_pipeline['LLM_search_request_pipeline']['request_processors'][0]['ml_inference']['model_id']
+        ds.store_in_dynamo('BEDROCK_Claude3_text_MODEL_ID', st.session_state.BEDROCK_Claude3_text_MODEL_ID )
+else:
+    st.session_state.llm_search_request_pipeline = "false"
+ds.store_in_dynamo('llm_search_request_pipeline',st.session_state.llm_search_request_pipeline )
+
+###### 5. LLM request search pipeline (image) #######
+
+opensearch_llm_search_request_pipeline_image = (requests.get(host+'_search/pipeline/LLM_search_request_pipeline_image', auth=awsauth,headers=headers)).text
+print("LLM_search_request_pipeline_image")
+print(opensearch_llm_search_request_pipeline_image)
+if(opensearch_llm_search_request_pipeline_image!='{}'):
+    st.session_state.llm_search_request_pipeline_image = "true"
+    total_pipeline = json.loads(opensearch_llm_search_request_pipeline_image)
+    if('request_processors' in total_pipeline['LLM_search_request_pipeline_image'].keys()):
+        st.session_state.BEDROCK_Claude3_image_MODEL_ID  = total_pipeline['LLM_search_request_pipeline_image']['request_processors'][0]['ml_inference']['model_id']
+        ds.store_in_dynamo('BEDROCK_Claude3_image_MODEL_ID', st.session_state.BEDROCK_Claude3_image_MODEL_ID )
+            
+else:
+    st.session_state.llm_search_request_pipeline_image = "false"
+ds.store_in_dynamo('llm_search_request_pipeline_image',st.session_state.llm_search_request_pipeline_image )
+
+
+
+############################################################ 
 
 
     
@@ -291,6 +354,12 @@ if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     
 if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_MODEL_ID = ds.get_from_dynamo("BEDROCK_TEXT_MODEL_ID")  
+    
+if "BEDROCK_Claude3_image_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_image_MODEL_ID = ds.get_from_dynamo("BEDROCK_Claude3_image_MODEL_ID")   
+    
+if "BEDROCK_Claude3_text_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_text_MODEL_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_MODEL_ID") 
 #bytes_for_rekog = ""
 bedrock_ = boto3.client('bedrock-runtime',region_name=st.session_state.REGION)
 search_all_type = False
@@ -391,7 +460,7 @@ def generate_images(tab,inp_):
                     if(st.session_state.img_container!=""):
                         st.session_state.img_container.empty()
                     place_ = st.empty()
-                    img1, img2,img3  = place_.columns([30,30,30])
+                    img1, img2,img3  = place_.columns([25,25,25])
                     st.session_state.img_container = place_
                 img_arr = [img1, img2,img3]
             
@@ -474,8 +543,6 @@ def handle_input():
                     
                     image.thumbnail((width_, height_))
                     image.save(f"{path}-resized_display.{org_file_type}")
-
-
             with open(photo.split(".")[0]+"-resized."+file_type, "rb") as image_file:
                 input_image = base64.b64encode(image_file.read()).decode("utf8")
                 st.session_state.input_image = input_image
@@ -497,12 +564,13 @@ def handle_input():
     #     st.session_state.input_searchType = 'Multi-modal Search'
     # if(st.session_state.input_sparse == 'enabled' or st.session_state.input_is_rewrite_query == 'enabled'):
     #     st.session_state.input_searchType = 'Keyword Search'
-    if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):
-        old_rekog_label = st.session_state.input_rekog_label
-        st.session_state.input_rekog_label = amazon_rekognition.extract_image_metadata(st.session_state.bytes_for_rekog)
-        if(st.session_state.input_text == ""):
-            st.session_state.input_text = st.session_state.input_rekog_label
-            
+    ################use of amazon rekognition#################
+#     if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType):
+#         old_rekog_label = st.session_state.input_rekog_label
+#         st.session_state.input_rekog_label = amazon_rekognition.extract_image_metadata(st.session_state.bytes_for_rekog)
+#         if(st.session_state.input_text == ""):
+#             st.session_state.input_text = st.session_state.input_rekog_label
+    ################use of amazon rekognition#################      
     # if(st.session_state.input_imageUpload == 'yes'):
     #     if(st.session_state.input_searchType!='Multi-modal Search'):
     #         if(st.session_state.input_searchType=='Keyword Search'):
@@ -609,14 +677,14 @@ def handle_input():
     else:
         st.session_state.input_sql_query = ""
         
-    
-    if(st.session_state.input_is_rewrite_query == 'enabled' or (st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType)):
-        query_rewrite.get_new_query_res(st.session_state.input_text)
-        print("-------------------")
-        print(st.session_state.input_rewritten_query)
-        print("-------------------")
-    else:
-        st.session_state.input_rewritten_query = ""
+    ########### LLM rewrite langchain implementaiton #######
+#     if(st.session_state.input_is_rewrite_query == 'enabled' or (st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType)):
+#         query_rewrite.get_new_query_res(st.session_state.input_text)
+#         print("-------------------")
+#         print(st.session_state.input_rewritten_query)
+#         print("-------------------")
+#     else:
+#         st.session_state.input_rewritten_query = ""
         
     # elif(st.session_state.input_rekog_label!="" and st.session_state.input_rekognition == 'enabled'):
     #     ans__ = amazon_rekognition.call(st.session_state.input_text,st.session_state.input_rekog_label)
@@ -652,14 +720,14 @@ def write_top_bar():
     # st.title(':mag: AI powered OpenSearch')
     # st.write("")
     # st.write("")
-    col1, col2,col3,col4  = st.columns([2.5,35,7,6])
+    col1, col2,col3,col4  = st.columns([2.5,35,8,7])
     with col1:
         st.image(TEXT_ICON, use_column_width='always')
     with col2:
         #st.markdown("")
         input = st.text_input( "Ask here",label_visibility = "collapsed",key="input_text",placeholder = "Type your query")
     with col3:
-        play = st.button("SEARCH",on_click=handle_input,key = "play")
+        play = st.button("Search",on_click=handle_input,key = "play")
         
     with col4:
         clear = st.button("Clear")
@@ -687,7 +755,7 @@ def write_top_bar():
                 st.markdown("""
                             <style>
                             [role=radiogroup]{
-                                gap: 10rem;
+                                gap: 6rem;
                             }
                             </style>
                             """,unsafe_allow_html=True)
@@ -797,16 +865,22 @@ if(search_all_type == True or 1==1):
         #st.subheader(':blue[Keyword Search]')
 
         ########################## enable for query_rewrite ########################
-        if(1!=1):
-            rewrite_query = st.checkbox('Enrich Docs and apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
-            st.multiselect('Fields for "MUST" filter',
-                ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
-   
-                key = 'input_must',
-               )
-        ########################## enable for query_rewrite ########################
-        ####### Filters   #########
-        
+        if(st.session_state.llm_search_request_pipeline == "true"):
+            rewrite_query = st.checkbox('Auto-apply filters', key = 'query_rewrite', disabled = False, help = "Checking this box will use LLM to rewrite your query. \n\n Here your natural language query is transformed into OpenSearch query with added filters and attributes")
+            if rewrite_query:
+                #st.write(st.session_state.inputs_)
+                st.session_state.input_is_rewrite_query = 'enabled'
+            else:
+                st.session_state.input_is_rewrite_query = 'disabled'
+                
+    #             st.multiselect('Fields for "MUST" filter',
+    #                 ('Price','Gender', 'Color', 'Category', 'Style'),['Category'],
+
+    #                 key = 'input_must',
+    #                )
+            ########################## enable for query_rewrite ########################
+            ####### Filters   #########
+
         st.subheader(':blue[Filters]')
         def clear_filter():
             st.session_state.input_manual_filter="False"
@@ -856,7 +930,7 @@ if(search_all_type == True or 1==1):
 
 
         #sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
-        st.session_state.input_is_rewrite_query = 'disabled'
+        #st.session_state.input_is_rewrite_query = 'disabled'
         st.session_state.input_is_sql_query = 'disabled'
         
         ########################## enable for query_rewrite ########################

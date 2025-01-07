@@ -42,8 +42,6 @@ bedrock_params = {
     "stop_sequences":["\\n\\nHuman:"]
 }
 bedrock_region=st.session_state.REGION
-
-#boto3_bedrock = boto3.client(service_name="bedrock-runtime", endpoint_url=f"https://bedrock-runtime.{bedrock_region}.amazonaws.com")
 boto3_bedrock = boto3.client(service_name="bedrock-runtime", config=Config(region_name=bedrock_region))
 
 bedrock_titan_llm = Bedrock(model_id="anthropic.claude-instant-v1", client=boto3_bedrock)
@@ -146,7 +144,7 @@ metadata_field_info_ = [
 document_content_description_ = "Brief summary of a retail product"
 
 open_search_vector_store = OpenSearchVectorSearch(
-                                    index_name="retail-ml-search-index",#"self-query-rewrite-retail",
+                                    index_name="retail-ml-search-index",
                                     embedding_function=bedrock_embeddings,
                                     opensearch_url=os_domain_ep,
                                     http_auth=auth
@@ -186,7 +184,6 @@ example_prompt = PromptTemplate(
 )
 example_prompt=PromptTemplate(input_variables=['data_source', 'i', 'structured_request', 'user_query'],
 template='<< Example {i}. >>\nData Source:\n{data_source}\n\nUser Query:\n{user_query}\n\nStructured Request:\n{structured_request}\n')
-#print(example_prompt.format(**examples[0]))
 
 prefix_ = """
 Your goal is to structure the user's query to match the request schema provided below.
@@ -243,7 +240,7 @@ prompt_ = FewShotPromptTemplate(
 
 
 
-
+############ Langchain's self qeury retriever method ##########
 # retriever = SelfQueryRetriever.from_llm(
 #     bedrock_titan_llm, open_search_vector_store, document_content_description_, metadata_field_info_, verbose=True
 # )
@@ -259,6 +256,8 @@ prompt_ = FewShotPromptTemplate(
 # )
 # output_parser = StructuredQueryOutputParser.from_components()
 # query_constructor = prompt | bedrock_titan_llm | output_parser
+############ Langchain's self qeury retriever method ##########
+
 
 def get_new_query_res(query):
     field_map = {'Price':'price','Gender':'gender_affinity','Category':'category','Style':'style','Color':'color'}

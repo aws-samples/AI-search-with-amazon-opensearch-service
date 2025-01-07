@@ -1,9 +1,9 @@
-
 [client]
 toolbarMode = "viewer"
 showSidebarNavigation = false
-showErrorDetails = false
 
+[server]
+enableXsrfProtection = false
 
 [browser]
 gatherUsageStats = false
@@ -15,5 +15,21 @@ primaryColor="#e28743"
 backgroundColor ="#000000"
 
 [global]
-disableWidgetStateDuplicationWarning = false
+disableWidgetStateDuplicationWarning = true
 showWarningOnDirectExecution = false
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
