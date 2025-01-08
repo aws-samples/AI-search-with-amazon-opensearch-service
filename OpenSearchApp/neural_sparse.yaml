@@ -1,0 +1,615 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation Template to deploy a SageMaker model
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      -
+        Label:
+          default: "Amazon OpenSearch Configuration"
+        Parameters:
+          - AmazonOpenSearchEndpoint
+          - LambdaInvokeOpenSearchMLCommonsRoleName
+      -
+        Label:
+          default: "Sagemaker Configuration"
+        Parameters:
+          - ModelName
+          - InstanceType
+          - InitialInstanceCount
+          - SageMakerEndpoint
+          - PretrainedModelType
+    ParameterLabels:
+      AmazonOpenSearchEndpoint:
+        default: "Amazon OpenSearch Endpoint"
+      LambdaInvokeOpenSearchMLCommonsRoleName:
+        default: "Lambda Invoke OpenSearch ML Commons Role Name"
+      ModelName:
+        default: "Model Name"
+      InstanceType:
+        default: "Instance Type"
+      SageMakerEndpoint:
+        default: "SageMaker Endpoint (Optional)"
+      PretrainedModelType:
+        default: "The pretrained model you want to use"
+      InitialInstanceCount:
+        default: "Initial Instance Count"
+
+
+Parameters:
+  ModelName:
+    Type: String
+    Description: The name of the model deployed.
+  InstanceType:
+    Type: String
+    Default: ml.g4dn.xlarge
+    Description: The instance type for SageMaker endpoint.
+  InitialInstanceCount:
+    Type: Number
+    Default: 1
+    Description: The initial number of instances for SageMaker endpoint.
+    MinValue: 1
+  AmazonOpenSearchEndpoint:
+    Type: String
+    Description: "The endpoint of the Amazon OpenSearch Service. Example: https://example.us-east-1.es.amazonaws.com"
+    AllowedPattern: "https://.*"
+    ConstraintDescription: "Must be a valid Amazon OpenSearch Service endpoint."
+  PretrainedModelType:
+    Description: 'The type of pretrained model. See here for more information: https://opensearch.org/docs/latest/ml-commons-plugin/pretrained-models#supported-pretrained-models (we recommend to deploy tokenizer model locally)'
+    Type: String
+    Default: 'opensearch-neural-sparse-encoding-v1'
+    AllowedValues: [ opensearch-neural-sparse-encoding-v1, opensearch-neural-sparse-encoding-doc-v1, opensearch-neural-sparse-tokenizer-v1,
+                     opensearch-neural-sparse-encoding-v2-distill, opensearch-neural-sparse-encoding-doc-v2-mini, opensearch-neural-sparse-encoding-doc-v2-distill ]
+  SageMakerEndpoint:
+    Type: String
+    Description: The sageMaker endpoint to deploy model. If not specified, a new endpoint will be created.
+  LambdaInvokeOpenSearchMLCommonsRoleName:
+    Type: String
+    Default: "LambdaInvokeOpenSearchMLCommonsRole"
+    ConstraintDescription: Must use alphanumeric and '+=,.@-_' characters.
+    Description: The name of the IAM role that is used by Lambda to invoke Amazon OpenSearch domain. Before deploying this template, it must be mapped to the OpenSearch domain's ml_full_access role . The IAM role will be created by this template if it does not exist. You can use the default value or specify a custom name. If you specify a custom name, it must be unique within your account.
+    AllowedPattern: "[a-zA-Z0-9+=,.@_-]+"
+
+Conditions:
+  UseDefaultSageMakerEndpoint:
+    !Equals 
+      - !Ref SageMakerEndpoint
+      - ''
+  IsNotTokenizer: !Not [!Equals [!Ref PretrainedModelType, "opensearch-neural-sparse-tokenizer-v1"]]
+  IsAllowed1: !Equals [ !Select [ 1, !Split [ ".", !Ref InstanceType ] ], "p3" ]
+  IsAllowed2: !Equals [ !Select [ 1, !Split [ ".", !Ref InstanceType ] ], "p3dn" ]
+  IsAllowed3: !Equals [ !Select [ 1, !Split [ ".", !Ref InstanceType ] ], "p4d" ]
+  IsAllowed4: !Equals [ !Select [ 1, !Split [ ".", !Ref InstanceType ] ], "p4de" ]
+  IsAllowed5: !Equals [ !Select [ 1, !Split [ ".", !Ref InstanceType ] ], "g4dn" ]
+  IsAllowed6: !Equals [ !Select [ 1, !Split [ ".", !Ref InstanceType ] ], "g5" ]
+  IsGPU: !Or
+    - Condition: IsAllowed1
+    - Condition: IsAllowed2
+    - Condition: IsAllowed3
+    - Condition: IsAllowed4
+    - Condition: IsAllowed5
+    - Condition: IsAllowed6
+
+Resources:
+  HelperLambdaInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join [ '-', [ "HelperLambdaInvokeRole", !Ref ModelName ] ]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service:
+                - s3.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: "/"
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  Fn::Sub: arn:${AWS::Partition}:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - iam:ListRoles
+                  - iam:PassRole
+                  - iam:GetRole
+                  - iam:CreateRole
+                  - iam:GetRolePolicy
+                  - iam:CreatePolicy
+                  - iam:AttachRolePolicy
+                  - iam:PutRolePolicy
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - s3:CreateBucket
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:DeleteObject
+                  - s3:DeleteBucket
+                Resource: "*"
+
+  HelperLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: [ HelperLambdaInvokeRole ]
+    Properties:
+      FunctionName: !Join [ '-', [ "HelperLambdaFunction", !Ref ModelName ] ]
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import urllib.request
+          import json
+          import botocore
+          import time
+
+          def lambda_handler(event, context):
+              print("event: " + str(event))
+              request_type = event['RequestType']
+              if request_type in ['Update']:
+                  return respond_success(event, context)
+
+              if request_type in ['Delete'] or event['ResourceProperties']['CleanupS3Bucket'] == 'true':
+                  clean_s3_bucket(event['ResourceProperties']['S3Bucket'])
+                  return respond_success(event, context)
+
+              iam = boto3.client('iam')
+              os_invoke_model_role_arn = event['ResourceProperties']['OpenSearchInvokeModelRole']
+              lambda_invoke_aos_role_name = event['ResourceProperties']['LambdaInvokeAOSRole']
+              role_arn = manage_iam_role(iam, lambda_invoke_aos_role_name, os_invoke_model_role_arn)
+
+              return download_and_upload_lambda(event, role_arn, context)
+
+          def iam_role_exists(iam, role_name):
+              try:
+                  iam.get_role(RoleName=role_name)
+                  print("LambdaInvokeOpenSearchMLCommonsRole exists")
+                  return True
+              except iam.exceptions.NoSuchEntityException:
+                  print("LambdaInvokeOpenSearchMLCommonsRole does not exist")
+                  return False
+
+          def model_passrole_policy_exists(iam, role_name, os_invoke_model_role_arn):
+              try:
+                  existing_inline_policy = iam.get_role_policy(RoleName=role_name, PolicyName='ModelPassRole')
+                  print("PassRole policy exists")
+                  return True
+              except iam.exceptions.NoSuchEntityException:
+                  print("PassRole policy does not exist")
+                  return False
+
+          def manage_iam_role(iam, role_name, os_invoke_model_role_arn):
+              if not iam_role_exists(iam, role_name):
+                  create_iam_role_with_basic_policy(iam, role_name, os_invoke_model_role_arn)
+                  print("Created LambdaInvokeOpenSearchMLCommonsRole")
+
+              if not model_passrole_policy_exists(iam, role_name, os_invoke_model_role_arn):
+                  model_passrole_policy = create_empty_passrole_policy_statement(os_invoke_model_role_arn)
+                  passrole_statement_line = create_passrole_statement_line(os_invoke_model_role_arn)
+                  model_passrole_policy['Statement'].append(passrole_statement_line)
+                  put_role_policy(iam, role_name, 'ModelPassRole', model_passrole_policy)
+                  print("Created PassRole policy")
+              else:
+                  existing_inline_policy = iam.get_role_policy(RoleName=role_name, PolicyName='ModelPassRole')
+                  new_policy = create_passrole_statement(os_invoke_model_role_arn)
+                  inline_policy = existing_inline_policy['PolicyDocument']
+                  inline_policy['Statement'].extend(new_policy['Statement'])
+                  put_role_policy(iam, role_name, 'ModelPassRole', inline_policy)
+                  print("Updated PassRole policy")
+
+              print("LambdaInvokeOpenSearchMLCommonsRole is ready")
+              return iam.get_role(RoleName=role_name)['Role']['Arn']
+
+          def create_iam_role_with_basic_policy(iam, role_name, os_invoke_model_role_arn):
+              trust_relationship = create_trust_relationship()
+              basic_policy = create_basic_policy()
+              role = iam.create_role(RoleName=role_name, AssumeRolePolicyDocument=json.dumps(trust_relationship), Description='Role for Lambda to invoke OpenSearch')
+              time.sleep(5)
+              policy_name = 'OpenSearchAccess'
+              put_role_policy(iam, role_name, policy_name, basic_policy)
+              return role['Role']['Arn']
+
+          def put_role_policy(iam, role_name, policy_name, policy_document):
+              try:
+                  iam.put_role_policy(RoleName=role_name, PolicyName=policy_name, PolicyDocument=json.dumps(policy_document))
+                  time.sleep(5)
+              except botocore.exceptions.ClientError as e:
+                  print(e)
+                  raise e
+
+          def create_trust_relationship():
+              return {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                      {
+                          "Effect": "Allow",
+                          "Principal": {"Service": "lambda.amazonaws.com"},
+                          "Action": "sts:AssumeRole"
+                      }
+                  ]
+              }
+
+          def create_basic_policy():
+              region_partition = get_region_partition()
+              return {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                      {"Effect": "Allow", "Action": [
+                        "logs:CreateLogGroup", 
+                        "logs:CreateLogStream", 
+                        "logs:PutLogEvents"
+                        ], 
+                        "Resource": "*"
+                      },
+                      {"Effect": "Allow", "Action": ["es:ESHttpPost"], "Resource": f"arn:{region_partition}:es:*:*:*/*/*"}
+                  ]
+              }
+
+          def create_passrole_statement_line(os_invoke_model_role_arn):
+            return {"Effect": "Allow", "Action": ["iam:PassRole"], "Resource": os_invoke_model_role_arn}
+
+          def create_passrole_statement(os_invoke_model_role_arn):
+            return {
+              "Version": "2012-10-17",
+              "Statement": [
+                create_passrole_statement_line(os_invoke_model_role_arn)
+              ]
+            }
+
+          def create_empty_passrole_policy_statement(os_invoke_model_role_arn):
+            return {
+              "Version": "2012-10-17",
+              "Statement": []
+            }
+
+          def download_and_upload_lambda(event, role_arn, context):
+              response_data = {'ContinuedInvoke': True, 'LambdaInvokeAOSRoleArn': role_arn}
+              try:
+                  url = event['ResourceProperties']['LambdaZipUrl']
+                  s3_key = event['ResourceProperties']['S3Key']
+                  tmp_file_path = f"/tmp/{s3_key}"
+
+                  download_file(url, tmp_file_path)
+                  bucket_name = event['ResourceProperties']['S3Bucket']
+                  create_s3_bucket(bucket_name)
+                  upload_file_to_s3(bucket_name, s3_key, tmp_file_path)
+
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, response_data, context.log_stream_name)
+                  return {"statusCode": 200}
+              except Exception as e:
+                  print(e)
+                  response_data['ContinuedInvoke'] = False
+                  cfnresponse.send(event, context, cfnresponse.FAILED, response_data, context.log_stream_name)
+                  return {"statusCode": 500}
+
+          def download_file(url, file_path):
+              urllib.request.urlretrieve(url, file_path)
+              print(f"Downloaded file from {url} to {file_path}")
+
+          def create_s3_bucket(bucket_name):
+              s3 = boto3.client('s3')
+              region = boto3.session.Session().region_name
+              if region == 'us-east-1':
+                  s3.create_bucket(Bucket=bucket_name)
+              else:
+                  s3.create_bucket(Bucket=bucket_name, CreateBucketConfiguration={'LocationConstraint': region})
+              print(f"S3 bucket {bucket_name} created successfully")
+
+          def upload_file_to_s3(bucket_name, s3_key, file_path):
+              s3 = boto3.resource('s3')
+              s3.Bucket(bucket_name).upload_file(file_path, s3_key)
+              print(f"Uploaded file to s3://{bucket_name}/{s3_key}")
+
+          def respond_success(event, context):
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {}, context.log_stream_name)
+              return {"statusCode": 200}
+
+          def clean_s3_bucket(bucket_name):
+              try:
+                  s3 = boto3.resource('s3')
+                  bucket = s3.Bucket(bucket_name)
+                  bucket.objects.all().delete()
+                  bucket.delete()
+                  print(f"S3 bucket {bucket_name} deleted successfully")
+              except s3.exceptions.NoSuchBucket as e:
+                  print(f"S3 bucket {bucket_name} does not exist")
+                  pass
+
+          def get_region_partition():
+              session = boto3.session.Session()
+              current_region = session.region_name
+              if current_region.startswith('cn-'):
+                  return 'aws-cn'
+              elif current_region.startswith('us-gov-'):
+                  return 'aws-us-gov'
+              else:
+                  return 'aws'
+
+      Handler: index.lambda_handler
+      Role: !GetAtt HelperLambdaInvokeRole.Arn
+      Runtime: python3.8
+      Timeout: 120
+
+  HelperLambdaInvokeModel:
+    Type: Custom::InvokeLambda
+    DependsOn: [ HelperLambdaFunction, OpenSearchInvokeModelRole ]
+    Properties:
+      ServiceToken: !GetAtt HelperLambdaFunction.Arn
+      LambdaZipUrl: !FindInMap [PretrainedModelURL, !Ref PretrainedModelType, URL]
+      LambdaInvokeAOSRole: !Ref LambdaInvokeOpenSearchMLCommonsRoleName
+      OpenSearchInvokeModelRole: !GetAtt OpenSearchInvokeModelRole.Arn
+      S3Bucket: !Join [ '-', [ "opensearch-ml-models-tmp-model", "stack", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ]
+      S3Key: opensearch-neural-sparse-model.zip
+      CleanupS3Bucket: false
+  SageMakerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join [ "-", [ "SageMaker", "ExecutionRole", !Ref ModelName] ]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: sagemaker.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: SageMaker-ExecutionPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: "*"
+                Resource: '*'
+  Model:
+    Type: "AWS::SageMaker::Model"
+    DependsOn: [ HelperLambdaInvokeModel ]
+    Properties:
+      ModelName: !Ref ModelName
+      PrimaryContainer:
+        Image:
+          !If
+          - IsGPU
+          - !FindInMap [RegionMap, !Ref "AWS::Region", DefaultImageURLGPU]
+          - !FindInMap [RegionMap, !Ref "AWS::Region", DefaultImageURL]
+        ModelDataUrl: !Join ['', ['s3://', !Join [ '-', [ "opensearch-ml-models-tmp-model", "stack", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ], '/', 'opensearch-neural-sparse-model.zip']]
+        Environment:
+          Fn::If:
+            -  IsNotTokenizer
+            -
+                TS_METRICS_CONFIG: "/opt/ml/model/metrics.yaml"
+                TS_ASYNC_LOGGING: true
+                TS_JOB_QUEUE_SIZE: 1000
+                NEURAL_SPARSE_MODEL_ID: !FindInMap [HuggingfaceModelName, !Ref PretrainedModelType, URL]
+            - !Ref "AWS::NoValue"
+      ExecutionRoleArn: !GetAtt SageMakerRole.Arn
+  EndpointConfig:
+    Type: "AWS::SageMaker::EndpointConfig"
+    Properties:
+      EndpointConfigName: !Join [ "-", [ !Ref ModelName, "EndpointConfig"] ]
+      ProductionVariants:
+        - InitialInstanceCount: !Ref InitialInstanceCount
+          InitialVariantWeight: 1.0
+          InstanceType: !Ref InstanceType
+          ModelName: !GetAtt Model.ModelName
+          VariantName: !GetAtt Model.ModelName
+  Endpoint:
+    Type: "AWS::SageMaker::Endpoint"
+    Properties:
+      EndpointConfigName:
+        !GetAtt EndpointConfig.EndpointConfigName
+      EndpointName:
+        !If [UseDefaultSageMakerEndpoint, !Ref "AWS::NoValue", !Ref SageMakerEndpoint]
+  OpenSearchInvokeModelRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join [ "-", [ "OpenSearch", "RemoteInference", !Ref ModelName] ]
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: es.amazonaws.com
+            Action: sts:AssumeRole
+          - Effect: Allow
+            Principal:
+              Service: es.aws.internal
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: OpenSearch-AccessSageMakerPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sagemaker:InvokeEndpointAsync
+                  - sagemaker:InvokeEndpoint
+                Resource: '*'
+
+
+
+  HelperLambdaInvoke:
+    Type: Custom::InvokeLambda
+    DependsOn: [HelperLambdaFunction, OpenSearchInvokeModelRole]
+    Properties:
+      ServiceToken: !GetAtt HelperLambdaFunction.Arn
+      LambdaZipUrl: "https://d2wvpdb2jzk602.cloudfront.net/opensearch-sagemaker-connector-sparse-lambda.zip"
+      LambdaInvokeAOSRole: !Ref LambdaInvokeOpenSearchMLCommonsRoleName
+      OpenSearchInvokeModelRole: !GetAtt OpenSearchInvokeModelRole.Arn
+      S3Bucket: !Join ['-', ["opensearch-ml-models-lambda-function", "stack", !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+      S3Key: opensearch-connector-lambda-function.zip
+      CleanupS3Bucket: false
+  
+  ConnectorLambdaFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: [HelperLambdaInvoke]
+    Properties:
+      FunctionName: !Join [ "-", [ "Lambda", "connector", !Ref ModelName] ]
+      Code:
+        S3Bucket: !Join ['-', ["opensearch-ml-models-lambda-function", "stack", !Select [4, !Split ['-', !Select [2, !Split ['/', !Ref AWS::StackId]]]]]]
+        S3Key: opensearch-connector-lambda-function.zip
+      PackageType: Zip
+      Handler: lambda_function.lambda_handler
+      Role:
+          Fn::Sub: arn:${AWS::Partition}:iam::${AWS::AccountId}:role/${LambdaInvokeOpenSearchMLCommonsRoleName}
+      Runtime: python3.8
+      Timeout: 120
+
+  InvokeConnectorLambda:
+    Type: Custom::InvokeLambda
+    DependsOn: [ConnectorLambdaFunction, Endpoint]
+    Properties:
+      ServiceToken: !GetAtt ConnectorLambdaFunction.Arn
+      AOSEndpoint: !Ref AmazonOpenSearchEndpoint
+      AOSRoleArn: !GetAtt OpenSearchInvokeModelRole.Arn
+      SMEndpointName: !GetAtt Endpoint.EndpointName
+
+  HelperLambdaInvokeModelDelete:
+    Type: Custom::InvokeLambda
+    DependsOn: [ HelperLambdaFunction, OpenSearchInvokeModelRole, InvokeConnectorLambda ]
+    Properties:
+      ServiceToken: !GetAtt HelperLambdaFunction.Arn
+      LambdaZipUrl: !FindInMap [PretrainedModelURL, !Ref PretrainedModelType, URL]
+      LambdaInvokeAOSRole: !Ref LambdaInvokeOpenSearchMLCommonsRoleName
+      OpenSearchInvokeModelRole: !GetAtt OpenSearchInvokeModelRole.Arn
+      S3Bucket: !Join [ '-', [ "opensearch-ml-models-tmp-model", "stack", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ]
+      S3Key: opensearch-neural-sparse-model.zip
+      CleanupS3Bucket: true
+
+  HelperLambdaInvokeDelete:
+    Type: Custom::InvokeLambda
+    DependsOn: [ HelperLambdaFunction, OpenSearchInvokeModelRole, InvokeConnectorLambda ]
+    Properties:
+      ServiceToken: !GetAtt HelperLambdaFunction.Arn
+      LambdaZipUrl: "https://d2wvpdb2jzk602.cloudfront.net/opensearch-sagemaker-connector-sparse-lambda.zip"
+      LambdaInvokeAOSRole: !Ref LambdaInvokeOpenSearchMLCommonsRoleName
+      OpenSearchInvokeModelRole: !GetAtt OpenSearchInvokeModelRole.Arn
+      S3Bucket: !Join [ '-', [ "opensearch-ml-models-lambda-function", "stack", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ]
+      S3Key: opensearch-connector-lambda-function.zip
+      CleanupS3Bucket: true
+
+Outputs:
+  SageMakerEndpoint:
+    Value: !GetAtt InvokeConnectorLambda.model_endpoint
+    Description: The endpoint that is deployed in SageMaker.
+  ConnectorId:
+    Value: !GetAtt InvokeConnectorLambda.connector_id
+    Description: The connector id that is created in Amazon OpenSearch Service ML-Commons.
+  ModelId:
+    Value: !GetAtt InvokeConnectorLambda.model_id
+    Description: The model id in ML-Commons that is associatd with the connector id.
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.us-east-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    us-east-2:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.us-east-2.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.us-east-2.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    us-west-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.us-west-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.us-west-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    us-west-2:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    af-south-1:
+      DefaultImageURLGPU: 626614931356.dkr.ecr.af-south-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 626614931356.dkr.ecr.af-south-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-east-1:
+      DefaultImageURLGPU: 871362719292.dkr.ecr.ap-east-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 871362719292.dkr.ecr.ap-east-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-south-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.ap-south-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.ap-south-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-northeast-3:
+      DefaultImageURLGPU: 364406365360.dkr.ecr.ap-northeast-3.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 364406365360.dkr.ecr.ap-northeast-3.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-northeast-2:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.ap-northeast-2.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.ap-northeast-2.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-southeast-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.ap-southeast-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.ap-southeast-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-southeast-2:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.ap-southeast-2.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.ap-southeast-2.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-southeast-3:
+      DefaultImageURLGPU: 907027046896.dkr.ecr.ap-southeast-3.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 907027046896.dkr.ecr.ap-southeast-3.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ap-northeast-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.ap-northeast-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.ap-northeast-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    ca-central-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.ca-central-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.ca-central-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    eu-central-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.eu-central-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.eu-central-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    eu-west-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.eu-west-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.eu-west-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    eu-west-2:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.eu-west-2.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.eu-west-2.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    eu-south-1:
+      DefaultImageURLGPU: 692866216735.dkr.ecr.eu-south-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 692866216735.dkr.ecr.eu-south-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    eu-west-3:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.eu-west-3.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.eu-west-3.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    eu-north-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.eu-north-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.eu-north-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    il-central-1:
+      DefaultImageURLGPU: 780543022126.dkr.ecr.il-central-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+      DefaultImageURL: 780543022126.dkr.ecr.il-central-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    me-south-1:
+      DefaultImageURLGPU: 217643126080.dkr.ecr.me-south-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 217643126080.dkr.ecr.me-south-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    me-central-1:
+      DefaultImageURLGPU: 914824155844.dkr.ecr.me-central-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 914824155844.dkr.ecr.me-central-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+    sa-east-1:
+      DefaultImageURLGPU: 763104351884.dkr.ecr.sa-east-1.amazonaws.com/pytorch-inference:2.0-gpu-py310
+      DefaultImageURL: 763104351884.dkr.ecr.sa-east-1.amazonaws.com/pytorch-inference:2.0-cpu-py310
+  PretrainedModelURL:
+    opensearch-neural-sparse-encoding-v1:
+      URL: "https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-handler.tar.gz"
+    opensearch-neural-sparse-encoding-doc-v1:
+      URL: "https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-handler.tar.gz"
+    opensearch-neural-sparse-encoding-v2-distill:
+      URL: "https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-handler.tar.gz"
+    opensearch-neural-sparse-encoding-doc-v2-mini:
+      URL: "https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-handler.tar.gz"
+    opensearch-neural-sparse-encoding-doc-v2-distill:
+      URL: "https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-handler.tar.gz"
+    opensearch-neural-sparse-tokenizer-v1:
+      URL: "https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-tokenizer.tar.gz"
+  HuggingfaceModelName:
+    opensearch-neural-sparse-encoding-v1:
+      URL: "opensearch-project/opensearch-neural-sparse-encoding-v1"
+    opensearch-neural-sparse-encoding-doc-v1:
+      URL : "opensearch-project/opensearch-neural-sparse-encoding-doc-v1"
+    opensearch-neural-sparse-tokenizer-v1:
+      URL : "opensearch-project/opensearch-neural-sparse-encoding-doc-v1"
+    opensearch-neural-sparse-encoding-v2-distill:
+      URL : "opensearch-project/opensearch-neural-sparse-encoding-v2-distill"
+    opensearch-neural-sparse-encoding-doc-v2-mini:
+      URL : "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-mini"
+    opensearch-neural-sparse-encoding-doc-v2-distill:
+      URL: "opensearch-project/opensearch-neural-sparse-encoding-doc-v2-distill"

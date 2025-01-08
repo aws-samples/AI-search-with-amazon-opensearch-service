@@ -1067,7 +1067,7 @@ def write_user_message(md,ans):
 #         else:
 #             display_query = md['question']
             
-        st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Text: </div><div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;font-style: italic;color:#e28743'>"+md['question']+"</div>", unsafe_allow_html = True)
+        st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Text: </div><div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;font-style: italic;color:#e28743'>"+st.session_state.input_text+"</div>", unsafe_allow_html = True)#replace with md['question']
         if('query_sparse' in ans):
             with st.expander("Expanded Query:"):
                 query_sparse = dict(sorted(ans['query_sparse'].items(), key=lambda item: item[1],reverse=True))
