@@ -120,6 +120,9 @@ if "input_category" not in st.session_state:
 if "input_gender" not in st.session_state:
     st.session_state.input_gender = None
     
+if "input_imageUpload" not in st.session_state:
+    st.session_state.input_imageUpload = 'no'
+    
 # if "input_price" not in st.session_state:
 #     st.session_state.input_price = (0,0)
     
@@ -273,28 +276,6 @@ if(opensearch_bedrock_rerank_pipeline!='{}'):
 else:
     st.session_state.bedrock_re_ranker = "false"
 ds.store_in_dynamo('bedrock_re_ranker',st.session_state.bedrock_re_ranker )
-
-###### 4. LLM request search pipeline (text) #######
-
-# opensearch_llm_search_request_pipeline = (requests.get(host+'_search/pipeline/LLM_search_request_pipeline', auth=awsauth,headers=headers)).text
-# print("LLM_search_request_pipeline")
-# print(opensearch_llm_search_request_pipeline)
-# if(opensearch_llm_search_request_pipeline!='{}'):
-#     st.session_state.llm_search_request_pipeline = "true"
-#     total_pipeline = json.loads(opensearch_llm_search_request_pipeline)
-#     if('request_processors' in total_pipeline['LLM_search_request_pipeline'].keys()):
-#         if(len(total_pipeline['LLM_search_request_pipeline']['request_processors'])>1):
-#             st.session_state.BEDROCK_Claude3_image_MODEL_ID = total_pipeline['LLM_search_request_pipeline']['request_processors'][0]['ml_inference']['model_id']
-#             ds.store_in_dynamo('BEDROCK_Claude3_image_MODEL_ID', st.session_state.BEDROCK_Claude3_image_MODEL_ID)
-#             st.session_state.BEDROCK_Claude3_text_MODEL_ID  = total_pipeline['LLM_search_request_pipeline']['request_processors'][1]['ml_inference']['model_id']
-#         else:
-#             st.session_state.BEDROCK_Claude3_text_MODEL_ID  = total_pipeline['LLM_search_request_pipeline']['request_processors'][0]['ml_inference']['model_id']
-#         ds.store_in_dynamo('BEDROCK_Claude3_text_MODEL_ID', st.session_state.BEDROCK_Claude3_text_MODEL_ID )
-            
-        
-# else:
-#     st.session_state.llm_search_request_pipeline = "false"
-# ds.store_in_dynamo('llm_search_request_pipeline',st.session_state.llm_search_request_pipeline )
 
 ###### 4. LLM request search pipeline (text) #######
 
@@ -880,7 +861,7 @@ if(search_all_type == True or 1==1):
     #                )
             ########################## enable for query_rewrite ########################
             ####### Filters   #########
-
+        #if(st.session_state.input_is_rewrite_query == 'disabled' and (st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType) == False ):
         st.subheader(':blue[Filters]')
         def clear_filter():
             st.session_state.input_manual_filter="False"
@@ -894,36 +875,36 @@ if(search_all_type == True or 1==1):
             st.selectbox("Select one Category", ("accessories", "books","floral","furniture","hot_dispensed","jewelry","tools","apparel","cold_dispensed","food_service","groceries","housewares","outdoors","salty_snacks","videos","beauty","electronics","footwear","homedecor","instruments","seasonal"),index = None,key = "input_category")
             st.selectbox("Select one Gender", ("male","female"),index = None,key = "input_gender")
             st.slider("Select a range of price", 0, 2000, (0, 0),50, key = "input_price")
-        
+
         if(st.session_state.input_category!=None or st.session_state.input_gender!=None or st.session_state.input_price!=(0,0)):
             st.session_state.input_manual_filter="True"
         else:
             st.session_state.input_manual_filter="False"
 
         ds.store_in_dynamo('input_manual_filter',st.session_state.input_manual_filter )
-   
+
         clear_filter = st.button("Clear Filters",on_click=clear_filter)
-        
-            
+
+
 #             filter_place_holder = st.container()
 #             with filter_place_holder:
 #                 st.selectbox("Select one Category", ("accessories", "books","floral","furniture","hot_dispensed","jewelry","tools","apparel","cold_dispensed","food_service","groceries","housewares","outdoors","salty_snacks","videos","beauty","electronics","footwear","homedecor","instruments","seasonal"),index = None,key = "input_category")
 #                 st.selectbox("Select one Gender", ("male","female"),index = None,key = "input_gender")
 #                 st.slider("Select a range of price", 0, 2000, (0, 0),50, key = "input_price")
-             
+
 #             st.session_state.input_category=None
 #             st.session_state.input_gender=None
 #             st.session_state.input_price=(0,0)
-            
+
         print("--------------------filters---------------")    
         print(st.session_state.input_gender)
         print(st.session_state.input_manual_filter)
         print("--------------------filters---------------") 
-        
-        
-        
+
+
+
         ####### Filters   #########
-        
+
         if('NeuralSparse Search' in st.session_state.search_types):
             st.subheader(':blue[Neural Sparse Search]')
             sparse_filter = st.slider('Keep only sparse tokens with weight >=', 0.0, 1.0, 0.5,0.1,key = 'input_sparse_filter', help = 'Use this slider to set the minimum weight that the sparse vector token weights should meet, rest are filtered out')
@@ -932,27 +913,27 @@ if(search_all_type == True or 1==1):
         #sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
         #st.session_state.input_is_rewrite_query = 'disabled'
         st.session_state.input_is_sql_query = 'disabled'
-        
-        ########################## enable for query_rewrite ########################
-        if(1!=1):
-            if rewrite_query:
-            #st.write(st.session_state.inputs_)
-                st.session_state.input_is_rewrite_query = 'enabled'
-        # if sql_query:
+
+        ########################## enable for query_rewrite using langchain ########################
+#         if(1!=1):
+#             if rewrite_query:
+#             #st.write(st.session_state.inputs_)
+#                 st.session_state.input_is_rewrite_query = 'enabled'
+#         # if sql_query:
         #     #st.write(st.session_state.inputs_)
         #     st.session_state.input_is_sql_query = 'enabled'
         ########################## enable for sql conversion ########################
-        
-        
+
+
         #st.markdown('---')
         #st.header('Fine-tune keyword Search', divider='rainbow')
         #st.subheader('Note: The below selection applies only when the Search type is set to Keyword Search')
-           
-         
-        # st.markdown("<u>Enrich metadata for :</u>",unsafe_allow_html=True) 
-        
 
-        
+
+        # st.markdown("<u>Enrich metadata for :</u>",unsafe_allow_html=True) 
+
+
+
         # c3,c4 = st.columns([10,90])
         # with c4:
         #     rekognition = st.checkbox('Images', key = 'rekognition', help = "Checking this box will use AI to extract metadata for images that are present in query and documents")
@@ -965,13 +946,13 @@ if(search_all_type == True or 1==1):
         #st.markdown('---')
         #st.header('Fine-tune Hybrid Search', divider='rainbow')
         #st.subheader('Note: The below parameters apply only when the Search type is set to Hybrid Search')
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
         #st.write("---")
         #if(st.session_state.max_selections == "None"):
         st.subheader(':blue[Hybrid Search]')
@@ -994,7 +975,7 @@ if(search_all_type == True or 1==1):
             st.number_input("Vector %", min_value=0, max_value=100, value=0, step=5,  key='input_Vector-weight', help=None)
             st.number_input("Multimodal %", min_value=0, max_value=100, value=0, step=5,  key='input_Multimodal-weight', help=None)
             st.number_input("NeuralSparse %", min_value=0, max_value=100, value=0, step=5,  key='input_NeuralSparse-weight', help=None)
-        
+
         # if(equal_weight):
         #     counter = 0
         #     num_search = len(st.session_state.input_searchType)
@@ -1025,7 +1006,7 @@ if(search_all_type == True or 1==1):
         # st.selectbox('Select the Score Combination type',
         # ('arithmetic_mean','geometric_mean','harmonic_mean'
         # ),
-    
+
         # key = 'input_CombineType',
         # disabled = True,
         # help = "Select the Combination strategy to be used while combining the two scores of the two search queries for every document"
@@ -1055,18 +1036,18 @@ if(search_all_type == True or 1==1):
         # st.subheader('Text Embeddings Model')
         # model_type = st.selectbox('Select the Text Embeddings Model',
         # ('Titan-Embed-Text-v1','GPT-J-6B'
-        
+
         # ),
-    
+
         # key = 'input_modelType',
         # help = "Select the Text embedding model, this applies only for the vector and hybrid search"
         # )
 
         #st.markdown('---')
 
-        
 
-        
+
+
 
     
 
