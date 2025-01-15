@@ -115,10 +115,31 @@ def handler(input_,session_id):
             
       
         
-    ######## Updating hybrid Search pipeline #######   
-    print("Updating Search pipeline with new weights")        
+    ######## Inititate creating a total search pipeline #######   
+    print("Creating the total pipeline")        
     s_pipeline_payload = {"version": 1234}
-    s_pipeline_payload["phase_results_processors"] = [
+    
+     ######## Sparse Search pipeline #######  
+    if('NeuralSparse Search' in st.session_state.search_types and st.session_state.neural_sparse_two_phase_search_pipeline != ''):
+        path = "_search/pipeline/neural_sparse_two_phase_search_pipeline" 
+        sparse_pipeline_payload = (json.loads(st.session_state.neural_sparse_two_phase_search_pipeline))['neural_sparse_two_phase_search_pipeline']
+        #updating prune
+        sparse_pipeline_payload['request_processors'][0]['neural_sparse_two_phase_processor']['two_phase_parameter']['prune_ratio'] = st.session_state.input_sparse_filter
+        url = host + path
+        r = requests.put(url, auth=awsauth, json=sparse_pipeline_payload, headers=headers)
+        print("Sparse Search Pipeline updated: "+str(r.status_code))
+        s_pipeline_payload['request_processors'] = sparse_pipeline_payload['request_processors']
+    
+    
+    ######## Hybrid Search pipeline #######  
+    opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
+    print("opensearch_search_pipeline")
+    print(opensearch_search_pipeline)
+    
+    if(opensearch_search_pipeline!='{}'):
+        path = "_search/pipeline/hybrid_search_pipeline" 
+        url = host + path
+        hybrid_pipeline_payload = {"phase_results_processors":[
                 {
                     "normalization-processor": {
                     "normalization": {
@@ -132,38 +153,36 @@ def handler(input_,session_id):
                     }
                     }
                 }
-                ]
-            
-
+                ]}
+        r = requests.put(url, auth=awsauth, json=hybrid_pipeline_payload, headers=headers)
+        print("Hybrid Search Pipeline updated: "+str(r.status_code))
+        s_pipeline_payload['phase_results_processors'] = hybrid_pipeline_payload['phase_results_processors']
         
-    opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
-    print("opensearch_search_pipeline")
-    print(opensearch_search_pipeline)
-    if(opensearch_search_pipeline!='{}'):
-        path = "_search/pipeline/hybrid_search_pipeline" 
+     ######## Rerank pipeline #######     
+    if(st.session_state.input_reranker!= 'None'):
+        opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
+        print("opensearch_sagemaker_rerank_pipeline")
+        print(opensearch_sagemaker_rerank_pipeline)
+        opensearch_bedrock_rerank_pipeline = (requests.get(host+'_search/pipeline/bedrock_rerank_pipeline', auth=awsauth,headers=headers)).text
+        print("opensearch_bedrock_rerank_pipeline")
+        print(opensearch_bedrock_rerank_pipeline)
+        if(opensearch_sagemaker_rerank_pipeline!='{}' or opensearch_bedrock_rerank_pipeline!='{}'):
+            if(opensearch_sagemaker_rerank_pipeline!='{}' and st.session_state.input_reranker == 'SageMaker Cross Encoder'):
+                total_pipeline = json.loads(opensearch_sagemaker_rerank_pipeline)
+                sagemaker_or_bedrock = 'sagemaker_rerank_pipeline'
+            if(opensearch_bedrock_rerank_pipeline!='{}' and st.session_state.input_reranker == 'Bedrock Rerank'):
+                total_pipeline = json.loads(opensearch_bedrock_rerank_pipeline)
+                sagemaker_or_bedrock = 'bedrock_rerank_pipeline'
+            s_pipeline_payload['response_processors'] = total_pipeline[sagemaker_or_bedrock]['response_processors']
+
+    ######## Combining hybrid+rerank+sparse pipeline ####### 
+    if(len(list(s_pipeline_payload.keys()))>1):
+        path = "_search/pipeline/hybrid_rerank_sparse_pipeline" 
         url = host + path
         r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
-        print("Hybrid Search Pipeline updated: "+str(r.status_code))
-        ######## Combining hybrid+rerank pipeline ####### 
-        if(st.session_state.input_reranker!= 'None'):
-            opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
-            print("opensearch_sagemaker_rerank_pipeline")
-            print(opensearch_sagemaker_rerank_pipeline)
-            opensearch_bedrock_rerank_pipeline = (requests.get(host+'_search/pipeline/bedrock_rerank_pipeline', auth=awsauth,headers=headers)).text
-            print("opensearch_bedrock_rerank_pipeline")
-            print(opensearch_bedrock_rerank_pipeline)
-            if(opensearch_sagemaker_rerank_pipeline!='{}' or opensearch_bedrock_rerank_pipeline!='{}'):
-                if(opensearch_sagemaker_rerank_pipeline!='{}' and st.session_state.input_reranker == 'SageMaker Cross Encoder'):
-                    total_pipeline = json.loads(opensearch_sagemaker_rerank_pipeline)
-                    sagemaker_or_bedrock = 'sagemaker_rerank_pipeline'
-                if(opensearch_bedrock_rerank_pipeline!='{}' and st.session_state.input_reranker == 'Bedrock Rerank'):
-                    total_pipeline = json.loads(opensearch_bedrock_rerank_pipeline)
-                    sagemaker_or_bedrock = 'bedrock_rerank_pipeline'
-                s_pipeline_payload['response_processors'] = total_pipeline[sagemaker_or_bedrock]['response_processors']
-                path = "_search/pipeline/hybrid_rerank_pipeline" 
-                url = host + path
-                r = requests.put(url, auth=awsauth, json=s_pipeline_payload, headers=headers)
-            print("hybrid_rerank_pipeline Creation: "+str(r.status_code))
+        print("hybrid_rerank_sparse_pipeline Creation: "+str(r.status_code))
+
+
     if(st.session_state.input_is_rewrite_query == 'enabled' and st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType and st.session_state.llm_search_request_pipeline_image == "true"):    
         llm_text = json.loads((requests.get(host+'_search/pipeline/LLM_search_request_pipeline', auth=awsauth,headers=headers)).text)
         llm_image = json.loads((requests.get(host+'_search/pipeline/LLM_search_request_pipeline_image', auth=awsauth,headers=headers)).text)
@@ -412,12 +431,14 @@ def handler(input_,session_id):
                value in sorted(query_sparse.items(), 
                                key=lambda item: item[1],reverse=True)}
         print("text expansion is enabled")
-        #print(query_sparse_sorted)
+        max_value = query_sparse_sorted[list(query_sparse_sorted.keys())[0]]
+        threshold = round(max_value*st.session_state.input_sparse_filter,2)
+        #print(max_value)
         query_sparse_sorted_filtered = {}
        
         rank_features = []
         for key_ in query_sparse_sorted.keys():
-            if(query_sparse_sorted[key_]>=st.session_state.input_sparse_filter):
+            if(query_sparse_sorted[key_]>=threshold):
                 feature = {"rank_feature": {"field": "product_description_sparse_vector."+key_,"boost":query_sparse_sorted[key_]}}
                 rank_features.append(feature)
                 query_sparse_sorted_filtered[key_]=query_sparse_sorted[key_]
@@ -425,20 +446,33 @@ def handler(input_,session_id):
                 break
         
         #print(query_sparse_sorted_filtered)
-        sparse_payload = {"bool":{"should":rank_features}}
+        #sparse_payload = {"bool":{"should":rank_features}} ## use this for vector hardcoded sparse search
+        sparse_payload = {}
+        sparse_payload_segment = {
+        "neural_sparse": {
+            "product_description_sparse_vector": {
+            "query_text": query,
+            "model_id": SAGEMAKER_SPARSE_MODEL_ID
+            
+            }
+            }
+            }
         
         ###### start of efficient filter applying #####
 #         if(st.session_state.input_rewritten_query!=""):
 #             sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
             
         if(st.session_state.input_manual_filter == "True"):
-            sparse_payload['bool']['filter']=[]
+            sparse_payload = {'bool':{'filter':[]}}
             if(st.session_state.input_category!=None):
                 sparse_payload['bool']['filter'].append({"term": {"category": st.session_state.input_category}})
             if(st.session_state.input_gender!=None):
                 sparse_payload['bool']['filter'].append({"term": {"gender_affinity": st.session_state.input_gender}})
             if(st.session_state.input_price!=(0,0)):
                 sparse_payload['bool']['filter'].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
+            sparse_payload['bool']['should'] = sparse_payload_segment
+        else:
+            sparse_payload = sparse_payload_segment
         
             
 #         print("sparse_payload**************")   
@@ -474,8 +508,7 @@ def handler(input_,session_id):
         
 
         
-    print("hybrid_payload") 
-    print("---------------")  
+    
     print(st.session_state.bedrock_re_ranker)
     print(st.session_state.input_reranker)
     
@@ -492,7 +525,7 @@ def handler(input_,session_id):
         single_query = hybrid_payload["query"]["hybrid"]["queries"][0]
         del hybrid_payload["query"]["hybrid"]
         hybrid_payload["query"] = single_query
-        print("***************************"+st.session_state.input_is_rewrite_query)
+        ##########. LLM features ###########
         if(st.session_state.input_is_rewrite_query == 'enabled'):
             path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline" 
         if(st.session_state.input_imageUpload == 'yes' and 'Keyword Search' in st.session_state.input_searchType and st.session_state.llm_search_request_pipeline_image == "true"):    
@@ -502,120 +535,95 @@ def handler(input_,session_id):
             path = "demostore-search-index/_search?search_pipeline=LLM_search_request_pipeline_text_image"
         url = host + path
             
-        # print("-------final query--------")
-        if(st.session_state.sagemaker_re_ranker == 'true' and st.session_state.input_reranker == 'SageMaker Cross Encoder'):
-            path = "demostore-search-index/_search?search_pipeline=sagemaker_rerank_pipeline" 
-            url = host + path
-            hybrid_payload["ext"] = {"rerank": {
-                                          "query_context": {
-                                             "query_text": query
-                                          }
-                                        }}
-        if(st.session_state.bedrock_re_ranker == 'true' and st.session_state.input_reranker == 'Bedrock Rerank'):
-            path = "demostore-search-index/_search?search_pipeline=bedrock_rerank_pipeline" 
-            url = host + path
-            hybrid_payload["ext"] = {"rerank": {
-                                          "query_context": {
-                                             "query_text": query
-                                          }
-                                        }}
+        
         if(profile):
-            hybrid_payload['profile'] = "true"  
-        print(hybrid_payload)
-        print(url)
-        r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
-        print(r.status_code)
-        #print(r.text)
-        response_ = json.loads(r.text)
-        st.session_state.input_rewritten_query = ""
-        if('profile' in hybrid_payload):
-            split_arr = response_['profile']['shards'][0]['searches'][0]['query'][0]['description'].split("product_description:")
-            print(split_arr)
-            if(st.session_state.input_is_rewrite_query == 'enabled'):
-                x = split_arr[-1].split(" (")[1]
-                filters = ' '.join(set((' '.join(re.sub(r'[^a-zA-Z0-9]', ' ', x.replace("category","").replace("gender_affinity","")).split())).split(" ")))
-                hybrid_payload['query']['bool']["should"][0]["multi_match"]["query"] = filters
-                st.session_state.input_rewritten_query = hybrid_payload['query']
-            if(st.session_state.input_imageUpload == 'yes'):
-                split_arr[-1] = split_arr[-1].split(" (")[0]
-                trans_query = re.sub(r"[^a-zA-Z0-9]+", ' ',''.join(split_arr)).strip()
-                hybrid_payload['query']['bool']["must"][0]["match"]["product_description"]["query"] = trans_query
-                st.session_state.input_text = trans_query
-                st.session_state.input_rewritten_query = hybrid_payload['query']
-            
-            
-            
-        print("-------------------------------------------------------------------")
-        print(st.session_state.input_rewritten_query)
-        docs = response_['hits']['hits']
+            hybrid_payload['profile'] = "true" 
+        ##########. LLM features ###########
+        
     
     
-    else:
-         
-        
-        print("hybrid_payload")
-        print(hybrid_payload)
-        print("-------------------------------------------------------------------")
-        
-        if( st.session_state.input_hybridType == "OpenSearch Hybrid Query"):
-            url_ = url + "?search_pipeline=hybrid_search_pipeline" 
-            
-            if(st.session_state.input_reranker == 'SageMaker Cross Encoder' or st.session_state.bedrock_re_ranker == 'Bedrock Rerank'):
-                
-                url_ = url + "?search_pipeline=hybrid_rerank_pipeline" 
-            
-                hybrid_payload["ext"] = {"rerank": {
-                                          "query_context": {
-                                             "query_text": query
-                                          }
-                                        }}
-            print(url_)
-            r = requests.get(url_, auth=awsauth, json=hybrid_payload, headers=headers)
-            print(r.status_code)
-            response_ = json.loads(r.text)
-            print("-------------------------------------------------------------------")
-            print(response_)
-            docs = response_['hits']['hits']
-        
-        else:
-            all_docs = []
-            all_docs_ids = []
-            only_hits = []
-        
-            rrf_hits = []
-            for i,query in enumerate(hybrid_payload["query"]["hybrid"]["queries"]):
-                payload_ =  {'_source': 
-                    {'exclude': ['desc_embedding_bedrock-multimodal', 'desc_embedding_bedrock-text', 'product_description_sparse_vector']}, 
-                    'query': query, 
-                    'size': k_, 'highlight': {'fields': {'product_description': {}}}}
-                
-                r_ = requests.get(url, auth=awsauth, json=payload_, headers=headers)
-                resp = json.loads(r_.text)
-                all_docs.append({"search":list(query.keys())[0],"results":resp['hits']['hits'],"weight":weights[i]})
-                only_hits.append(resp['hits']['hits'])
-                for hit in resp['hits']['hits']:
-                    all_docs_ids.append(hit["_id"])
-                    
-            
-            id_scores = []
-            rrf_hits_unsorted = []
-            
-            for id in all_docs_ids:
-                score = 0.0
-                for result_set in all_docs:
-                    if id in json.dumps(result_set['results']):
-                        for n,res in enumerate(result_set['results']):
-                            if(res["_id"] == id):
-                                score += result_set["weight"] * (1.0 /  (n+1))
-                id_scores.append({"id":id,"score":score})
-                for only_hit in only_hits:
-                    for i_ in only_hit:
-                        if(id == i_["_id"]):
-                            i_["_score"] = score
-                        rrf_hits_unsorted.append(i_)
-            print("rrf_hits_unsorted------------------------------")   
-            docs = sorted(rrf_hits_unsorted, key=lambda x: x['_score'],reverse=True)
+    elif(1!=1):# use for RRF
+        all_docs = []
+        all_docs_ids = []
+        only_hits = []
+
+        rrf_hits = []
+        for i,query in enumerate(hybrid_payload["query"]["hybrid"]["queries"]):
+            payload_ =  {'_source': 
+                {'exclude': ['desc_embedding_bedrock-multimodal', 'desc_embedding_bedrock-text', 'product_description_sparse_vector']}, 
+                'query': query, 
+                'size': k_, 'highlight': {'fields': {'product_description': {}}}}
+
+            r_ = requests.get(url, auth=awsauth, json=payload_, headers=headers)
+            resp = json.loads(r_.text)
+            all_docs.append({"search":list(query.keys())[0],"results":resp['hits']['hits'],"weight":weights[i]})
+            only_hits.append(resp['hits']['hits'])
+            for hit in resp['hits']['hits']:
+                all_docs_ids.append(hit["_id"])
+
+
+        id_scores = []
+        rrf_hits_unsorted = []
+
+        for id in all_docs_ids:
+            score = 0.0
+            for result_set in all_docs:
+                if id in json.dumps(result_set['results']):
+                    for n,res in enumerate(result_set['results']):
+                        if(res["_id"] == id):
+                            score += result_set["weight"] * (1.0 /  (n+1))
+            id_scores.append({"id":id,"score":score})
+            for only_hit in only_hits:
+                for i_ in only_hit:
+                    if(id == i_["_id"]):
+                        i_["_score"] = score
+                    rrf_hits_unsorted.append(i_)
+        print("rrf_hits_unsorted------------------------------")   
+        docs = sorted(rrf_hits_unsorted, key=lambda x: x['_score'],reverse=True)
             #print(docs)
+            
+        ##########.###########
+    if(len(list(s_pipeline_payload.keys()))>1 and profile==False):
+        path = "demostore-search-index/_search?search_pipeline=hybrid_rerank_sparse_pipeline" 
+    url = host + path
+    if(st.session_state.input_reranker!= 'None'):
+
+        hybrid_payload["ext"] = {"rerank": {
+                                      "query_context": {
+                                         "query_text": query
+                                      }
+                                    }}
+    ##########.###########
+    ##########. LLM features ###########    
+    print("hybrid_payload") 
+    print("---------------")  
+    print(hybrid_payload)
+    print(url)
+    r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
+    print(r.status_code)
+    #print(r.text)
+    response_ = json.loads(r.text)
+    st.session_state.input_rewritten_query = ""
+    if('profile' in hybrid_payload):
+        split_arr = response_['profile']['shards'][0]['searches'][0]['query'][0]['description'].split("product_description:")
+        print(split_arr)
+        if(st.session_state.input_is_rewrite_query == 'enabled'):
+            x = split_arr[-1].split(" (")[1]
+            filters = ' '.join(set((' '.join(re.sub(r'[^a-zA-Z0-9]', ' ', x.replace("category","").replace("gender_affinity","")).split())).split(" ")))
+            hybrid_payload['query']['bool']["should"][0]["multi_match"]["query"] = filters
+            st.session_state.input_rewritten_query = hybrid_payload['query']
+        if(st.session_state.input_imageUpload == 'yes'):
+            split_arr[-1] = split_arr[-1].split(" (")[0]
+            trans_query = re.sub(r"[^a-zA-Z0-9]+", ' ',''.join(split_arr)).strip()
+            hybrid_payload['query']['bool']["must"][0]["match"]["product_description"]["query"] = trans_query
+            st.session_state.input_text = trans_query
+            st.session_state.input_rewritten_query = hybrid_payload['query']
+
+      ##########.###########
+            
+    print("-------------------------------------------------------------------")
+    print(st.session_state.input_rewritten_query)
+    docs = response_['hits']['hits']
         
         
             

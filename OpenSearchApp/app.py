@@ -75,6 +75,9 @@ if "bedrock_re_ranker" not in st.session_state:
 if "llm_search_request_pipeline" not in st.session_state:
     st.session_state.llm_search_request_pipeline = ds.get_from_dynamo("llm_search_request_pipeline")
     
+if "neural_sparse_two_phase_search_pipeline" not in st.session_state:
+    st.session_state.neural_sparse_two_phase_search_pipeline = ds.get_from_dynamo("neural_sparse_two_phase_search_pipeline")   
+        
 if "search_types" not in st.session_state:
     st.session_state.search_types =ds.get_from_dynamo("search_types")
     if(st.session_state.search_types == ""):
@@ -259,6 +262,19 @@ else:
     st.session_state.max_selections = "1"
         
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+
+########
+
+opensearch_sparse_search_pipeline = (requests.get(host+'_search/pipeline/neural_sparse_two_phase_search_pipeline', auth=awsauth,headers=headers)).text
+
+if(opensearch_sparse_search_pipeline!='{}'):
+    st.session_state.neural_sparse_two_phase_search_pipeline = opensearch_sparse_search_pipeline
+else:
+    st.session_state.neural_sparse_two_phase_search_pipeline = ""
+        
+ds.store_in_dynamo('neural_sparse_two_phase_search_pipeline',st.session_state.neural_sparse_two_phase_search_pipeline )
+
+######
         
 opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
 #print("opensearch_sagemaker_rerank_pipeline")

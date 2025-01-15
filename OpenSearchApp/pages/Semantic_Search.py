@@ -195,7 +195,7 @@ if "input_rekog_label" not in st.session_state:
     
 
 if "input_sparse_filter" not in st.session_state:
-    st.session_state.input_sparse_filter = 0.5
+    st.session_state.input_sparse_filter = 0.4
 
 if "input_modelType" not in st.session_state:
     st.session_state.input_modelType = "Titan-Embed-Text-v1"
@@ -220,6 +220,9 @@ if "max_selections" not in st.session_state:
     
 if "sagemaker_re_ranker" not in st.session_state:
     st.session_state.sagemaker_re_ranker = ds.get_from_dynamo("sagemaker_re_ranker")
+    
+if "neural_sparse_two_phase_search_pipeline" not in st.session_state:
+    st.session_state.neural_sparse_two_phase_search_pipeline = ds.get_from_dynamo("neural_sparse_two_phase_search_pipeline")   
     
 if "bedrock_re_ranker" not in st.session_state:
     st.session_state.bedrock_re_ranker = ds.get_from_dynamo("bedrock_re_ranker")
@@ -246,6 +249,16 @@ else:
     st.session_state.max_selections = "1"
         
 ds.store_in_dynamo('max_selections',st.session_state.max_selections )
+
+########
+opensearch_sparse_search_pipeline = (requests.get(host+'_search/pipeline/neural_sparse_two_phase_search_pipeline', auth=awsauth,headers=headers)).text
+if(opensearch_sparse_search_pipeline!='{}'):
+    st.session_state.neural_sparse_two_phase_search_pipeline = opensearch_sparse_search_pipeline
+else:
+    st.session_state.neural_sparse_two_phase_search_pipeline = ""
+        
+ds.store_in_dynamo('neural_sparse_two_phase_search_pipeline',st.session_state.neural_sparse_two_phase_search_pipeline )
+######
 
 ###### 2. sagemaker rerank search pipeline #######
 opensearch_sagemaker_rerank_pipeline = (requests.get(host+'_search/pipeline/sagemaker_rerank_pipeline', auth=awsauth,headers=headers)).text
@@ -905,9 +918,9 @@ if(search_all_type == True or 1==1):
 
         ####### Filters   #########
 
-        if('NeuralSparse Search' in st.session_state.search_types):
+        if('NeuralSparse Search' in st.session_state.search_types and st.session_state.neural_sparse_two_phase_search_pipeline != ''):
             st.subheader(':blue[Neural Sparse Search]')
-            sparse_filter = st.slider('Keep only sparse tokens with weight >=', 0.0, 1.0, 0.5,0.1,key = 'input_sparse_filter', help = 'Use this slider to set the minimum weight that the sparse vector token weights should meet, rest are filtered out')
+            sparse_filter = st.slider('Prune ratio', 0.0, 1.0, 0.4,0.1,key = 'input_sparse_filter', help = 'A ratio that represents how to split the high-weight tokens and low-weight tokens. The threshold is the token’s maximum score multiplied by its prune_ratio. Valid range is [0,1]. Default is 0.4')
 
 
         #sql_query = st.checkbox('Re-write as SQL query', key = 'sql_rewrite', disabled = True, help = "In Progress")
