@@ -66,9 +66,18 @@ if "BEDROCK_MULTIMODAL_CONNECTOR_ID" not in st.session_state:
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = ds.get_from_dynamo("max_selections")
     
-if "re_ranker" not in st.session_state:
-    st.session_state.re_ranker = ds.get_from_dynamo("re_ranker")
+if "sagemaker_re_ranker" not in st.session_state:
+    st.session_state.sagemaker_re_ranker = ds.get_from_dynamo("sagemaker_re_ranker")
     
+if "bedrock_re_ranker" not in st.session_state:
+    st.session_state.bedrock_re_ranker = ds.get_from_dynamo("bedrock_re_ranker")
+    
+if "llm_search_request_pipeline" not in st.session_state:
+    st.session_state.llm_search_request_pipeline = ds.get_from_dynamo("llm_search_request_pipeline")
+    
+if "neural_sparse_two_phase_search_pipeline" not in st.session_state:
+    st.session_state.neural_sparse_two_phase_search_pipeline = ds.get_from_dynamo("neural_sparse_two_phase_search_pipeline")   
+        
 if "search_types" not in st.session_state:
     st.session_state.search_types =ds.get_from_dynamo("search_types")
     if(st.session_state.search_types == ""):
@@ -79,7 +88,12 @@ if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
     
 if "SAGEMAKER_SPARSE_CONNECTOR_ID" not in st.session_state:
     st.session_state.SAGEMAKER_SPARSE_CONNECTOR_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_CONNECTOR_ID")   
+
+if "BEDROCK_Rerank_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Rerank_MODEL_ID = ds.get_from_dynamo("BEDROCK_Rerank_MODEL_ID")   
     
+if "BEDROCK_Rerank_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_Rerank_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Rerank_CONNECTOR_ID") 
     
 if "SAGEMAKER_CrossEncoder_MODEL_ID" not in st.session_state:
     st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_CrossEncoder_MODEL_ID")   
@@ -92,7 +106,19 @@ if "BEDROCK_TEXT_MODEL_ID" not in st.session_state:
     
 if "BEDROCK_TEXT_CONNECTOR_ID" not in st.session_state:
     st.session_state.BEDROCK_TEXT_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_TEXT_CONNECTOR_ID")  
-#bytes_for_rekog = ""
+    
+if "BEDROCK_Claude3_image_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_image_MODEL_ID = ds.get_from_dynamo("BEDROCK_Claude3_image_MODEL_ID")   
+    
+if "BEDROCK_Claude3_image_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_image_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Claude3_image_CONNECTOR_ID")  
+    
+if "BEDROCK_Claude3_text_MODEL_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_text_MODEL_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_MODEL_ID")   
+    
+if "BEDROCK_Claude3_text_CONNECTOR_ID" not in st.session_state:
+    st.session_state.BEDROCK_Claude3_text_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_CONNECTOR_ID")  
+    
 
 isExist = os.path.exists("/home/ec2-user/SageMaker/images_retail")
 if not isExist:   
@@ -226,31 +252,19 @@ else:
     st.session_state.play_disabled = 'False'
 ds.store_in_dynamo('play_disabled',st.session_state.play_disabled)
     
-###### check for search pipelines #######
-opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_search_pipeline")
-print(opensearch_search_pipeline)
-if(opensearch_search_pipeline!='{}'):
-    st.session_state.max_selections = "None"
+
+
+opensearch_sparse_search_pipeline = (requests.get(host+'_search/pipeline/neural_sparse_two_phase_search_pipeline', auth=awsauth,headers=headers)).text
+
+if(opensearch_sparse_search_pipeline!='{}'):
+    st.session_state.neural_sparse_two_phase_search_pipeline = opensearch_sparse_search_pipeline
 else:
-    st.session_state.max_selections = "1"
+    st.session_state.neural_sparse_two_phase_search_pipeline = ""
         
-ds.store_in_dynamo('max_selections',st.session_state.max_selections )
-        
-opensearch_rerank_pipeline = (requests.get(host+'_search/pipeline/rerank_pipeline', auth=awsauth,headers=headers)).text
-print("opensearch_rerank_pipeline")
-print(opensearch_rerank_pipeline)
-if(opensearch_rerank_pipeline!='{}'):
-    st.session_state.re_ranker = "true"
-    total_pipeline = json.loads(opensearch_rerank_pipeline)
-    if('response_processors' in total_pipeline['rerank_pipeline'].keys()):
-        st.session_state.re_ranker = "true"
-        st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID = total_pipeline['rerank_pipeline']['response_processors'][0]['rerank']['ml_opensearch']['model_id']
-        ds.store_in_dynamo('SAGEMAKER_CrossEncoder_MODEL_ID',st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID )
-        
-else:
-    st.session_state.re_ranker = "false"
-ds.store_in_dynamo('re_ranker',st.session_state.re_ranker )
+ds.store_in_dynamo('neural_sparse_two_phase_search_pipeline',st.session_state.neural_sparse_two_phase_search_pipeline )
+
+
+
 ###### check for search pipelines #######
 
 def create_ml_connectors():
@@ -277,49 +291,19 @@ def create_ml_connectors():
                    #"post_process_fun": '\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.result == null || params.result.length == 0) {\n        return null;\n    }\n    def shape = [params.result[0].length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.result[0] +\n               "}";\n    return json;\n    ',
                     "request_body": """["${parameters.inputs}"]"""
              
-                 },
-        "SAGEMAKER_CrossEncoder":
-                 {
-                     
-                      "endpoint_url": "https://runtime.sagemaker."+st.session_state.REGION+".amazonaws.com/endpoints/cross-encoder-model/invocations",
-            "request_body": "{ \"inputs\": ${parameters.inputs} }",
-      "pre_process_fun": "\n    String escape(def input) { \n       if (input.contains(\"\\\\\")) {\n        input = input.replace(\"\\\\\", \"\\\\\\\\\");\n      }\n      if (input.contains(\"\\\"\")) {\n        input = input.replace(\"\\\"\", \"\\\\\\\"\");\n      }\n      if (input.contains('\r')) {\n        input = input = input.replace('\r', '\\\\r');\n      }\n      if (input.contains(\"\\\\t\")) {\n        input = input.replace(\"\\\\t\", \"\\\\\\\\\\\\t\");\n      }\n      if (input.contains('\n')) {\n        input = input.replace('\n', '\\\\n');\n      }\n      if (input.contains('\b')) {\n        input = input.replace('\b', '\\\\b');\n      }\n      if (input.contains('\f')) {\n        input = input.replace('\f', '\\\\f');\n      }\n      return input;\n    }\n\n   String query = params.query_text;\n   StringBuilder builder = new StringBuilder('[');\n    \n    for (int i=0; i<params.text_docs.length; i ++) {\n      builder.append('{\"text\":\"');\n      builder.append(escape(query));\n      builder.append('\", \"text_pair\":\"');\n      builder.append(escape(params.text_docs[i]));\n      builder.append('\"}');\n      if (i<params.text_docs.length - 1) {\n        builder.append(',');\n      }\n    }\n    builder.append(']');\n    \n    def parameters = '{ \"inputs\": ' + builder + ' }';\n    return  '{\"parameters\": ' + parameters + '}';\n     ",
-      "post_process_fun": "\n      \n      def dataType = \"FLOAT32\";\n      \n      \n      if (params.result == null)\n      {\n          return 'no result generated';\n          //return params.response;\n      }\n      def outputs = params.result;\n      \n      \n      def resultBuilder = new StringBuilder('[ ');\n      for (int i=0; i<outputs.length; i++) {\n        resultBuilder.append(' {\"name\": \"similarity\", \"data_type\": \"FLOAT32\", \"shape\": [1],');\n        //resultBuilder.append('{\"name\": \"similarity\"}');\n        \n        resultBuilder.append('\"data\": [');\n        resultBuilder.append(outputs[i].score);\n        resultBuilder.append(']}');\n        if (i<outputs.length - 1) {\n          resultBuilder.append(',');\n        }\n      }\n      resultBuilder.append(']');\n      \n      return resultBuilder.toString();\n    "
-  
-             
-                 },
-                
-                 "BEDROCK_TEXT":
-                {
-                     "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-text-v1/invoke",
-                    "pre_process_fun": "\n    StringBuilder builder = new StringBuilder();\n    builder.append(\"\\\"\");\n    String first = params.text_docs[0];\n    builder.append(first);\n    builder.append(\"\\\"\");\n    def parameters = \"{\" +\"\\\"inputText\\\":\" + builder + \"}\";\n    return  \"{\" +\"\\\"parameters\\\":\" + parameters + \"}\";",
-      
-                    "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    ',
-                    "request_body": "{ \"inputText\": \"${parameters.inputText}\"}"
-                 },
-                
-                 "BEDROCK_MULTIMODAL":
-                {
-                     "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
-                     "request_body": "{ \"inputText\": \"${parameters.inputText:-null}\", \"inputImage\": \"${parameters.inputImage:-null}\" }",
-                      "pre_process_fun": "\n    StringBuilder parametersBuilder = new StringBuilder(\"{\");\n    if (params.text_docs.length > 0 && params.text_docs[0] != null) {\n      parametersBuilder.append(\"\\\"inputText\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[0]);\n      parametersBuilder.append(\"\\\"\");\n      \n      if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n        parametersBuilder.append(\",\");\n      }\n    }\n    \n    \n    if (params.text_docs.length > 1 && params.text_docs[1] != null) {\n      parametersBuilder.append(\"\\\"inputImage\\\":\");\n      parametersBuilder.append(\"\\\"\");\n      parametersBuilder.append(params.text_docs[1]);\n      parametersBuilder.append(\"\\\"\");\n    }\n    parametersBuilder.append(\"}\");\n    \n    return  \"{\" +\"\\\"parameters\\\":\" + parametersBuilder + \"}\";",
-                     "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    '
-                    }
+                 }
             }
 
     connector_path_url = host+'_plugins/_ml/connectors/_create'
     
 
     for remote_ml_key in remote_ml.keys():
-        if(remote_ml_key == "SAGEMAKER_CrossEncoder"):
-            name = "CROSS_ENCODER: RE-RANKING"
-        else:
-            name = remote_ml_key+": EMBEDDING"
+        name = remote_ml_key+": EMBEDDING"
             
         #create connector
         payload_1 = {
-        "name": name,
-        "description": "Test connector for"+remote_ml_key+" remote embedding model",
+        "name": name, 
+        "description": "Connector for "+remote_ml_key+" remote model",
         "version": 1,
         "protocol": "aws_sigv4",
         "credential": {
@@ -327,7 +311,8 @@ def create_ml_connectors():
         },
         "parameters": {
             "region": st.session_state.REGION,
-            "service_name": (remote_ml_key.split("_")[0]).lower()
+            "service_name": (remote_ml_key.split("_")[0]).lower(),
+            "input_docs_processed_step_size": "2"
         },
         "actions": [
             {
@@ -343,13 +328,9 @@ def create_ml_connectors():
             }
         ]
         }
-        if(remote_ml_key != 'SAGEMAKER_SPARSE'):
-            payload_1["actions"][0]["post_process_function"] = remote_ml[remote_ml_key]["post_process_fun"]
-            
-        
 
         r_1 = requests.post(connector_path_url, auth=awsauth, json=payload_1, headers=headers)
-        print(r_1.text)
+        #print(r_1.text)
         remote_ml[remote_ml_key]["connector_id"] = json.loads(r_1.text)["connector_id"]
         
         st.session_state[remote_ml_key+"_CONNNECTOR_ID"] = json.loads(r_1.text)["connector_id"]
@@ -382,19 +363,11 @@ def ingest_data(col,warning):
     print("opensearch_res:"+opensearch_res)
     search_types = 'Keyword Search,'
     if(opensearch_res!='{}'):
+        #print("------------------"+opensearch_res)
         opensearch_models = {}
         for i in json.loads(opensearch_res)['ml_ingest_pipeline']['processors']:
             key_ = list(i.keys())[0]
             opensearch_models[list(i.keys())[0]] = i[key_]['model_id']
-            if(key_ == 'text_embedding'):
-                search_types+='Vector Search,'
-                st.session_state.BEDROCK_TEXT_MODEL_ID = i[key_]['model_id']
-                ds.store_in_dynamo('BEDROCK_TEXT_MODEL_ID',st.session_state.BEDROCK_TEXT_MODEL_ID )
-                
-            if(key_ == 'text_image_embedding'):
-                search_types+='Multimodal Search,'
-                st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = i[key_]['model_id']
-                ds.store_in_dynamo('BEDROCK_MULTIMODAL_MODEL_ID',st.session_state.BEDROCK_MULTIMODAL_MODEL_ID )
                 
             if(key_ == 'sparse_encoding'):
                 search_types+='NeuralSparse Search,'
@@ -423,6 +396,7 @@ def ingest_data(col,warning):
                 ds.update_in_dynamo('ml_ingest_pipeline','store_val',opensearch_res)
                 ingest_flag = True
     else:
+        #print("------------------"+opensearch_res)
         exists = requests.head(host+'demostore-search-index', auth=awsauth,headers=headers)
         if(str(exists) == '<Response [404]>'):
             ingest_flag = True
@@ -457,20 +431,7 @@ def ingest_data(col,warning):
     action = json.dumps({ 'index': { '_index': 'demostore-search-index' } })
   
 
-    def resize_image(photo, width, height):
-        Image.MAX_IMAGE_PIXELS = 100000000
-        
-        with Image.open(photo) as image:
-            image.verify()
-        with Image.open(photo) as image:    
-            
-            if image.format in ["JPEG", "PNG"]:
-                file_type = image.format.lower()
-                path = image.filename.rsplit(".", 1)[0]
 
-                image.thumbnail((width, height))
-                image.save(f"{path}-resized.{file_type}")
-        return file_type, path
          
     for item in items_:
         count+=1
@@ -495,15 +456,7 @@ def ingest_data(col,warning):
             payload['style'] = item['style']
         else:
             payload['style'] = ""
-        #resize the image and generate image binary
         
-        file_type, path = resize_image(fileshort, 2048, 2048)
-        if(st.session_state.BEDROCK_MULTIMODAL_MODEL_ID != ""):
-            with open(fileshort.split(".")[0]+"-resized."+file_type, "rb") as image_file:
-                input_image = base64.b64encode(image_file.read()).decode("utf8")
-        
-            os.remove(fileshort.split(".")[0]+"-resized."+file_type)
-            payload['product_image'] = input_image
         
         
         body_ = body_ + action + "\n" + json.dumps(payload) + "\n"
@@ -527,7 +480,7 @@ def ingest_data(col,warning):
             index = 'demostore-search-index',
             body = body_
             )
-                    
+    print(response)                
     print("All "+str(last_batch)+" batches ingested into index")
     warning.empty()
     with col:
@@ -586,30 +539,5 @@ with c3:
     playground = st.button('Launch playground', type = 'primary', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
 if(playground):
     st.switch_page('pages/Semantic_Search.py')
-# if(get_fileds):
-#     #DOMAIN_ENDPOINT =   "search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com" #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
-#     REGION = st.session_state.REGION #'us-west-2'#
-#     credentials = boto3.Session().get_credentials()
-#     #awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, REGION, 'es', session_token=credentials.token)
-#     awsauth = HTTPBasicAuth(st.session_state.OpenSearchUsername,st.session_state.OpenSearchPassword)
-#     r = requests.get(url, auth=awsauth,  headers=headers)
-#     mappings= json.loads(r.text)[input_index]["mappings"]["properties"]
-    
-#     fields = []
-#     props = {}
-#     for i in mappings.keys():
-#         if(mappings[i]["type"] != 'knn_vector' and mappings[i]["type"] != "rank_features"):
-#             fields.append({i:mappings[i]["type"]})
-#         if('fields' in mappings[i]):
-#             del mappings[i]['fields']
-#     st.session_state.index_map = mappings
-#     print(st.session_state.index_map)
-#     col1,col2 = st.columns([50,50])
-#     with col1:
-#         st.write(fields)
-#     with col2:
-#         input_vectors = st.text_input( "Field name(s) (comma separated) that needs to be vectorised",key="input_vectors",placeholder = "field1,field2")
-#         submit = st.button("Submit",on_click = create_ml_components)
-        
-        
-    
+
+            

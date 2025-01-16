@@ -12,8 +12,6 @@ Metadata:
       AppName:
         default: Name of the overall application
       
-      
-      
 Parameters:
   SageMakerIAMRole:
     Description: Name of IAM role that will be created by this cloud formation template. The role name must _not_ already exist in your AWS account.
@@ -73,10 +71,10 @@ Resources:
                   sudo yum install zip
                   sudo yum -y install git
                   if [ ! -d "AI-search-with-amazon-opensearch-service" ]; then
-                  git clone -b Next-Gen-Search-Workshop https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
+                  git clone -b Neural-Sparse-Search-blog https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
                   echo ${s3Bucket}
-                  wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-biencoder.tar.gz
-                  aws s3 cp /home/ec2-user/SageMaker/neural-sparse-biencoder.tar.gz s3://${s3Bucket}
+                  wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-handler.tar.gz
+                  aws s3 cp /home/ec2-user/SageMaker/neural-sparse-handler.tar.gz s3://${s3Bucket}
                   fi
                   cd AI-search-with-amazon-opensearch-service
                   sudo chmod -R 0777 /home/ec2-user/SageMaker
@@ -91,8 +89,6 @@ Resources:
                   pip install sentence-transformers==3.1.0
                   pip install nltk
                   pip install ruamel_yaml
-                  pip install unstructured
-                  pip install pdfminer
                   pip install langchain==0.2.16
                   pip install langchain-core==0.2.39
                   pip install langchain-community==0.2.16
@@ -101,36 +97,7 @@ Resources:
                 - s3Bucket: !Ref s3BucketHosting
 
 
-  CrossEncoderModel:
-    Type: "AWS::SageMaker::Model"
-    DependsOn: [ SagemakerNotebookInstance ]
-    Properties:
-      ModelName: "cross-encoder-model"
-      PrimaryContainer:
-        Image: !Sub "763104351884.dkr.ecr.${AWS::Region}.amazonaws.com/huggingface-pytorch-inference:2.1.0-transformers4.37.0-cpu-py310-ubuntu22.04"
-        Environment: 
-          HF_MODEL_ID: "cross-encoder/ms-marco-MiniLM-L-6-v2"
-          HF_TASK: "text-classification"
-      ExecutionRoleArn: !GetAtt NBRole.Arn
 
-
-  CrossEncoderEndpointConfig:
-    Type: "AWS::SageMaker::EndpointConfig"
-    Properties:
-      EndpointConfigName: "cross-encoder-model-config"
-      ProductionVariants:
-        - InitialInstanceCount: 1
-          InitialVariantWeight: 1.0
-          InstanceType: ml.m5.2xlarge
-          ModelName: !GetAtt CrossEncoderModel.ModelName
-          VariantName: !GetAtt CrossEncoderModel.ModelName
-
-  CrossEncoderEndpoint:
-    Type: "AWS::SageMaker::Endpoint"
-    Properties:
-      EndpointConfigName:
-        !GetAtt CrossEncoderEndpointConfig.EndpointConfigName
-      EndpointName: "cross-encoder-model"
 
 
   SagemakerNotebookInstance:
@@ -149,8 +116,12 @@ Resources:
       ModelName: "neural-sparse-model"
       PrimaryContainer:
         Image: !Sub "763104351884.dkr.ecr.${AWS::Region}.amazonaws.com/pytorch-inference:2.0-cpu-py310"
-        ModelDataUrl: !Join ['', ['s3://', !Join [ '-', [ "ml-search", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ], '/', 'neural-sparse-biencoder.tar.gz']]
-    
+        ModelDataUrl: !Join ['', ['s3://', !Join [ '-', [ "ml-search", !Select [ 4, !Split [ '-', !Select [ 2, !Split [ '/', !Ref AWS::StackId ] ] ] ] ] ], '/', 'neural-sparse-handler.tar.gz']]
+        Environment:
+          TS_METRICS_CONFIG: "/opt/ml/model/metrics.yaml"
+          TS_ASYNC_LOGGING: true
+          TS_JOB_QUEUE_SIZE: 1000
+          NEURAL_SPARSE_MODEL_ID: opensearch-project/opensearch-neural-sparse-encoding-v2-distill
       ExecutionRoleArn: !GetAtt NBRole.Arn
 
   EndpointConfig:
@@ -185,12 +156,13 @@ Resources:
                   - "sagemaker:InvokeEndpointAsync"
                   - "sagemaker:InvokeEndpoint"
                 Resource:
-                  - "*"
+                  - !Sub "arn:aws:sagemaker:${AWS::Region}:${AWS::AccountId}:endpoint/*"
               - Effect: Allow
                 Action:
-                  - "bedrock:*"
+                  - "bedrock:InvokeModel"
+                  - "bedrock:InvokeModelWithResponseStream"
                 Resource:
-                  - "*"
+                  - !Sub "arn:aws:bedrock:${AWS::Region}::foundation-model/*"
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -216,12 +188,6 @@ Resources:
                   - !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
               - Effect: Allow
                 Action:
-                  - "s3:*"
-                  - "dynamodb:*"
-                Resource:
-                  - "*"
-              - Effect: Allow
-                Action:
                   - "iam:PassRole"
                 Resource:
                   - !Sub arn:aws:iam::${AWS::AccountId}:role/opensearch-sagemaker-role
@@ -231,14 +197,12 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - "lambda:*"
+                  - "s3:Get*"
+                  - "s3:List*"
+                  - "s3:PutObject"
                 Resource:
-                  - "*"
-              - Effect: Allow
-                Action:
-                  - "ssm:*"
-                Resource:
-                  - "*"
+                  - !GetAtt s3BucketHosting.Arn
+                  - !Sub "${s3BucketHosting.Arn}/*"
               - Effect: Allow
                 Action:
                   - "kendra-ranking:*"
@@ -349,7 +313,7 @@ Resources:
               AWS: '*'
             Action: 'es:*'
             Resource: !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*/*
-      EngineVersion: 'OpenSearch_2.15'
+      EngineVersion: 'OpenSearch_2.17'
       ClusterConfig:
         InstanceType: "r6g.2xlarge.search"
         InstanceCount: 1
