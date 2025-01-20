@@ -37,6 +37,10 @@ Parameters:
     NoEcho: 'true'
     Type: String
     Default: ML-Search123!
+  OpenSearchAccessRoleMapping:
+    Description: Opensearch predefined backend role 
+    Type: String
+    Default: all_access
 
 Mappings: 
   RegionMap: 
@@ -54,7 +58,146 @@ Resources:
       Name: !Sub OpenSearchSecret-${AWS::StackName}
       Description: OpenSearch username and password
       SecretString: !Sub '{ "username" : "${OpenSearchMasterUsername}", "password" : "${OpenSearchMasterPassword}" }'
-      
+  
+  UpdateAOSRoleMapping:
+    Type: AWS::Lambda::Function    
+    DeletionPolicy: Retain
+    Properties:
+      Handler: index.lambda_handler      
+      Runtime: python3.9
+      Timeout: 240
+      Role: !GetAtt  NBRole.Arn
+      FunctionName: !Sub oss-role-mapping-update-${AWS::StackName}
+      Code:
+        ZipFile: |
+          import boto3
+          import botocore
+          import urllib3
+          import json
+          import cfnresponse
+          import os
+          from botocore.vendored import requests
+          from botocore.exceptions import ClientError
+
+          SECRET_ARN = os.getenv('SECRET_ARN')
+          REGION = os.getenv('REGION')
+          AOSUSER = os.getenv('AOSUSER')
+          AOSURL = os.getenv('AOSURL')
+          ROLE_NAME = os.getenv('ROLE_NAME')
+          APP_ROLE_ARN = os.getenv('APP_ROLE_ARN')
+
+          def RetrieveAOSPassword(event, context):
+            
+            # Create a Secrets Manager client
+            session = boto3.session.Session()
+            client = session.client(
+                service_name='secretsmanager',
+                region_name=REGION
+            )
+              
+            secret = ""
+            
+            try:
+                get_secret_value_response = client.get_secret_value(
+                    SecretId=SECRET_ARN
+                )
+            except ClientError as err:
+                print(err)
+                cfnresponse.send(event, context, cfnresponse.FAILED, {})
+            else:
+                # Decrypts secret using the associated KMS key.
+                # Depending on whether the secret is a string or binary, one of these fields will be populated.
+                if 'SecretString' in get_secret_value_response:
+                    secret = get_secret_value_response['SecretString']
+                else:
+                    decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+
+            password_secret = json.loads(secret)
+            
+            responseData = password_secret["password"]
+
+            if password_secret:
+              cfnresponse.send(event, context, cfnresponse.SUCCESS, {"OpenSearchMasterPassword": "===="})
+            else:
+              cfnresponse.send(event, context, cfnresponse.FAILED, {"OpenSearchMasterPassword": "Failed to retrieve password"})
+            
+            return responseData
+
+          def lambda_handler(event, context):                                          
+              # The query you want to send to OpenSearch
+              permissions_query = {
+                  "cluster_permissions": [
+                      "cluster_monitor",
+                        "cluster_composite_ops",
+                        "indices:admin/template/get",
+                        "indices:admin/template/put",
+                        "cluster:admin/ingest/pipeline/put",
+                        "cluster:admin/opendistro/ism/policy/write",
+                        "cluster_all"
+                    ],
+                    "index_permissions":  [
+                        {
+                          "index_patterns": [
+                            "*"
+                          ],
+                          "dls": "",
+                          "fls": [],
+                          "masked_fields": [],
+                          "allowed_actions": [
+                            "indices_all",
+                            "manage_aliases"
+                          ]
+                        }
+                      ],
+                      "tenant_permissions": []
+                  }
+              
+              back_end_role_mapping_query = {
+                  "backend_roles" : [ APP_ROLE_ARN ],
+                  "hosts" : [],
+                  "users" : [AOSUSER]
+                }
+              
+              
+              try:
+                  if event['RequestType'] == 'Create' or event['RequestType'] == 'Update':
+                    password = RetrieveAOSPassword (event, context)              
+                    create_role_url = 'https://' + AOSURL + '/_plugins/_security/api/roles/'+ROLE_NAME
+                    create_role_mapping_url = 'https://' + AOSURL + '/_plugins/_security/api/rolesmapping/'+ROLE_NAME
+
+                    #Connect
+                    http = urllib3.PoolManager()
+                    headers = {'Content-Type': 'application/json'}
+                    headers.update(urllib3.make_headers(basic_auth=AOSUSER+':'+password))
+
+                    #Create opensearch role mapping
+                    role_mapping_response = http.request("PUT",
+                                    create_role_mapping_url,
+                                    body = json.dumps(back_end_role_mapping_query),
+                                    headers = headers,
+                                    retries = False)
+
+                  cfnresponse.send(event, context, cfnresponse.SUCCESS, {"RoleAndMapping": "updated"})
+                  print ("Success!")
+              except Exception as e:
+                  print(e)
+                  print ("Internal Error!")
+                  cfnresponse.send(event, context, cfnresponse.FAILED, {"error",e})
+      Environment:
+        Variables:  
+          REGION: !Ref AWS::Region
+          SECRET_ARN: !Ref OpenSearchSecret
+          ROLE_NAME: !Ref OpenSearchAccessRoleMapping
+          AOSUSER: !Ref OpenSearchMasterUsername
+          AOSURL: !GetAtt OpenSearchServiceDomain.DomainEndpoint    
+          APP_ROLE_ARN: !GetAtt NBRole.Arn
+
+  Lambdatrigger:
+    Type: "Custom::UpdateAOSRoleMapping"
+    DependsOn: UpdateAOSRoleMapping      
+    Properties:
+      ServiceToken: !GetAtt "UpdateAOSRoleMapping.Arn" 
+
   NotebookInstanceLifecycleConfiguration:
     Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
     Properties:
@@ -94,6 +237,9 @@ Resources:
                   pip install langchain-community==0.2.16
                   pip install langchain-experimental==0.0.65
                   pip install lark==1.2.2
+                  nohup streamlit run /home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py --server.baseUrlPath="/proxy/absolute/8501" &
+
+
                 - s3Bucket: !Ref s3BucketHosting
 
 
@@ -208,6 +354,11 @@ Resources:
                   - "kendra-ranking:*"
                 Resource:
                   - "*"
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                Resource:
+                  - !Ref OpenSearchSecret
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AWSCloudFormationReadOnlyAccess
         - arn:aws:iam::aws:policy/AmazonEC2FullAccess
@@ -392,4 +543,14 @@ Outputs:
   OpenSearchSecret:
     Description: Name of the OpenSearch secret in Secrets Manager
     Value: !Ref OpenSearchSecret
+  
+  WebAppURL:
+    Description: Launch this URL to open the web application
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt SagemakerNotebookInstance.NotebookInstanceName
+        - '.notebook.'
+        - !Ref AWS::Region
+        - '.sagemaker.aws/proxy/absolute/8501'
   
