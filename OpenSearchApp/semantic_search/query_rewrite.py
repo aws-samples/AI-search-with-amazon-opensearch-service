@@ -5,6 +5,8 @@ import boto3
 import amazon_rekognition
 from botocore.config import Config
 import getpass
+import nltk
+nltk.download('punkt')
 from nltk.stem import PorterStemmer
 from nltk.tokenize import word_tokenize
 import os
@@ -39,7 +41,7 @@ bedrock_params = {
     "top_p":1,
     "stop_sequences":["\\n\\nHuman:"]
 }
-bedrock_region="us-east-1"
+bedrock_region=st.session_state.REGION
 
 #boto3_bedrock = boto3.client(service_name="bedrock-runtime", endpoint_url=f"https://bedrock-runtime.{bedrock_region}.amazonaws.com")
 boto3_bedrock = boto3.client(service_name="bedrock-runtime", config=Config(region_name=bedrock_region))
@@ -131,7 +133,7 @@ metadata_field_info_ = [
         type="string"
     ),
     AttributeInfo(
-        name="description", 
+        name="product_description", 
         description="The detailed description of the product", 
         type="string"
     ),
@@ -396,7 +398,7 @@ def get_new_query_res(query):
                     "simple_query_string": {
                     
                         "query": imp_item.strip(),
-                      "fields":['description',"style","caption"]#'rekog_all^3'
+                      "fields":['product_description',"style","caption"]#'rekog_all^3'
                     
                     }
                     #"match":{"description":imp_item.strip()}
@@ -406,7 +408,7 @@ def get_new_query_res(query):
                     "multi_match": {
                     
                         "query": imp_item.strip(),
-                      "fields":['description',"style"]#'rekog_all^3'
+                      "fields":['product_description',"style"]#'rekog_all^3'
                     
                     }
                     #"match":{"description":imp_item.strip()}

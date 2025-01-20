@@ -1,19 +1,19 @@
-## Infuse AI for Search with Amazon OpenSearch service
+## Steps to deploy the application
 
-This repository covers all search types of Amazon openSearch service that involve machine leaning to improve search relevance. The search types include,
-
-1. Keyword Search
-2. Vector Search
-3. Hybrid Search
-4. Multimodal Search
-5. Sparse Search
-6. Conversational Search
-
-## Deploy and play with a sample retail search application
-
-Refer the [Build the next-gen retail search with Amazon OpenSearch Service workshop](https://catalog.workshops.aws/opensearch-ml-search/en-US) for instructions to deploy the below sample retail search application and play with different search types available in Amazon OpenSearch service.
-
-![NextGen retail search application](https://github.com/aws-samples/AI-search-with-amazon-opensearch-service/blob/Next-Gen-Search-Workshop/static/search-query-filters.gif?raw=true)
+```
+git clone -b Next-Gen-Search-Workshop https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
+wget https://d2d5zhnefzqxjo.cloudfront.net/neural-sparse-biencoder.tar.gz
+aws s3 cp /home/ec2-user/neural-sparse-biencoder.tar.gz s3://${s3Bucket}
+cd AI-search-with-amazon-opensearch-service
+sudo chmod -R 0777 /home/ec2-user/
+python3 -m venv /home/ec2-user/.myenv
+source /home/ec2-user/.myenv/bin/activate
+pip install streamlit boto3 requests_aws4auth opensearch-py torch==1.11.0 
+pip3 install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install -U sentence-transformers
+pip install nltk ruamel_yaml langchain langchain-core langchain-community langchain-experimental ruamel_yaml lark
+streamlit run OpenSearchApp/app.py
+```
 
 ## Security
 
@@ -22,5 +22,4 @@ See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more inform
 ## License
 
 This library is licensed under the MIT-0 License. See the LICENSE file.
-
 
