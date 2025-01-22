@@ -377,7 +377,7 @@ def create_ml_connectors():
                 
                  "BEDROCK_TEXT":
                 {
-                     "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-text-v2:0/invoke",
+                     "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-text-v1/invoke",
                     "pre_process_fun": "\n    StringBuilder builder = new StringBuilder();\n    builder.append(\"\\\"\");\n    String first = params.text_docs[0];\n    builder.append(first);\n    builder.append(\"\\\"\");\n    def parameters = \"{\" +\"\\\"inputText\\\":\" + builder + \"}\";\n    return  \"{\" +\"\\\"parameters\\\":\" + parameters + \"}\";",
       
                     "post_process_fun":'\n    def name = "sentence_embedding";\n    def dataType = "FLOAT32";\n    if (params.embedding == null || params.embedding.length == 0) {\n        return null;\n    }\n    def shape = [params.embedding.length];\n    def json = "{" +\n               "\\"name\\":\\"" + name + "\\"," +\n               "\\"data_type\\":\\"" + dataType + "\\"," +\n               "\\"shape\\":" + shape + "," +\n               "\\"data\\":" + params.embedding +\n               "}";\n    return json;\n    ',
@@ -399,51 +399,6 @@ def create_ml_connectors():
           
               "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.rerank-v1:0/invoke",  
             "request_body": "{ \"query\": \"${parameters.query}\", \"documents\": ${parameters.documents} }",
-            "pre_process_fun": """
-        def query_text = params.query_text;
-        def text_docs = params.text_docs;
-        def textDocsBuilder = new StringBuilder('[');
-        for (int i=0; i<text_docs.length; i++) {
-          textDocsBuilder.append('\"');
-          textDocsBuilder.append(text_docs[i]);
-          textDocsBuilder.append('\"');
-          if (i<text_docs.length - 1) {
-            textDocsBuilder.append(',');
-          }
-        }
-        textDocsBuilder.append(']');
-        def parameters = '{ \"query\": \"' + query_text + '\",  \"documents\": ' + textDocsBuilder.toString() + ' }';
-        return  '{\"parameters\": ' + parameters + '}';
-      """,
-          "post_process_fun": """
-        if (params.results == null) {
-          return "no result generated";
-        }
-        def outputs = params.results;
-        def relevance_scores = new Double[outputs.length];
-        for (int i=0; i<outputs.length; i++) {
-          def index = new BigDecimal(outputs[i].index.toString()).intValue();
-          relevance_scores[index] = outputs[i].relevance_score;
-        }
-        def resultBuilder = new StringBuilder('[');
-        for (int i=0; i<relevance_scores.length; i++) {
-          resultBuilder.append(' {\"name\": \"similarity\", \"data_type\": \"FLOAT32\", \"shape\": [1],');
-          resultBuilder.append('\"data\": [');
-          resultBuilder.append(relevance_scores[i]);
-          resultBuilder.append(']}');
-          if (i<outputs.length - 1) {
-            resultBuilder.append(',');
-          }
-        }
-        resultBuilder.append(']');
-        return resultBuilder.toString();
-      """
-        },
-        "BEDROCK_RERANK_COHERE":
-        {
-          
-              "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/cohere.rerank-v3-5:0/invoke",  
-            "request_body": "{ \"query\": \"${parameters.query}\", \"documents\": ${parameters.documents},\"api_version\": 2 }",
             "pre_process_fun": """
         def query_text = params.query_text;
         def text_docs = params.text_docs;
@@ -545,12 +500,12 @@ def create_ml_connectors():
     
 
     for remote_ml_key in remote_ml.keys():
-        if(remote_ml_key == "SAGEMAKER_CrossEncoder" or "BEDROCK_RERANK" in remote_ml_key):
-            name = remote_ml_key.split("_")[0]+":RE-RANKING"
+        if(remote_ml_key == "SAGEMAKER_CrossEncoder" or remote_ml_key == "BEDROCK_RERANK"):
+            name = remote_ml_key.split("_")[0]+": RE-RANKING"
         elif("BEDROCK_Claude3" in remote_ml_key):
             name = remote_ml_key+": LLM"
         else:
-            name = remote_ml_key+":EMBEDDING"
+            name = remote_ml_key+": EMBEDDING"
             
         #create connector
         payload_1 = {
@@ -625,22 +580,25 @@ def ingest_data(col,warning):
     if(opensearch_res!='{}'):
         #print("------------------"+opensearch_res)
         opensearch_models = {}
-        for i in json.loads(opensearch_res)['ml_ingest_pipeline']['processors']:
-            key_ = list(i.keys())[0]
-            opensearch_models[list(i.keys())[0]] = i[key_]['model_id']
-            if(key_ == 'text_embedding'):
-                search_types+='Vector Search,'
-                st.session_state.BEDROCK_TEXT_MODEL_ID = i[key_]['model_id']
+        ingest_processors = json.loads(opensearch_res)['ml_ingest_pipeline']['processors']
+        for index,i in enumerate(ingest_processors):
+            processor_name = list(i.keys())[0]
+            key_ = ingest_processors[index][processor_name]['tag']
+            opensearch_models[key_] = i[processor_name]['model_id']
+            if('text_embedding' in key_):
+                if('Vector Search,' not in search_types):
+                    search_types+='Vector Search,'
+                st.session_state.BEDROCK_TEXT_MODEL_ID = i[processor_name]['model_id']
                 ds.store_in_dynamo('BEDROCK_TEXT_MODEL_ID',st.session_state.BEDROCK_TEXT_MODEL_ID )
                 
             if(key_ == 'text_image_embedding'):
                 search_types+='Multimodal Search,'
-                st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = i[key_]['model_id']
+                st.session_state.BEDROCK_MULTIMODAL_MODEL_ID = i[processor_name]['model_id']
                 ds.store_in_dynamo('BEDROCK_MULTIMODAL_MODEL_ID',st.session_state.BEDROCK_MULTIMODAL_MODEL_ID )
                 
             if(key_ == 'sparse_encoding'):
                 search_types+='NeuralSparse Search,'
-                st.session_state.SAGEMAKER_SPARSE_MODEL_ID = i[key_]['model_id']
+                st.session_state.SAGEMAKER_SPARSE_MODEL_ID = i[processor_name]['model_id']
                 ds.store_in_dynamo('SAGEMAKER_SPARSE_MODEL_ID',st.session_state.SAGEMAKER_SPARSE_MODEL_ID )
         
         
@@ -658,9 +616,12 @@ def ingest_data(col,warning):
         else:
             dynamo_res = json.loads(response)
             dynamo_models = {}
-            for i in dynamo_res['ml_ingest_pipeline']['processors']:
-                key_ = list(i.keys())[0]
-                dynamo_models[list(i.keys())[0]] = i[key_]['model_id']
+            
+            dynamo_processors = dynamo_res['ml_ingest_pipeline']['processors']
+            for index_,i in enumerate(dynamo_processors):
+                processor_name = list(i.keys())[0]
+                key_ = dynamo_processors[index_][processor_name]['tag']
+                dynamo_models[key_] = i[processor_name]['model_id']
             if(opensearch_models!=dynamo_models):
                 ds.update_in_dynamo('ml_ingest_pipeline','store_val',opensearch_res)
                 ingest_flag = True
