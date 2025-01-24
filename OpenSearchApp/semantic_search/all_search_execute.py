@@ -30,22 +30,18 @@ today_ = datetime.today().strftime('%Y-%m-%d')
 def handler(input_,session_id):
     DOMAIN_ENDPOINT =   st.session_state.OpenSearchDomainEndpoint #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
     REGION = st.session_state.REGION
-    #SAGEMAKER_MODEL_ID = st.session_state.SAGEMAKER_MODEL_ID
-    BEDROCK_TEXT_MODEL_ID = st.session_state.BEDROCK_TEXT_MODEL_ID
-    BEDROCK_MULTIMODAL_MODEL_ID = st.session_state.BEDROCK_MULTIMODAL_MODEL_ID
-    SAGEMAKER_SPARSE_MODEL_ID = st.session_state.SAGEMAKER_SPARSE_MODEL_ID
-    SAGEMAKER_CrossEncoder_MODEL_ID = st.session_state.SAGEMAKER_CrossEncoder_MODEL_ID
-    profile = False
-    print("BEDROCK_TEXT_MODEL_ID")
-    print(BEDROCK_TEXT_MODEL_ID)
+    
  
     ####### Auth and connection for OpenSearch domain #######
     credentials = boto3.Session().get_credentials()
     awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, REGION, 'es', session_token=credentials.token)
     host = 'https://'+DOMAIN_ENDPOINT+'/'
     headers = {"Content-Type": "application/json"}
-  
-  
+    opensearch_res = json.loads((requests.get(host+'_ingest/pipeline/sagemaker-sparse-ingest-pipeline', auth=awsauth,headers=headers)).text)
+    print("*********")
+    print(opensearch_res)
+    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = opensearch_res['sagemaker-sparse-ingest-pipeline']['processors'][0]['sparse_encoding']['model_id']
+            
     ####### Parsing Inputs from user #######
     print("*********")
     print(input_)
@@ -74,7 +70,7 @@ def handler(input_,session_id):
     
      ######## Sparse Search pipeline #######  
 
-    path = "demostore-search-index/_search"
+    path = "sagemaker-sparse-search-index/_search"
     
     url = host + path
     
@@ -145,7 +141,7 @@ def handler(input_,session_id):
         
     if('NeuralSparse Search' in search_types):
         
-        path2 =  "_plugins/_ml/models/"+SAGEMAKER_SPARSE_MODEL_ID+"/_predict"
+        path2 =  "_plugins/_ml/models/"+st.session_state.SAGEMAKER_SPARSE_MODEL_ID+"/_predict"
         
         url2 = host+path2
         
@@ -170,7 +166,7 @@ def handler(input_,session_id):
         rank_features = []
         for key_ in query_sparse_sorted.keys():
             if(query_sparse_sorted[key_]>=threshold):
-                feature = {"rank_feature": {"field": "product_description_sparse_vector."+key_,"boost":query_sparse_sorted[key_]}}
+                feature = {"rank_feature": {"field": "product_description_sparse_encoding."+key_,"boost":query_sparse_sorted[key_]}}
                 rank_features.append(feature)
                 query_sparse_sorted_filtered[key_]=query_sparse_sorted[key_]
             else:
@@ -181,9 +177,9 @@ def handler(input_,session_id):
         sparse_payload = {}
         sparse_payload_segment = {
         "neural_sparse": {
-            "product_description_sparse_vector": {
+            "product_description_sparse_encoding": {
             "query_text": query,
-            "model_id": SAGEMAKER_SPARSE_MODEL_ID
+            "model_id": st.session_state.SAGEMAKER_SPARSE_MODEL_ID
             
             }
             }
@@ -249,7 +245,7 @@ def handler(input_,session_id):
             
         ##########.###########
     if('NeuralSparse Search' in st.session_state.search_types and st.session_state.neural_sparse_two_phase_search_pipeline != ''):
-        path = "demostore-search-index/_search?search_pipeline=neural_sparse_two_phase_search_pipeline" 
+        path = "sagemaker-sparse-search-index/_search?search_pipeline=neural_sparse_two_phase_search_pipeline" 
     url = host + path
     if(st.session_state.input_reranker!= 'None'):
 
@@ -293,7 +289,7 @@ def handler(input_,session_id):
             if('highlight' in doc):
                 res_['highlight'] = doc['highlight']['product_description']
             if('NeuralSparse Search' in search_types):
-                res_['sparse'] = doc['_source']['product_description_sparse_vector']
+                res_['sparse'] = doc['_source']['product_description_sparse_encoding']
                 res_['query_sparse'] = query_sparse_sorted_filtered
 #             if(st.session_state.input_rekog_label !="" or st.session_state.input_is_rewrite_query == 'enabled'):
 #                 res_['rekog'] = {'color':doc['_source']['rekog_color'],'category': doc['_source']['rekog_categories'],'objects':doc['_source']['rekog_objects']}

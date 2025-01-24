@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Template to provision OpenSearch cluster for NextGen ML search
+Description: Template to provision OpenSearch cluster for Neural Sparse search
 
 Metadata:
   AWS::CloudFormation::Interface:
@@ -11,6 +11,8 @@ Metadata:
     ParameterLabels:
       AppName:
         default: Name of the overall application
+      SageMakerNotebookName:
+        default: Name of SageMaker Notebook Instance
       
 Parameters:
   SageMakerIAMRole:
@@ -18,9 +20,9 @@ Parameters:
     Type: String
     Default: "MLIAMRole"  
   AppName:
-    Default: opensearch-ml-search
+    Default: opensearch-neural-sparse-search
     Type: String
-    AllowedValues: [opensearch-ml-search]
+    AllowedValues: [opensearch-neural-sparse-search]
     Description: Name of the overall application, this is used while creating the ML model endpoint.
   OpenSearchMasterUsername:
     AllowedPattern: '^[a-zA-Z0-9]+$'
@@ -242,10 +244,6 @@ Resources:
 
                 - s3Bucket: !Ref s3BucketHosting
 
-
-
-
-
   SagemakerNotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
     Properties:
@@ -283,9 +281,11 @@ Resources:
   Endpoint:
     Type: "AWS::SageMaker::Endpoint"
     Properties:
+      EndpointName: !Sub
+      - 'opensearch-neural-sparse-encoding-doc-v2-distill-${RandomGUID}'
+      - { RandomGUID: !Select [0, !Split ["-", !Select [2, !Split ["/", !Ref AWS::StackId ]]]] }
       EndpointConfigName:
         !GetAtt EndpointConfig.EndpointConfigName
-      EndpointName: "neural-sparse-model"
         
 
   OpenSearchSagemakerRole:
@@ -543,6 +543,10 @@ Outputs:
   OpenSearchSecret:
     Description: Name of the OpenSearch secret in Secrets Manager
     Value: !Ref OpenSearchSecret
+
+  SageMakerSparseModelEndpoint:
+    Description: Name of the Sparse model SageMaker Endpoint
+    Value: !GetAtt Endpoint.EndpointName
   
   WebAppURL:
     Description: Launch this URL to open the web application
