@@ -63,27 +63,20 @@ s3_bucket_ = "pdf-repo-uploads"
 if 'user_id' in st.session_state:
     user_id = st.session_state['user_id']
     print(f"User ID: {user_id}")
-
-# If the user ID is not yet stored in the session state, generate a random UUID
-# else:
-#     user_id = str(uuid.uuid4())
-#     st.session_state['user_id'] = user_id
-#     dynamodb = boto3.resource('dynamodb')
-#     table = dynamodb.Table('ml-search')
     
 if "REGION" not in st.session_state:
     st.session_state.REGION = ""
 if "neural_sparse_two_phase_search_pipeline" not in st.session_state:
-    st.session_state.neural_sparse_two_phase_search_pipeline = ds.get_from_dynamo("neural_sparse_two_phase_search_pipeline")   
+    st.session_state.neural_sparse_two_phase_search_pipeline = ""  
         
 if "search_types" not in st.session_state:
     st.session_state.search_types = "Keyword Search,Neural Sparse Search"
 
 if "SAGEMAKER_SPARSE_MODEL_ID" not in st.session_state:
-    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_MODEL_ID")   
+    st.session_state.SAGEMAKER_SPARSE_MODEL_ID = ""
     
 if "SAGEMAKER_SPARSE_CONNECTOR_ID" not in st.session_state:
-    st.session_state.SAGEMAKER_SPARSE_CONNECTOR_ID = ds.get_from_dynamo("SAGEMAKER_SPARSE_CONNECTOR_ID")   
+    st.session_state.SAGEMAKER_SPARSE_CONNECTOR_ID = ""
 
 if 'session_id' not in st.session_state:
     st.session_state['session_id'] = ""
@@ -117,7 +110,7 @@ if "input_rad_1" not in st.session_state:
     st.session_state.input_rad_1 = ""
 
 if "input_manual_filter" not in st.session_state:
-    st.session_state.input_manual_filter = ds.get_from_dynamo("input_manual_filter")
+    st.session_state.input_manual_filter = ""
 
 if "input_category" not in st.session_state:
     st.session_state.input_category = None
@@ -166,12 +159,6 @@ if "answers_none_rank" not in st.session_state:
 
 if "input_text" not in st.session_state:
     st.session_state.input_text="black jacket for men"#"black jacket for men under 120 dollars"
-    
-if "input_ndcg" not in st.session_state:
-    st.session_state.input_ndcg=0.0  
-
-if "gen_image_str" not in st.session_state:
-    st.session_state.gen_image_str=""
 
 # if "input_searchType" not in st.session_state:
 #     st.session_state.input_searchType = ['Keyword Search']
@@ -188,52 +175,44 @@ if "input_CombineType" not in st.session_state:
 if "input_sparse" not in st.session_state:
     st.session_state.input_sparse = "disabled"
     
-if "input_evaluate" not in st.session_state:
-    st.session_state.input_evaluate = "disabled"
-    
-if "input_is_rewrite_query" not in st.session_state:
-    st.session_state.input_is_rewrite_query = "disabled"
-    
-    
-if "input_rekog_label" not in st.session_state:
-    st.session_state.input_rekog_label = ""
-    
 
 if "input_sparse_filter" not in st.session_state:
     st.session_state.input_sparse_filter = 0.4
 
-if "input_modelType" not in st.session_state:
-    st.session_state.input_modelType = "Titan-Embed-Text-v1"
 
 if "input_weight" not in st.session_state:
     st.session_state.input_weight = 0.5
 
-if "image_prompt2" not in st.session_state:
-    st.session_state.image_prompt2 = ""
+cfn = boto3.client('cloudformation',region_name=st.session_state.REGION)
 
-if "image_prompt" not in st.session_state:
-    st.session_state.image_prompt = ""
-    
-if "bytes_for_rekog" not in st.session_state:
-    st.session_state.bytes_for_rekog = ""
+response = cfn.list_stacks(StackStatusFilter=['CREATE_COMPLETE','UPDATE_COMPLETE'])
+
+for cfns in response['StackSummaries']:
+    if('TemplateDescription' in cfns.keys()):
+        if('Neural Sparse search' in cfns['TemplateDescription']):
+            stackname = cfns['StackName']
+
+
+response = cfn.describe_stack_resources(
+    StackName=stackname
+)
+
+
+cfn_outputs = cfn.describe_stacks(StackName=stackname)['Stacks'][0]['Outputs']
+
+for output in cfn_outputs:
+    if('OpenSearchDomainEndpoint' in output['OutputKey']):
+        OpenSearchDomainEndpoint = output['OutputValue']
     
 if "OpenSearchDomainEndpoint" not in st.session_state:
-    st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
+    st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
     
 if "max_selections" not in st.session_state:
-    st.session_state.max_selections = ds.get_from_dynamo("max_selections")
-    
-if "sagemaker_re_ranker" not in st.session_state:
-    st.session_state.sagemaker_re_ranker = ds.get_from_dynamo("sagemaker_re_ranker")
-    
+    st.session_state.max_selections = 1
+        
 if "neural_sparse_two_phase_search_pipeline" not in st.session_state:
-    st.session_state.neural_sparse_two_phase_search_pipeline = ds.get_from_dynamo("neural_sparse_two_phase_search_pipeline")   
-    
-if "bedrock_re_ranker" not in st.session_state:
-    st.session_state.bedrock_re_ranker = ds.get_from_dynamo("bedrock_re_ranker")
+    st.session_state.neural_sparse_two_phase_search_pipeline = ""  
 
-if "llm_search_request_pipeline" not in st.session_state:
-    st.session_state.llm_search_request_pipeline = ds.get_from_dynamo("llm_search_request_pipeline")
 
 host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
 service = 'es'
@@ -295,8 +274,7 @@ def handle_input():
     })
     
 
-    if(st.session_state.input_evaluate) == "enabled":
-        llm_eval.eval(st.session_state.questions, st.session_state.answers)
+ 
     
 def write_top_bar():
 
@@ -363,7 +341,6 @@ with st.sidebar:
     st.subheader(':blue[Filters]')
     def clear_filter():
         st.session_state.input_manual_filter="False"
-        ds.store_in_dynamo('input_manual_filter',st.session_state.input_manual_filter )
         st.session_state.input_category=None
         st.session_state.input_gender=None
         st.session_state.input_price=(0,0)
@@ -378,8 +355,6 @@ with st.sidebar:
         st.session_state.input_manual_filter="True"
     else:
         st.session_state.input_manual_filter="False"
-
-    ds.store_in_dynamo('input_manual_filter',st.session_state.input_manual_filter )
 
     clear_filter = st.button("Clear Filters",on_click=clear_filter)
 
@@ -420,10 +395,7 @@ def write_user_message(md,ans):
                 for key in query_sparse:
                     filtered_query_sparse[key] = round(query_sparse[key], 2)
                 st.write(filtered_query_sparse)
-        if(st.session_state.input_is_rewrite_query == 'enabled' and st.session_state.input_rewritten_query !=""):
-            with st.expander("Re-written Query:"):
-                st.json(st.session_state.input_rewritten_query,expanded = True)
-                
+        
             
     with col3:   
         st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Image: </div>", unsafe_allow_html = True)
@@ -464,13 +436,6 @@ def render_answer(answer,index):
         st.image(AI_ICON, use_column_width='always')
     with column2:
         st.markdown("<div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Results </div>", unsafe_allow_html = True)
-        if(st.session_state.input_evaluate == "enabled" and st.session_state.input_ndcg > 0):
-            span_color = "white"
-            if("&uarr;" in st.session_state.ndcg_increase):
-                span_color = "green"
-            if("&darr;" in st.session_state.ndcg_increase):
-                span_color = "red"
-            st.markdown("<span style='fontSize:20px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 20px;font-family:Courier New;color:#e28743'>Relevance:" +str('%.3f'%(st.session_state.input_ndcg)) + "</span><span style='font-size:30px;font-weight:bold;color:"+span_color+"'>"+st.session_state.ndcg_increase.split("~")[0] +"</span><span style='font-size:15px;font-weight:bold;font-family:Courier New;color:"+span_color+"'> "+st.session_state.ndcg_increase.split("~")[1]+"</span>", unsafe_allow_html = True)
         
 
     placeholder_no_results  = st.empty()
@@ -574,15 +539,7 @@ def render_answer(answer,index):
                     if("rekog" in ans):
                         st.write(":green[enriched:]")
                         st.json(ans['rekog'],expanded = True)
-            with inner_col_1:
-                
-                if(st.session_state.input_evaluate == "enabled"):
-                    with st.container(border = False):
-                        if("relevant" in ans.keys()):
-                            if(ans['relevant']==True):
-                                st.write(":white_check_mark:")
-                            else:
-                                st.write(":x:")
+            
                     
         i = i+1
   
@@ -593,8 +550,8 @@ def render_answer(answer,index):
 
             rdn_key = ''.join([random.choice(string.ascii_letters)
                               for _ in range(10)])
-            currentValue = "".join(st.session_state.input_searchType)+st.session_state.input_imageUpload+json.dumps(st.session_state.input_weightage)+st.session_state.input_NormType+st.session_state.input_CombineType+str(st.session_state.input_K)+st.session_state.input_sparse+st.session_state.input_reranker+st.session_state.input_is_rewrite_query+st.session_state.input_evaluate+st.session_state.input_image+st.session_state.input_rad_1+st.session_state.input_reranker+st.session_state.input_hybridType+st.session_state.input_manual_filter
-            oldValue = "".join(st.session_state.inputs_["searchType"])+st.session_state.inputs_["imageUpload"]+str(st.session_state.inputs_["weightage"])+st.session_state.inputs_["NormType"]+st.session_state.inputs_["CombineType"]+str(st.session_state.inputs_["K"])+st.session_state.inputs_["sparse"]+st.session_state.inputs_["reranker"]+st.session_state.inputs_["is_rewrite_query"]+st.session_state.inputs_["evaluate"]+st.session_state.inputs_["image"]+st.session_state.inputs_["rad_1"]+st.session_state.inputs_["reranker"]+st.session_state.inputs_["hybridType"]+st.session_state.inputs_["manual_filter"]
+            currentValue = "".join(st.session_state.input_searchType)+st.session_state.input_sparse+st.session_state.input_manual_filter
+            oldValue = "".join(st.session_state.inputs_["searchType"])+str(st.session_state.inputs_["K"])+st.session_state.inputs_["sparse"]+st.session_state.inputs_["manual_filter"]
             
             def on_button_click():
                 if(currentValue!=oldValue):
