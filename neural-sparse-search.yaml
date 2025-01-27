@@ -549,7 +549,7 @@ Outputs:
     Value: !GetAtt Endpoint.EndpointName
   
   WebAppURL:
-    Description: Launch this URL to open the web application
+    Description: Click this URL to launch the web application
     Value: !Join
       - ''
       - - 'https://'
@@ -557,4 +557,13 @@ Outputs:
         - '.notebook.'
         - !Ref AWS::Region
         - '.sagemaker.aws/proxy/absolute/8501'
+  SageMakerNotebook:
+    Description: Launch this URL to open the SageMaker notebook to build the Neural sparse search building components
+    Value: !Join
+      - ''
+      - - 'https://'
+        - !GetAtt SagemakerNotebookInstance.NotebookInstanceName
+        - '.notebook.'
+        - !Ref AWS::Region
+        - '.sagemaker.aws/notebooks/AI-search-with-amazon-opensearch-service/Neural-Sparse-Search.ipynb'
   
