@@ -210,8 +210,6 @@ if "OpenSearchDomainEndpoint" not in st.session_state:
 if "max_selections" not in st.session_state:
     st.session_state.max_selections = 1
         
-if "neural_sparse_two_phase_search_pipeline" not in st.session_state:
-    st.session_state.neural_sparse_two_phase_search_pipeline = ""  
 
 
 host = 'https://'+st.session_state.OpenSearchDomainEndpoint+'/'
