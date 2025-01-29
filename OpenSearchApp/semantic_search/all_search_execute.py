@@ -170,7 +170,7 @@ def handler(input_,session_id):
             if(opensearch_sagemaker_rerank_pipeline!='{}' and st.session_state.input_reranker == 'SageMaker Cross Encoder'):
                 total_pipeline = json.loads(opensearch_sagemaker_rerank_pipeline)
                 sagemaker_or_bedrock = 'sagemaker_rerank_pipeline'
-            if(opensearch_bedrock_rerank_pipeline!='{}' and st.session_state.input_reranker == 'Bedrock Rerank'):
+            if(opensearch_bedrock_rerank_pipeline!='{}' and st.session_state.input_reranker == "Bedrock's Cohere Rerank"):
                 total_pipeline = json.loads(opensearch_bedrock_rerank_pipeline)
                 sagemaker_or_bedrock = 'bedrock_rerank_pipeline'
             s_pipeline_payload['response_processors'] = total_pipeline[sagemaker_or_bedrock]['response_processors']

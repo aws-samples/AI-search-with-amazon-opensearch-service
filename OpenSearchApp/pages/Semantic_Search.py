@@ -1034,7 +1034,7 @@ if(search_all_type == True or 1==1):
             if(st.session_state.sagemaker_re_ranker == "true"):
                 rerank_options.append("SageMaker Cross Encoder")
             if(st.session_state.bedrock_re_ranker == "true"):
-                rerank_options.append("Bedrock Rerank")
+                rerank_options.append("Bedrock's Cohere Rerank")
             rerank_options_tuple = tuple(rerank_options)
             st.subheader(':blue[Re-ranking]')
             reranker = st.selectbox('Choose a Re-Ranker',rerank_options,
