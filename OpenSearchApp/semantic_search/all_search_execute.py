@@ -245,14 +245,14 @@ def handler(input_,session_id):
             
         ##########.###########
     if('NeuralSparse Search' in search_types and st.session_state.neural_sparse_two_phase_search_pipeline != ''):
-        path = "_search/pipeline/neural_sparse_two_phase_search_pipeline" 
-        sparse_pipeline_payload = (json.loads(st.session_state.neural_sparse_two_phase_search_pipeline))['neural_sparse_two_phase_search_pipeline']
-        #updating prune
-        sparse_pipeline_payload['request_processors'][0]['neural_sparse_two_phase_processor']['two_phase_parameter']['prune_ratio'] = st.session_state.input_sparse_filter
-        url = host + path
-        r = requests.put(url, auth=awsauth, json=sparse_pipeline_payload, headers=headers)
-        print("Sparse Search Pipeline updated: "+str(r.status_code))
-        st.session_state.neural_sparse_two_phase_search_pipeline = sparse_pipeline_payload
+#         path = "_search/pipeline/neural_sparse_two_phase_search_pipeline" 
+#         sparse_pipeline_payload = (json.loads(st.session_state.neural_sparse_two_phase_search_pipeline))['neural_sparse_two_phase_search_pipeline']
+#         #updating prune
+#         sparse_pipeline_payload['request_processors'][0]['neural_sparse_two_phase_processor']['two_phase_parameter']['prune_ratio'] = st.session_state.input_sparse_filter
+#         url = host + path
+#         r = requests.put(url, auth=awsauth, json=sparse_pipeline_payload, headers=headers)
+#         print("Sparse Search Pipeline updated: "+str(r.status_code))
+#         st.session_state.neural_sparse_two_phase_search_pipeline = sparse_pipeline_payload
         path = "sagemaker-sparse-search-index/_search?search_pipeline=neural_sparse_two_phase_search_pipeline" 
         url = host + path
         print("*********************")

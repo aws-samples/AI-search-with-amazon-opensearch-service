@@ -365,8 +365,8 @@ with st.sidebar:
 
     ####### Filters   #########
 
-    st.subheader(':blue[Neural Sparse Search]')
-    sparse_filter = st.slider('Prune ratio', 0.0, 1.0, 0.4,0.1,key = 'input_sparse_filter', help = 'A ratio that represents how to split the high-weight tokens and low-weight tokens. The threshold is the token’s maximum score multiplied by its prune_ratio. Valid range is [0,1]. Default is 0.4')
+#     st.subheader(':blue[Neural Sparse Search]')
+#     sparse_filter = st.slider('Prune ratio', 0.0, 1.0, 0.4,0.1,key = 'input_sparse_filter', help = 'A ratio that represents how to split the high-weight tokens and low-weight tokens. The threshold is the token’s maximum score multiplied by its prune_ratio. Valid range is [0,1]. Default is 0.4')
 
 
 st.markdown('---')
