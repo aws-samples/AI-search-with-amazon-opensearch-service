@@ -158,7 +158,7 @@ if "answers_none_rank" not in st.session_state:
 
 
 if "input_text" not in st.session_state:
-    st.session_state.input_text="black jacket for men"#"black jacket for men under 120 dollars"
+    st.session_state.input_text="men bracelets"#"black jacket for men under 120 dollars"
 
 # if "input_searchType" not in st.session_state:
 #     st.session_state.input_searchType = ['Keyword Search']
