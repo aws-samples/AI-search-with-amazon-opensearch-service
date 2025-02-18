@@ -210,7 +210,7 @@ if "image_prompt" not in st.session_state:
     st.session_state.image_prompt = ""
     
 if "bytes_for_rekog" not in st.session_state:
-    st.session_state.bytes_for_rekog = ""
+    st.session_state.bytes_for_rekog = "" 
     
 if "OpenSearchDomainEndpoint" not in st.session_state:
     st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
