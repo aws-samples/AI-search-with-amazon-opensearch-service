@@ -39,7 +39,9 @@ st.session_state.REGION = ds.get_region()
 
 if "play_disabled" not in st.session_state:
     st.session_state.play_disabled = ds.get_from_dynamo("play_disabled")
-    
+
+if "rag_play_disabled" not in st.session_state:
+    st.session_state.rag_play_disabled = True
     
     
 if "index_map" not in st.session_state:
@@ -181,6 +183,8 @@ for cfns in response['StackSummaries']:
     if('TemplateDescription' in cfns.keys()):
         if('NextGen ML search' in cfns['TemplateDescription']):
             stackname = cfns['StackName']
+            break
+    
 
 
 response = cfn.describe_stack_resources(
@@ -201,6 +205,10 @@ for output in cfn_outputs:
         KendraResourcePlanID = output['OutputValue']
     else:
         KendraResourcePlanID = ""
+        
+    if('BedrockAgentAlias' in output['OutputKey']):
+        BedrockAgentAlias = output['OutputValue']
+    
     
         
     
@@ -225,8 +233,10 @@ print("WebappRoleArn: "+WebappRoleArn)
 
 st.session_state.OpenSearchDomainEndpoint = OpenSearchDomainEndpoint
 st.session_state.KendraResourcePlanID = KendraResourcePlanID
+st.session_state.BedrockAgentAlias = BedrockAgentAlias
 ds.store_in_dynamo('KendraResourcePlanID',st.session_state.KendraResourcePlanID )
 ds.store_in_dynamo('OpenSearchDomainEndpoint',st.session_state.OpenSearchDomainEndpoint )
+ds.store_in_dynamo('BedrockAgentAlias',st.session_state.BedrockAgentAlias)
 st.session_state.WebappRoleArn = WebappRoleArn
 ds.store_in_dynamo('WebappRoleArn',st.session_state.WebappRoleArn )
 ds.store_in_dynamo('REGION',st.session_state.REGION )
@@ -251,6 +261,11 @@ if('404' in str(exists_) or '403' in str(exists_)):
 else:
     st.session_state.play_disabled = 'False'
 ds.store_in_dynamo('play_disabled',st.session_state.play_disabled)
+
+if(ds.get_from_dynamo('AgentReady')==""):
+    st.session_state.rag_play_disabled = True
+else:
+    st.session_state.rag_play_disabled = False
     
 ###### check for search pipelines #######
 opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
@@ -809,7 +824,7 @@ url = input_host + input_index
 # get_fileds = st.button('Get field metadata')
 st.write("----",divider = "rainbow")
 warning = st.empty()
-c1,c2,c3,c4 = st.columns([25,25,25,25])
+c1,c2,c3,c4,c5 = st.columns([20,22,20,20,20])
 with c2:
     inner_col1,inner_col2 = st.columns([55,70])
     with inner_col1:
@@ -826,9 +841,15 @@ print("st.session_state.play_disabled")
 print(st.session_state.play_disabled)
 
 with c3:
-    playground = st.button('Launch playground', type = 'primary', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
+    playground = st.button('Search playground', type = 'primary', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
 if(playground):
     st.switch_page('pages/Semantic_Search.py')
+print("st.session_state.rag_play_disabled---------------------------------------------------------------------------------")
+print(  st.session_state.rag_play_disabled)
+with c4:
+    rag_playground = st.button('RAG playground', type = 'primary', disabled = st.session_state.rag_play_disabled)#st.session_state.play_disabled
+if(rag_playground):
+    st.switch_page('pages/AI_Shopping_Assistant.py')
 # if(get_fileds):
 #     #DOMAIN_ENDPOINT =   "search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com" #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
 #     REGION = st.session_state.REGION #'us-west-2'#
