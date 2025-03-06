@@ -824,7 +824,7 @@ url = input_host + input_index
 # get_fileds = st.button('Get field metadata')
 st.write("----",divider = "rainbow")
 warning = st.empty()
-c1,c2,c3,c4,c5 = st.columns([20,22,20,20,20])
+c1,c2,c3,c4,c5 = st.columns([17,25,25,25,8])
 with c2:
     inner_col1,inner_col2 = st.columns([55,70])
     with inner_col1:
