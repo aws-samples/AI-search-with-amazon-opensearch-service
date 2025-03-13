@@ -122,7 +122,8 @@ def query_(inputs):
                 if('modelInvocationOutput' in orchestration_trace and '<thinking>' in orchestration_trace['modelInvocationOutput']['rawResponse']['content']):
                     total_context_item['thinking'] = orchestration_trace['modelInvocationOutput']['rawResponse']
                 if(total_context_item!={}):
-                    total_context.append(total_context_item)
+                    removed_s3_bucket = (json.dumps(total_context_item)).replace(account_id + "-ml-search","xxxxx-ml-search")
+                    total_context.append(json.loads(removed_s3_bucket))
         print("total_context------")
         print(total_context)    
     except botocore.exceptions.EventStreamError as error:

@@ -381,7 +381,7 @@ def render_answer(question,answer,index):
     if(answer['source']!={}):
         with colu2:
             with st.expander("Agent Traces:"):
-                st.write(answer['source'])#.replace(account_id + "-ml-search","xxxxx-ml-search")
+                st.write(answer['source'])
         #         with st.container():
         #             if(len(res_img)>0):
         #                 with st.expander("Images:"):
