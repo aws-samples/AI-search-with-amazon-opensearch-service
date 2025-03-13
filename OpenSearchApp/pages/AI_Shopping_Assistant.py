@@ -44,6 +44,7 @@ s3_bucket_ = "pdf-repo-uploads"
             #"pdf-repo-uploads"
     
 st.session_state.REGION = ds.get_region()
+account_id = boto3.client('sts').get_caller_identity().get('Account') 
 polly_client = boto3.Session(
             region_name=st.session_state.REGION).client('polly')
 
@@ -316,7 +317,7 @@ def render_answer(question,answer,index):
                 res = src_dict['generate_images'].replace('s3://','')
                 s3_ = boto3.resource('s3')
                 key = res.split('/')[1]
-                s3_stream = s3_.Object("bedrock-video-generation-us-east-1-lbxkrh", key).get()['Body'].read()
+                s3_stream = s3_.Object(account_id + "-ml-search", key).get()['Body'].read()
                 img_ = Image.open(BytesIO(s3_stream))
                 resizedImg = img_.resize((230, 180), Image.Resampling.LANCZOS)
                 with gen_img_col1:
