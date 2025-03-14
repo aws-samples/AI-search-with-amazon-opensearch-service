@@ -118,7 +118,7 @@ def query_(inputs):
                     if(tool_output_last_obs['type'] == 'ACTION_GROUP'):
                         last_tool = tool_output_last_obs['actionGroupInvocationOutput']['text']
                     if(tool_output_last_obs['type'] == 'FINISH'):   
-                        agent_answer = tool_output_last_obs['finalResponse']['text']
+                        agent_answer = tool_output_last_obs['finalResponse']['text'].replace(account_id + "-ml-search","xxxxx-ml-search")
                 if('modelInvocationOutput' in orchestration_trace and '<thinking>' in orchestration_trace['modelInvocationOutput']['rawResponse']['content']):
                     total_context_item['thinking'] = orchestration_trace['modelInvocationOutput']['rawResponse']
                 if(total_context_item!={}):
