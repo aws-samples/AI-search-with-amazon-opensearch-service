@@ -20,6 +20,10 @@ def get_region():
 dynamo_client = boto3.client('dynamodb',region_name=get_region())
 
 
+def delete_from_dynamo(key):
+    response = dynamo_client.delete_item(
+   Key = {'store_key': {'S': key}}, TableName='dynamo_store_key_value')
+
 def store_in_dynamo(key,val):
     response = dynamo_client.put_item(
     Item={

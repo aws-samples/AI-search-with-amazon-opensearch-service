@@ -46,6 +46,12 @@ if "rag_play_disabled" not in st.session_state:
     
 if "index_map" not in st.session_state:
     st.session_state.index_map = {}
+
+    
+if "reset_key_ok" not in st.session_state:
+    st.session_state.reset_key_ok = False
+    
+    
     
 if "OpenSearchDomainEndpoint" not in st.session_state:
     st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
@@ -55,6 +61,9 @@ if "KendraResourcePlanID" not in st.session_state:
     
 if "REGION" not in st.session_state:
     st.session_state.REGION = ""
+    
+# if "reset_key" not in st.session_state:
+#     st.session_state.reset_key = ""    
    
 if "WebappRoleArn" not in st.session_state:
     st.session_state.WebappRoleArn = ds.get_from_dynamo("WebappRoleArn")
@@ -624,11 +633,11 @@ if(connector_res["hits"]["total"]["value"] == 0):
     create_ml_connectors()
     
 
+   
 def ingest_data(col,warning):
     
     
     ingest_flag = False
-    
      
     opensearch_res = (requests.get(host+'_ingest/pipeline/ml_ingest_pipeline', auth=awsauth,headers=headers)).text
     if('403' in str(opensearch_res)):
@@ -824,9 +833,15 @@ url = input_host + input_index
 # get_fileds = st.button('Get field metadata')
 st.write("----",divider = "rainbow")
 warning = st.empty()
+
+def on_reset():
+    st.session_state.reset_key_ok = not st.session_state.reset_key_ok
+   
 c1,c2,c3,c4,c5 = st.columns([17,25,25,25,8])
 with c2:
-    inner_col1,inner_col2 = st.columns([55,70])
+    inner_col0,inner_col1,inner_col2 = st.columns([30,55,40])
+    with inner_col0:
+        st.button("🔄",key="reset_key",on_click=on_reset, help = "This will reset the OpenSearch configuration (deletes the demostore-search-index and the ingest pipeline). Once you click this, you need to re-configure the settings in OpenSearch and then use (Re)Index button to ingest the data again")
     with inner_col1:
         ingest_data = st.button('(Re)Index data',type = 'primary',on_click = ingest_data, args=(inner_col2,warning))
 
@@ -850,6 +865,16 @@ with c4:
     rag_playground = st.button('RAG playground', type = 'primary', disabled = st.session_state.rag_play_disabled)#st.session_state.play_disabled
 if(rag_playground):
     st.switch_page('pages/AI_Shopping_Assistant.py')
+def on_reset_ok():
+    opensearch_del = (requests.delete(host+'demostore-search-index', auth=awsauth,headers=headers)).text
+    ds.delete_from_dynamo("ml_ingest_pipeline")
+    opensearch_del_pipeline = (requests.delete(host+'/_ingest/pipeline/ml_ingest_pipeline', auth=awsauth,headers=headers)).text
+    st.session_state.reset_key_ok = False
+
+if st.session_state.reset_key_ok:
+    # The message and nested widget will remain on the page
+    #st.write('Button is on!')
+    st.button(":warning: This will reset the OpenSearch config, click here to proceed!",type = 'primary',on_click=on_reset_ok)   
 # if(get_fileds):
 #     #DOMAIN_ENDPOINT =   "search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com" #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
 #     REGION = st.session_state.REGION #'us-west-2'#
