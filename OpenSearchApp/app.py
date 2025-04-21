@@ -874,7 +874,7 @@ def on_reset_ok():
 if st.session_state.reset_key_ok:
     # The message and nested widget will remain on the page
     #st.write('Button is on!')
-    st.button(":warning: This will reset the OpenSearch config, click here to proceed!",type = 'primary',on_click=on_reset_ok)   
+    st.button(":warning: This will reset the OpenSearch config, click **HERE** to proceed!",type = 'primary',on_click=on_reset_ok)   
 # if(get_fileds):
 #     #DOMAIN_ENDPOINT =   "search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg22gi.us-east-1.es.amazonaws.com" #"search-opensearchservi-rimlzstyyeih-3zru5p2nxizobaym45e5inuayq.us-west-2.es.amazonaws.com" 
 #     REGION = st.session_state.REGION #'us-west-2'#
