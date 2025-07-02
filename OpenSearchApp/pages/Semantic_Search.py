@@ -1150,124 +1150,113 @@ def render_answer(answer,index):
     col_1, col_2,col_3 = st.columns([70,10,20])
     i = 0
     filter_out = 0
-    for ans in answer:
+    if len(answer) == 0:
+        st.markdown("<p style='fontSize:20px;color:orange'>No results found, please try again with different query</p>", unsafe_allow_html = True)
+    else:
+        for ans in answer:
+            if('b5/b5319e00' in ans['image_url'] ):
+                filter_out+=1
+                continue
+            format_ = ans['image_url'].split(".")[-1]
+            Image.MAX_IMAGE_PIXELS = 100000000
+            width = 500
+            height = 500
+            with col_1:
+                inner_col_1,inner_col_2 = st.columns([8,92])
+                with inner_col_2:
+                    st.image(ans['image_url'])
 
-        
+                    if("highlight" in ans and 'Keyword Search' in st.session_state.input_searchType):
+                        test_strs = ans["highlight"]
+                        tag = "em"
+                        res__ = []
+                        for test_str in test_strs:
+                            start_idx = test_str.find("<" + tag + ">")
+                            
+                            while start_idx != -1:
+                                end_idx = test_str.find("</" + tag + ">", start_idx)
+                                if end_idx == -1:
+                                    break
+                                res__.append(test_str[start_idx+len(tag)+2:end_idx])
+                                start_idx = test_str.find("<" + tag + ">", end_idx)
 
-        if('b5/b5319e00' in ans['image_url'] ):
-            filter_out+=1
-            continue
-
-        
-        # imgdata = base64.b64decode(ans['image_binary'])
-        format_ = ans['image_url'].split(".")[-1]
-       
-        #urllib.request.urlretrieve(ans['image_url'], "/home/ubuntu/res_images/"+str(i)+"_."+format_) 
-
-        
-        Image.MAX_IMAGE_PIXELS = 100000000
-        
-        width = 500
-        height = 500
-          
-        
-
-        with col_1:
-            inner_col_1,inner_col_2 = st.columns([8,92])
-            with inner_col_2:
-                st.image(ans['image_url'])
-
-                if("highlight" in ans and 'Keyword Search' in st.session_state.input_searchType):
-                    test_strs = ans["highlight"]
-                    tag = "em"
-                    res__ = []
-                    for test_str in test_strs:
-                        start_idx = test_str.find("<" + tag + ">")
+                            
+                        desc__ = ans['desc'].split(" ")
+                            
+                        final_desc = "<p>"
                         
-                        while start_idx != -1:
-                            end_idx = test_str.find("</" + tag + ">", start_idx)
-                            if end_idx == -1:
-                                break
-                            res__.append(test_str[start_idx+len(tag)+2:end_idx])
-                            start_idx = test_str.find("<" + tag + ">", end_idx)
-
+                        ###### stemming and highlighting
                         
-                    desc__ = ans['desc'].split(" ")
-                        
-                    final_desc = "<p>"
-                    
-                    ###### stemming and highlighting
-                    
-                    # ans_text = ans['desc']
-                    # query_text = st.session_state.input_text
+                        # ans_text = ans['desc']
+                        # query_text = st.session_state.input_text
 
-                    # ans_text_stemmed = set(stem_(ans_text))
-                    # query_text_stemmed = set(stem_(query_text))
+                        # ans_text_stemmed = set(stem_(ans_text))
+                        # query_text_stemmed = set(stem_(query_text))
 
-                    # common = ans_text_stemmed.intersection( query_text_stemmed)
-                    # #unique = set(document_1_words).symmetric_difference(  )
+                        # common = ans_text_stemmed.intersection( query_text_stemmed)
+                        # #unique = set(document_1_words).symmetric_difference(  )
 
-                    # desc__stemmed = stem_(desc__)
+                        # desc__stemmed = stem_(desc__)
 
-                    # for word_ in desc__stemmed:
-                    #     if(word_ in common):
+                        # for word_ in desc__stemmed:
+                        #     if(word_ in common):
 
 
-                    for word in desc__:
-                        if(re.sub('[^A-Za-z0-9]+', '', word) in res__):
-                            final_desc +=  "<span style='color:#e28743;font-weight:bold'>"+word+"</span> "
-                        else:
-                            final_desc += word + " "
-                    
-                    final_desc += "</p>"
-
-                    st.markdown(final_desc,unsafe_allow_html = True)
-                else:
-                    st.write(ans['desc'])
-                if("sparse" in ans):
-                    with st.expander("Expanded document:"):
-                        sparse_ = dict(sorted(ans['sparse'].items(), key=lambda item: item[1],reverse=True))
-                        filtered_sparse = dict()
-                        for key in sparse_:
-                            if(sparse_[key]>=1.0):
-                                filtered_sparse[key] = round(sparse_[key], 2)
-                        st.write(filtered_sparse)
-                with st.expander("Document Metadata:",expanded = False):
-                    # if("rekog" in ans):
-                    #     div_size = [50,50]
-                    # else:
-                    #     div_size = [99,1]
-                    # div1,div2 = st.columns(div_size)
-                    # with div1:
-                        
-                    st.write(":green[default:]")
-                    st.json({"category:":ans['category'],"price":str(ans['price']),"gender_affinity":ans['gender_affinity'],"style":ans['style']},expanded = True)
-                    #with div2:
-                    if("rekog" in ans):
-                        st.write(":green[enriched:]")
-                        st.json(ans['rekog'],expanded = True)
-            with inner_col_1:
-                
-                if(st.session_state.input_evaluate == "enabled"):
-                    with st.container(border = False):
-                        if("relevant" in ans.keys()):
-                            if(ans['relevant']==True):
-                                st.write(":white_check_mark:")
+                        for word in desc__:
+                            if(re.sub('[^A-Za-z0-9]+', '', word) in res__):
+                                final_desc +=  "<span style='color:#e28743;font-weight:bold'>"+word+"</span> "
                             else:
-                                st.write(":x:")
+                                final_desc += word + " "
+                        
+                        final_desc += "</p>"
+
+                        st.markdown(final_desc,unsafe_allow_html = True)
+                    else:
+                        st.write(ans['desc'])
+                    if("sparse" in ans):
+                        with st.expander("Expanded document:"):
+                            sparse_ = dict(sorted(ans['sparse'].items(), key=lambda item: item[1],reverse=True))
+                            filtered_sparse = dict()
+                            for key in sparse_:
+                                if(sparse_[key]>=1.0):
+                                    filtered_sparse[key] = round(sparse_[key], 2)
+                            st.write(filtered_sparse)
+                    with st.expander("Document Metadata:",expanded = False):
+                        # if("rekog" in ans):
+                        #     div_size = [50,50]
+                        # else:
+                        #     div_size = [99,1]
+                        # div1,div2 = st.columns(div_size)
+                        # with div1:
+                            
+                        st.write(":green[default:]")
+                        st.json({"category:":ans['category'],"price":str(ans['price']),"gender_affinity":ans['gender_affinity'],"style":ans['style']},expanded = True)
+                        #with div2:
+                        if("rekog" in ans):
+                            st.write(":green[enriched:]")
+                            st.json(ans['rekog'],expanded = True)
+                with inner_col_1:
                     
-        i = i+1
-    # with col_2:
-    #     if(st.session_state.input_evaluate == "enabled"):
-    #         st.markdown("<div style='fontSize:12px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;font-weight:bold;height: fit-content;border-radius: 20px;font-family:Courier New;color:#e28743'>DCG: " +str('%.3f'%(st.session_state.input_ndcg)) + "</div>", unsafe_allow_html = True)
-    # with col_2_b:
-    #     span_color = "white"
-    #     if("&uarr;" in st.session_state.ndcg_increase):
-    #         span_color = "green"
-    #     if("&darr;" in st.session_state.ndcg_increase):
-    #         span_color = "red"
-    #     st.markdown("<span style='font-size:30px;color:"+span_color+"'>"+st.session_state.ndcg_increase.split("~")[0] +"</span><span style='font-size:15px;font-family:Courier New;color:"+span_color+"'>"+st.session_state.ndcg_increase.split("~")[1]+"</span>",unsafe_allow_html = True)
-            
+                    if(st.session_state.input_evaluate == "enabled"):
+                        with st.container(border = False):
+                            if("relevant" in ans.keys()):
+                                if(ans['relevant']==True):
+                                    st.write(":white_check_mark:")
+                                else:
+                                    st.write(":x:")
+                        
+            i = i+1
+        # with col_2:
+        #     if(st.session_state.input_evaluate == "enabled"):
+        #         st.markdown("<div style='fontSize:12px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;font-weight:bold;height: fit-content;border-radius: 20px;font-family:Courier New;color:#e28743'>DCG: " +str('%.3f'%(st.session_state.input_ndcg)) + "</div>", unsafe_allow_html = True)
+        # with col_2_b:
+        #     span_color = "white"
+        #     if("&uarr;" in st.session_state.ndcg_increase):
+        #         span_color = "green"
+        #     if("&darr;" in st.session_state.ndcg_increase):
+        #         span_color = "red"
+        #     st.markdown("<span style='font-size:30px;color:"+span_color+"'>"+st.session_state.ndcg_increase.split("~")[0] +"</span><span style='font-size:15px;font-family:Courier New;color:"+span_color+"'>"+st.session_state.ndcg_increase.split("~")[1]+"</span>",unsafe_allow_html = True)
+                
             
     with col_3:
         if(index == len(st.session_state.questions)):

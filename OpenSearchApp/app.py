@@ -518,6 +518,11 @@ def create_ml_connectors():
             "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"The image has a retail product, generate a short caption in less than 5 words for the product.\"}]}]}" 
         },
+                "BEDROCK_Claude3_multilingual":
+        {
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
+            "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"Detect the language of the user query and translate the product description to the same language as the user query. User query: ${parameters.query} , Product description: ${parameters.desc} \"}]}]}" 
+        },
                 
          "BEDROCK_MULTIMODAL":
                 {
