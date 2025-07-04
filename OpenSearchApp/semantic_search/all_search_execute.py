@@ -39,27 +39,6 @@ def handler(input_,session_id):
     print("BEDROCK_TEXT_MODEL_ID")
     print(BEDROCK_TEXT_MODEL_ID)
     
-    ####### Hybrid Search weights logic for throwing warning to users for inappropriate weights #######
-    
-    # def my_filtering_function(pair):
-    #     key, value = pair
-    #     if key.split("-")[0] + " Search" in st.session_state["inputs_"]["searchType"]:
-    #         return True  # keep pair in the filtered dictionary
-    #     else:
-    #         return False  # filter pair out of the dictionary
-
- 
-    # filtered_search = dict(filter(my_filtering_function, st.session_state.input_weightage.items()))
-    
-    # search_types_used = ", ".join(st.session_state["inputs_"]["searchType"])
-    
-    # if((sum(st.session_state.weights_)!=100 or len(st.session_state["inputs_"]["searchType"])!=len(list(filter(lambda a: a >0, st.session_state.weights_)))) and len(st.session_state["inputs_"]["searchType"])!=1):
-    #     st.warning('User Input Error for **WEIGHTS** :-\n\nOne or both of the below conditions was not satisfied, \n1. The total weight of all the selected search type(s): "'+search_types_used+'" should be equal to 100 \n 2. The weight of each of the search types, "'+search_types_used+'" should be greater than 0 \n\n Entered input: '+json.dumps(filtered_search)+'\n\n Please re-enter your weights to satisfy the above conditions and try again',icon = "🚨")
-    #     refresh = st.button("Re-Enter")
-    #     if(refresh):
-    #         st.switch_page('pages/1_Semantic_Search.py')
-    #     st.stop()
-    
     ####### Auth and connection for OpenSearch domain #######
     credentials = boto3.Session().get_credentials()
     awsauth = AWS4Auth(credentials.access_key, credentials.secret_key, REGION, 'es', session_token=credentials.token)
@@ -68,8 +47,7 @@ def handler(input_,session_id):
   
   
     ####### Parsing Inputs from user #######
-    print("*********")
-    print(input_)
+    
     search_types = input_["searchType"]
     
     if("NormType" not in input_.keys()):
@@ -341,10 +319,7 @@ def handler(input_,session_id):
                         }
                     }
         
-        ###### start of efficient filter applying #####
-#         if(st.session_state.input_rewritten_query!=""):
-#             vector_payload['neural']['product_description_vector']['filter'] = filter_['filter']
-            
+
         if(st.session_state.input_manual_filter == "True"):
             vector_payload['neural']['product_description_vector']['filter'] = {"bool":{"must":[]}}
             if(st.session_state.input_category!=None):
@@ -354,8 +329,7 @@ def handler(input_,session_id):
             if(st.session_state.input_price!=(0,0)):
                 vector_payload['neural']['product_description_vector']['filter']["bool"]["must"].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
         
-#         print("vector_payload**************")   
-#         print(vector_payload)    
+
         
         ###### end of efficient filter applying #####
         
@@ -385,9 +359,7 @@ def handler(input_,session_id):
             multimodal_payload["neural"]["product_multimodal_vector"]["query_text"] =  query
         
         ###### start of efficient filter applying #####
-#         if(st.session_state.input_rewritten_query!=""):
-#             multimodal_payload['neural']['product_multimodal_vector']['filter'] = filter_['filter']
-            
+  
         if(st.session_state.input_manual_filter == "True"):
             multimodal_payload['neural']['product_multimodal_vector']['filter'] = {"bool":{"must":[]}}
             if(st.session_state.input_category!=None):
@@ -396,9 +368,6 @@ def handler(input_,session_id):
                 multimodal_payload['neural']['product_multimodal_vector']['filter']["bool"]["must"].append({"term": {"gender_affinity": st.session_state.input_gender}})
             if(st.session_state.input_price!=(0,0)):
                 multimodal_payload['neural']['product_multimodal_vector']['filter']["bool"]["must"].append({"range": {"price": {"gte": st.session_state.input_price[0],"lte": st.session_state.input_price[1] }}})
-        
-#         print("vector_payload**************")   
-#         print(vector_payload)    
         
         ###### end of efficient filter applying #####
         
@@ -428,7 +397,7 @@ def handler(input_,session_id):
         print("text expansion is enabled")
         max_value = query_sparse_sorted[list(query_sparse_sorted.keys())[0]]
         threshold = round(max_value*st.session_state.input_sparse_filter,2)
-        #print(max_value)
+        
         query_sparse_sorted_filtered = {}
        
         rank_features = []
@@ -439,9 +408,6 @@ def handler(input_,session_id):
                 query_sparse_sorted_filtered[key_]=query_sparse_sorted[key_]
             else:
                 break
-        
-        #print(query_sparse_sorted_filtered)
-        #sparse_payload = {"bool":{"should":rank_features}} ## use this for vector hardcoded sparse search
         sparse_payload = {}
         sparse_payload_segment = {
         "neural_sparse": {
@@ -453,9 +419,7 @@ def handler(input_,session_id):
             }
             }
         
-        ###### start of efficient filter applying #####
-#         if(st.session_state.input_rewritten_query!=""):
-#             sparse_payload['bool']['must'] = filter_['filter']['bool']['must']
+
             
         if(st.session_state.input_manual_filter == "True"):
             sparse_payload = {'bool':{'filter':[]}}
@@ -469,52 +433,14 @@ def handler(input_,session_id):
         else:
             sparse_payload = sparse_payload_segment
         
-            
-#         print("sparse_payload**************")   
-#         print(sparse_payload)
-            
-        
-        ###### end of efficient filter applying #####
-        
-        
-        #print(sparse_payload)
-            
-        # sparse_payload = {
-            
-        #         "neural_sparse": 
-        #         {
-        #         "desc_embedding_sparse":
-        #             {
-        #         "query_text": query,
-        #         "model_id": SAGEMAKER_SPARSE_MODEL_ID,
-        #         #"max_token_score": 2
-        #     }
-        #     }
-                
-        #         }
-        
         
         hybrid_payload["query"]["hybrid"]["queries"].append(sparse_payload)
             
-            
-            
-            
-        
-        
-
-        
     
-    print(st.session_state.bedrock_re_ranker)
-    print(st.session_state.input_reranker)
     
     docs = []
     
-    if(st.session_state.input_sql_query!=""):
-        url = host +"_plugins/_sql?format=json"
-        payload = {"query":st.session_state.input_sql_query}
-        r = requests.post(url, auth=awsauth, json=payload, headers=headers)
-        print("^^^^^")
-        print(r.text)
+
     
     if(len(hybrid_payload["query"]["hybrid"]["queries"])==1):
         single_query = hybrid_payload["query"]["hybrid"]["queries"][0]
