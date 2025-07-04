@@ -128,7 +128,7 @@ if "BEDROCK_Claude3_text_MODEL_ID" not in st.session_state:
     st.session_state.BEDROCK_Claude3_text_MODEL_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_MODEL_ID")   
     
 if "BEDROCK_Claude3_text_CONNECTOR_ID" not in st.session_state:
-    st.session_state.BEDROCK_Claude3_text_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_CONNECTOR_ID")  
+    st.session_state.BEDROCK_Claude3_text_CONNECTOR_ID = ds.get_from_dynamo("BEDROCK_Claude3_text_CONNECTOR_ID")
     
 
 isExist = os.path.exists("/home/ec2-user/SageMaker/images_retail")
@@ -643,12 +643,8 @@ connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search
 
 print(connector_res)
 
-#if(connector_res["hits"]["total"]["value"] == 0):
-#   create_ml_connectors()
-    
-    
-    
-create_ml_connectors()
+if(connector_res["hits"]["total"]["value"] == 0):
+   create_ml_connectors()
    
 def ingest_data(col,warning):
     
