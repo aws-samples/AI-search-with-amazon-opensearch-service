@@ -21,7 +21,7 @@ import re
 import streamlit as st
 
 
-
+##code snippet for OpenSearch
 
 current_date_time = (datetime.now()).isoformat()
 today_ = datetime.today().strftime('%Y-%m-%d')
