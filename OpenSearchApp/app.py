@@ -376,8 +376,6 @@ def create_ml_connectors():
 
     permission_res = requests.put(host+'/_cluster/settings',json = permissions, auth=awsauth,headers=headers)
     
-    
-
 
     remote_ml = {
                 "SAGEMAKER_SPARSE":
@@ -410,6 +408,17 @@ def create_ml_connectors():
         "BEDROCK_TEXT_COHERE":
                 {
                      "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/cohere.embed-english-v3/invoke",
+                    "pre_process_fun": "connector.pre_process.cohere.embedding",
+      
+                    "post_process_fun":"connector.post_process.cohere.embedding",
+                    
+                    "request_body": "{ \"texts\": ${parameters.texts}, \"input_type\": \"search_document\" }",
+          
+                 },
+
+                "BEDROCK_TEXT_COHERE_MULTILINGUAL":
+                {
+                     "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/cohere.embed-multilingual-v3/invoke",
                     "pre_process_fun": "connector.pre_process.cohere.embedding",
       
                     "post_process_fun":"connector.post_process.cohere.embedding",
@@ -634,10 +643,12 @@ connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search
 
 print(connector_res)
 
-if(connector_res["hits"]["total"]["value"] == 0):
-    create_ml_connectors()
+#if(connector_res["hits"]["total"]["value"] == 0):
+#   create_ml_connectors()
     
-
+    
+    
+create_ml_connectors()
    
 def ingest_data(col,warning):
     
