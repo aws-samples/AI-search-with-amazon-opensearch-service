@@ -415,8 +415,12 @@ def create_ml_connectors():
                     "request_body": "{ \"texts\": ${parameters.texts}, \"input_type\": \"search_document\" }",
           
                  },
+<<<<<<< HEAD
 
                 "BEDROCK_TEXT_COHERE_MULTILINGUAL":
+=======
+                 "BEDROCK_TEXT_COHERE_MULTILINGUAL":
+>>>>>>> 304d041 (colpali nb)
                 {
                      "endpoint_url":"https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/cohere.embed-multilingual-v3/invoke",
                     "pre_process_fun": "connector.pre_process.cohere.embedding",
@@ -643,8 +647,10 @@ connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search
 
 print(connector_res)
 
+
 if(connector_res["hits"]["total"]["value"] == 0):
    create_ml_connectors()
+
    
 def ingest_data(col,warning):
     
