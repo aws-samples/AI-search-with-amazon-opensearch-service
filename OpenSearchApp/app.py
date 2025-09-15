@@ -538,7 +538,6 @@ def create_ml_connectors():
             "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
             "request_body": "{\"anthropic_version\":\"bedrock-2023-05-31\",\"max_tokens\":8000,\"temperature\": 0.001,\"messages\":[{\"role\":\"user\",\"content\":\"${parameters.inputs}\"}]}"
         },               
-                
          "BEDROCK_MULTIMODAL":
                 {
                      "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/amazon.titan-embed-image-v1/invoke",
