@@ -1,21 +1,21 @@
-import streamlit as st
-from PIL import Image
 import base64
-import boto3
-from opensearchpy import OpenSearch, RequestsHttpConnection, AWSV4SignerAuth
-from requests_aws4auth import AWS4Auth
-from requests.auth import HTTPBasicAuth
-import requests
 import json
-import time
 import os
-import urllib.request
-import tarfile
 import subprocess
-from ruamel.yaml import YAML
-from PIL import Image
-import base64
 import sys
+import tarfile
+import time
+import urllib.request
+
+import boto3
+import requests
+import streamlit as st
+from opensearchpy import AWSV4SignerAuth, OpenSearch, RequestsHttpConnection
+from PIL import Image
+from requests.auth import HTTPBasicAuth
+from requests_aws4auth import AWS4Auth
+from ruamel.yaml import YAML
+
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-1])+"/semantic_search")
 import dynamo_state as ds
 
@@ -38,11 +38,7 @@ st.session_state.REGION = ds.get_region()
 
 
 if "play_disabled" not in st.session_state:
-    st.session_state.play_disabled = ds.get_from_dynamo("play_disabled")
-
-if "rag_play_disabled" not in st.session_state:
-    st.session_state.rag_play_disabled = True
-    
+    st.session_state.play_disabled = ds.get_from_dynamo("play_disabled")    
     
 if "index_map" not in st.session_state:
     st.session_state.index_map = {}
@@ -270,11 +266,6 @@ if('404' in str(exists_) or '403' in str(exists_)):
 else:
     st.session_state.play_disabled = 'False'
 ds.store_in_dynamo('play_disabled',st.session_state.play_disabled)
-
-if(ds.get_from_dynamo('AgentReady')==""):
-    st.session_state.rag_play_disabled = True
-else:
-    st.session_state.rag_play_disabled = False
     
 ###### check for search pipelines #######
 opensearch_search_pipeline = (requests.get(host+'_search/pipeline/hybrid_search_pipeline', auth=awsauth,headers=headers)).text
@@ -520,22 +511,22 @@ def create_ml_connectors():
         },
         "BEDROCK_Claude3_text":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"For the given retail search query tell the product category and gender that applies. The options for product category are (accessories, books,floral,furniture,hot_dispensed,jewelry,tools,apparel,cold_dispensed,food_service,groceries,housewares,outdoors,salty_snacks,videos,beauty,electronics,footwear,homedecor,instruments,seasonal). The options for gender are (male,female). Choose only one option for both. Respond in the given format only. Format: 'gender product_category' where 'gender' corresponds your answer on gender and 'product_category' corresponds to your answer on product category. When you cannot exactly tell the gender or the query does not talk about any gender, leave 'gender' empty in the format. Example 1: Query: jacket for men. Answer: male apparel. Example 2: Query: women necklace. Answer: female jewelry. Example 3: Query: black jacket. Answer: apparel. Query: ${parameters.inputs} \"}]}]}"
              },
         "BEDROCK_Claude3_image":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"The image has a retail product, generate a short caption in less than 5 words for the product.\"}]}]}" 
         },
                 "BEDROCK_Claude3_multilingual":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"Detect the language of the user query and translate the product description to the same language as the user query. User query: ${parameters.query} , Product description: ${parameters.desc} \"}]}]}" 
         },
         "BEDROCK_Claude3_conv":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-sonnet-20240229-v1:0/invoke",
             "request_body": "{\"anthropic_version\":\"bedrock-2023-05-31\",\"max_tokens\":8000,\"temperature\": 0.001,\"messages\":[{\"role\":\"user\",\"content\":\"${parameters.inputs}\"}]}"
         },               
          "BEDROCK_MULTIMODAL":
@@ -878,10 +869,8 @@ with c3:
     playground = st.button('Search playground', type = 'primary', disabled = st.session_state.play_disabled)#st.session_state.play_disabled
 if(playground):
     st.switch_page('pages/Semantic_Search.py')
-print("st.session_state.rag_play_disabled---------------------------------------------------------------------------------")
-print(  st.session_state.rag_play_disabled)
 with c4:
-    rag_playground = st.button('RAG playground', type = 'primary', disabled = st.session_state.rag_play_disabled)#st.session_state.play_disabled
+    rag_playground = st.button('RAG playground', type = 'primary')#st.session_state.play_disabled
 if(rag_playground):
     st.switch_page('pages/AI_Shopping_Assistant.py')
 def on_reset_ok():

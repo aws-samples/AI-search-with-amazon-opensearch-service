@@ -1,35 +1,34 @@
-import streamlit as st
-import uuid
 import os
 import re
 import sys
 import uuid
 from io import BytesIO
+
+import streamlit as st
+
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/semantic_search")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/RAG")
 sys.path.insert(1, "/".join(os.path.realpath(__file__).split("/")[0:-2])+"/utilities")
-import boto3
-import requests
-from boto3 import Session
-import botocore.session
+import base64
 import json
 import random
-import string
-import pandas as pd
-from PIL import Image 
 import shutil
-import base64
+import string
 import time
+
+import boto3
 import botocore
+import botocore.session
+import dynamo_state as ds
+import pandas as pd
+import requests
+from boto3 import Session
+from PIL import Image
+#import copali
+from requests.auth import HTTPBasicAuth
 #from langchain.callbacks.base import BaseCallbackHandler
 #from IPython.display import clear_output, display, display_markdown, Markdown
 from requests_aws4auth import AWS4Auth
-#import copali
-from requests.auth import HTTPBasicAuth
-import bedrock_agent
-import dynamo_state as ds
-
-
 
 st.set_page_config(
     #page_title="Semantic Search using OpenSearch",
@@ -94,17 +93,17 @@ if "inputs_" not in st.session_state:
     st.session_state.inputs_ = {}
     
 if "input_shopping_query" not in st.session_state:
-    st.session_state.input_shopping_query="get me shoes suitable for trekking"#"What is the projected energy percentage from renewable sources in future?"#"Which city in United Kingdom has the highest average housing price ?"#"How many aged above 85 years died due to covid ?"# What is the projected energy from renewable sources ?"
-
+    st.session_state.input_shopping_query="Give me recommendations of a black jacket for men"  #"What is the projected energy percentage from renewable sources in future?"#"Which city in United Kingdom has the highest average housing price ?"#"How many aged above 85 years died due to covid ?"# What is the projected energy from renewable sources ?"
 
 if "input_rag_searchType" not in st.session_state:
     st.session_state.input_rag_searchType = ["Sparse Search"]
-    
+
+if "input_agent_id" not in st.session_state:
+    st.session_state.input_agent_id = ""
 
 
-        
-region = 'us-east-1'
-bedrock_runtime_client = boto3.client('bedrock-runtime',region_name=region)
+# region = 'us-east-1'
+region = st.session_state.REGION
 output = []
 service = 'es'
 
@@ -143,6 +142,51 @@ service = 'es'
 
 ################# using boto3 credentials ####################
 
+
+
+# Ensure OpenSearch endpoint is available in session state
+if "OpenSearchDomainEndpoint" not in st.session_state or not st.session_state.OpenSearchDomainEndpoint:
+    st.session_state.OpenSearchDomainEndpoint = ds.get_from_dynamo("OpenSearchDomainEndpoint")
+
+def execute_opensearch_agent(question: str, agent_id: str, memory_id: str | None):
+    domain = st.session_state.OpenSearchDomainEndpoint
+    url = f"https://{domain}/_plugins/_ml/agents/{agent_id}/_execute"
+    parameters = {"question": question}
+    if memory_id:
+        parameters["memory_id"] = memory_id
+    payload = {"parameters": parameters}
+    headers = {"Content-Type": "application/json"}
+    resp = requests.post(url, auth=awsauth, headers=headers, data=json.dumps(payload), timeout=60)
+
+    try:
+        data = resp.json()
+    except Exception:
+        data = {"raw": resp.text}
+
+    if resp.status_code >= 400:
+        text = f"Agent error: {resp.status_code} {resp.text}"
+    else:
+        text = ""
+        try:
+            inference_results = data.get("inference_results", [])
+            if inference_results:
+                output = inference_results[0].get("output", [])
+                if output:
+                    text = output[2].get("result") or output[2].get("text") or json.dumps(output[2])
+                    memory_id = output[0].get("result")
+
+        except Exception:
+            pass
+        if not text:
+            text = resp.text
+            memory_id = None
+
+    last_tool = {"name": "opensearch_agent", "response": resp.text}
+    return {"text": text, "source": data, "last_tool": last_tool, "memory_id": memory_id}
+
+def delete_memory():
+    # No-op to keep 'Clear' flow functional without Bedrock agent
+    return
 
 
 # if "input_searchType" not in st.session_state:
@@ -184,12 +228,22 @@ def write_top_bar():
 
 clear = write_top_bar()
 
+# Agent ID input
+col1, col2 = st.columns([1, 4])
+with col1:
+    st.text_input(
+        "Agent ID", 
+        value=st.session_state.input_agent_id,
+        key="input_agent_id",
+        help="Enter the OpenSearch Agent ID to use for the shopping assistant"
+    )
+
 if clear:
     st.session_state.questions__ = []
     st.session_state.answers__ = []
     st.session_state.input_shopping_query=""
     st.session_state.session_id_ = str(uuid.uuid1())
-    bedrock_agent.delete_memory()
+    delete_memory()
     # st.session_state.input_searchType="Conversational Search (RAG)"
     # st.session_state.input_temperature = "0.001"
     # st.session_state.input_topK = 200
@@ -198,38 +252,35 @@ if clear:
 
 
 def handle_input():
-    print("Question: "+st.session_state.input_shopping_query)
-    print("-----------")
-    print("\n\n")
-    if(st.session_state.input_shopping_query==''):
+    if(st.session_state.input_agent_id == '' or st.session_state.input_shopping_query == ''):
         return ""
+
     inputs = {}
     for key in st.session_state:
         if key.startswith('input_'):
             inputs[key.removeprefix('input_')] = st.session_state[key]
     st.session_state.inputs_ = inputs
     
-    #######
-    
-    
-    #st.write(inputs) 
     question_with_id = {
         'question': inputs["shopping_query"],
         'id': len(st.session_state.questions__)
     }
     st.session_state.questions__.append(question_with_id)
-    print(inputs)
-    out_ = bedrock_agent.query_(inputs)
+
+    out_ = execute_opensearch_agent(
+        question=inputs["shopping_query"],
+        agent_id=st.session_state.input_agent_id,
+        memory_id=st.session_state.get('memory_id')
+    )
+
     st.session_state.answers__.append({
         'answer': out_['text'],
         'source':out_['source'],
         'last_tool':out_['last_tool'],
         'id': len(st.session_state.questions__)
-        
-        
     })
-    st.session_state.input_shopping_query=""
-    
+    st.session_state.memory_id = out_['memory_id']
+    st.session_state.input_shopping_query = ""
 
     
 # search_type = st.selectbox('Select the Search type',
@@ -486,7 +537,7 @@ with col_3:
     #hidden = st.button("RUN",disabled=True,key = "hidden")
     # audio_value = st.audio_input("Record a voice message")
     # print(audio_value)
-    play = st.button("Go",on_click=handle_input,key = "play")
+    play = st.button("Send",on_click=handle_input,key = "play")
 #with st.sidebar:
     # st.page_link("/home/ubuntu/AI-search-with-amazon-opensearch-service/OpenSearchApp/app.py", label=":orange[Home]", icon="🏠")
     # st.subheader(":blue[Sample Data]")
@@ -643,5 +694,3 @@ with col_3:
     # #     st.session_state.input_copali_rerank = True
     # # else:
     # #     st.session_state.input_copali_rerank = False
-        
-        
