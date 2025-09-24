@@ -87,13 +87,12 @@ if "input_copali_rerank" not in st.session_state:
     
 if "input_table_with_sql" not in st.session_state:
     st.session_state.input_table_with_sql = False
-    
-    
+
 if "inputs_" not in st.session_state:
     st.session_state.inputs_ = {}
     
 if "input_shopping_query" not in st.session_state:
-    st.session_state.input_shopping_query="Give me recommendations of a black jacket for men"  #"What is the projected energy percentage from renewable sources in future?"#"Which city in United Kingdom has the highest average housing price ?"#"How many aged above 85 years died due to covid ?"# What is the projected energy from renewable sources ?"
+    st.session_state.input_shopping_query="Get me recommendations of black jacket for men"  #"What is the projected energy percentage from renewable sources in future?"#"Which city in United Kingdom has the highest average housing price ?"#"How many aged above 85 years died due to covid ?"# What is the projected energy from renewable sources ?"
 
 if "input_rag_searchType" not in st.session_state:
     st.session_state.input_rag_searchType = ["Sparse Search"]
@@ -318,67 +317,71 @@ def write_user_message(md):
         st.markdown("<div style='color:#e28743';font-size:18px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;font-style: italic;'>"+md['question']+"</div>", unsafe_allow_html = True)
        
 
+def render_text_with_images(text):
+    """Render text with embedded images using Markdown format"""
+    # Pattern to match [Caption](image_url) format
+    image_pattern = r'\[([^\]]+)\]\(([^)]+)\)'
+    
+    # Split text by image patterns
+    parts = re.split(image_pattern, text)
+    
+    for i, part in enumerate(parts):
+        if i % 3 == 0:  # Text parts
+            if part.strip():
+                # Clean up the text and render it
+                clean_text = part.strip()
+                if clean_text:
+                    # Handle any HTML-like formatting
+                    clean_text = clean_text.replace('<question>',"<br><span style='fontSize:18px;color:#f37709;fontStyle:italic;'>").replace("</question>","</span>")
+                    st.markdown(clean_text, unsafe_allow_html=True)
+        elif i % 3 == 1:  # Caption (skip, we'll use it in the next part)
+            continue
+        elif i % 3 == 2:  # Image URL
+            caption = parts[i-1] if i > 0 else "Image"
+            image_url = part.strip()
+            
+            # Display image
+            try:
+                if image_url.startswith('/home/'):
+                    # Handle local file paths - load and display the image
+                    if os.path.exists(image_url):
+                        with open(image_url, 'rb') as f:
+                            image_data = f.read()
+                            img = Image.open(BytesIO(image_data))
+                            resized_img = img.resize((230, 180), Image.Resampling.LANCZOS)
+                            st.image(resized_img, caption=caption, use_column_width=False)
+                    else:
+                        st.write(f"Local file not found: {image_url}")
+                else:
+                    # Handle external URLs
+                    response_ = requests.get(image_url, timeout=10)
+                    if response_.status_code == 200:
+                        img = Image.open(BytesIO(response_.content))
+                        resized_img = img.resize((230, 180), Image.Resampling.LANCZOS)
+                        st.image(resized_img, caption=caption, use_column_width=False)
+                    else:
+                        st.write(f"Could not load image: {image_url}")
+            except Exception as e:
+                st.write(f"Error loading image: {str(e)}")
+                st.write(f"Image URL: {image_url}")
 
-def render_answer(question,answer,index):
-    
-    
+def render_answer(question, answer, index):
     col1, col2, col_3 = st.columns([4,74,22])
     with col1:
         st.image(AI_ICON, use_column_width='always')
     with col2:
-        use_interim_results = False
-        src_dict = {}
         ans_ = answer['answer']
-        span_ans = ans_.replace('<question>',"<br><span style='fontSize:18px;color:#f37709;fontStyle:italic;'>").replace("</question>","</span>")
-        st.markdown("<p>"+span_ans+"</p>",unsafe_allow_html = True)
-        print("answer['source']")
-        print("-------------")
-        print(answer['source'])
-        print("-------------")
-        print(answer['last_tool'])
-        if(answer['last_tool']['name'] in ["generate_images","get_relevant_items_for_image","get_relevant_items_for_text","retrieve_with_hybrid_search","retrieve_with_keyword_search","get_any_general_recommendation"]):
-            use_interim_results = True
-            src_dict =json.loads(answer['last_tool']['response'].replace("'",'"'))
-        print("src_dict")
-        print("-------------")
-        print(src_dict)
-        #if("get_relevant_items_for_text" in src_dict):
-        if(use_interim_results and answer['last_tool']['name']!= 'generate_images' and answer['last_tool']['name']!= 'get_any_general_recommendation'):
-            key_ = answer['last_tool']['name']
-            
-            st.write("<br><br>",unsafe_allow_html = True)
-            img_col1, img_col2, img_col3  = st.columns([30,30,40])
-            for index,item in enumerate(src_dict[key_]):
-                response_ = requests.get(item['image'])
-                img = Image.open(BytesIO(response_.content))
-                resizedImg = img.resize((230, 180), Image.Resampling.LANCZOS)
-                if(index ==0):
-                    with img_col1:
-                        st.image(resizedImg,use_column_width = True,caption = item['title'])
-                if(index ==1):
-                    with img_col2:
-                        st.image(resizedImg,use_column_width = True,caption = item['title'])
-                        #st.image(parent_dirname+"/retrieved_esci_images/"+item['id']+"_resized.jpg",caption = item['title'],use_column_width = True)
-                
-                
-        if(answer['last_tool']['name'] == "generate_images" or answer['last_tool']['name'] == "get_any_general_recommendation"):   
-            st.write("<br>",unsafe_allow_html = True)
-            if('generate_images' in src_dict):
-                gen_img_col1, gen_img_col2,gen_img_col2 = st.columns([30,30,30])
-                res = src_dict['generate_images'].replace('s3://','')
-                s3_ = boto3.resource('s3')
-                key = res.split('/')[1]
-                s3_stream = s3_.Object(account_id + "-ml-search", key).get()['Body'].read()
-                img_ = Image.open(BytesIO(s3_stream))
-                resizedImg = img_.resize((230, 180), Image.Resampling.LANCZOS)
-                with gen_img_col1:
-                    st.image(resizedImg,caption = "Generated image for "+key.split(".")[0],use_column_width = True)
-            st.write("<br>",unsafe_allow_html = True)
-
-
-            
-             
-       
+        
+        # Check if this is an OpenSearch agent response with embedded images
+        if '[' in ans_ and '](' in ans_ and ')' in ans_:
+            # Use the new rendering method for embedded images
+            render_text_with_images(ans_)
+        else:
+            # Original logic for other response types
+            span_ans = ans_.replace('<question>',"<br><span style='fontSize:18px;color:#f37709;fontStyle:italic;'>").replace("</question>","</span>")
+            st.markdown("<p>"+span_ans+"</p>",unsafe_allow_html = True)
+        
+        # ... rest of existing code for other response types ...
         
         
         # def stream_():
