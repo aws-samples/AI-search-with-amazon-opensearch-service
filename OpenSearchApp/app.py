@@ -516,7 +516,7 @@ def create_ml_connectors():
              },
         "BEDROCK_Claude3_image":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/modelanthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"The image has a retail product, generate a short caption in less than 5 words for the product.\"}]}]}" 
         },
                 "BEDROCK_Claude3_multilingual":
