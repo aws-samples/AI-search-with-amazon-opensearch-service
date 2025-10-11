@@ -388,7 +388,7 @@ def generate_images(tab,inp_):
         if(inp_!=st.session_state.image_prompt):
             print("call bedrocck")
             response = bedrock_.invoke_model(
-            modelId="amazon.titan-image-generator-v1", body=request
+            modelId="amazon.titan-image-generator-v2:0", body=request
             )
             
             response_body = json.loads(response["body"].read())
