@@ -511,22 +511,22 @@ def create_ml_connectors():
         },
         "BEDROCK_Claude3_text":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"For the given retail search query tell the product category and gender that applies. The options for product category are (accessories, books,floral,furniture,hot_dispensed,jewelry,tools,apparel,cold_dispensed,food_service,groceries,housewares,outdoors,salty_snacks,videos,beauty,electronics,footwear,homedecor,instruments,seasonal). The options for gender are (male,female). Choose only one option for both. Respond in the given format only. Format: 'gender product_category' where 'gender' corresponds your answer on gender and 'product_category' corresponds to your answer on product category. When you cannot exactly tell the gender or the query does not talk about any gender, leave 'gender' empty in the format. Example 1: Query: jacket for men. Answer: male apparel. Example 2: Query: women necklace. Answer: female jewelry. Example 3: Query: black jacket. Answer: apparel. Query: ${parameters.inputs} \"}]}]}"
              },
         "BEDROCK_Claude3_image":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"The image has a retail product, generate a short caption in less than 5 words for the product.\"}]}]}" 
         },
                 "BEDROCK_Claude3_multilingual":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1:0/invoke",
             "request_body": "{\"anthropic_version\": \"bedrock-2023-05-31\",\"max_tokens\": 1024,\"temperature\": 0.001,\"top_k\": 250,\"top_p\": 1,\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"image\",\"source\":{\"type\":\"base64\",\"media_type\":\"image/jpeg\",\"data\":\"${parameters.inputs}\"}},{\"type\":\"text\",\"text\":\"Detect the language of the user query and translate the product description to the same language as the user query. User query: ${parameters.query} , Product description: ${parameters.desc} \"}]}]}" 
         },
         "BEDROCK_Claude3_conv":
         {
-            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke",
+            "endpoint_url": "https://bedrock-runtime."+st.session_state.REGION+".amazonaws.com/model/us.anthropic.claude-sonnet-4-20250514-v1:0/invoke",
             "request_body": "{\"anthropic_version\":\"bedrock-2023-05-31\",\"max_tokens\":8000,\"temperature\": 0.001,\"messages\":[{\"role\":\"user\",\"content\":\"${parameters.inputs}\"}]}"
         },               
          "BEDROCK_MULTIMODAL":
