@@ -34,7 +34,11 @@ ospy_client = OpenSearch(
     use_ssl = True,
     verify_certs = True,
     connection_class = RequestsHttpConnection,
-    pool_maxsize = 20
+    timeout = 60,  # Increase timeout to 60 seconds
+    max_retries = 3,  # Add retry logic
+    retry_on_timeout = True,  # Retry on timeout
+    http_compress = True,  # Enable compression for better performance
+    pool_maxsize = 20  # Increase connection pool size
 )
 
 
@@ -327,6 +331,7 @@ def os_ingest(index_,documents):
         response = ospy_client.index(
             index = index_,
             body = doc,
+            timeout = 60  # Set index operation timeout (seconds)
         )
 
 
@@ -386,6 +391,7 @@ def os_ingest_mm(index_,documents_mm):
         response = ospy_client.index(
             index = index_,
             body = doc,
+            timeout = 60  # Set index operation timeout (seconds)
         )
 
 

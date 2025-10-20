@@ -18,7 +18,12 @@ aos_client = OpenSearch(
     http_auth = auth,
     use_ssl = True,
     verify_certs = True,
-    connection_class = RequestsHttpConnection
+    connection_class = RequestsHttpConnection,
+    timeout = 60,  # Increase timeout to 60 seconds
+    max_retries = 3,  # Add retry logic
+    retry_on_timeout = True,  # Retry on timeout
+    http_compress = True,  # Enable compression for better performance
+    pool_maxsize = 20  # Increase connection pool size
 )
 rekog_client = boto3.client('rekognition', region_name=st.session_state.REGION)
 

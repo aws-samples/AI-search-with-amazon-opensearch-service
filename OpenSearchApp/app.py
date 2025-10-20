@@ -719,7 +719,12 @@ def ingest_data(col,warning):
     hosts = [{'host': OpenSearchDomainEndpoint, 'port': 443}],
     http_auth = awsauth,
     use_ssl = True,
-    connection_class = RequestsHttpConnection
+    connection_class = RequestsHttpConnection,
+    timeout = 60,  # Increase timeout to 60 seconds
+    max_retries = 3,  # Add retry logic
+    retry_on_timeout = True,  # Retry on timeout
+    http_compress = True,  # Enable compression for better performance
+    pool_maxsize = 20  # Increase connection pool size
         )
     
     
@@ -730,8 +735,14 @@ def ingest_data(col,warning):
     count = 0
     body_ = ''
     batch_size = 50
-    last_batch = int(len(items_)/batch_size)
+    import math
+    last_batch = math.ceil(len(items_)/batch_size)
     action = json.dumps({ 'index': { '_index': 'demostore-search-index' } })
+    
+    # Add progress tracking
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    status_text.text(f"Starting ingestion of {len(items_)} documents...")
   
 
     def resize_image(photo, width, height):
@@ -750,62 +761,100 @@ def ingest_data(col,warning):
         return file_type, path
          
     for item in items_:
-        count+=1
-        fileshort = "/home/ec2-user/SageMaker/images_retail/"+item["category"]+"/"+item["image"]
-        payload = {}
-        payload['image_url'] = fileshort
-        payload['product_description'] = item['description']
-        payload['caption'] = item['name']
-        payload['category'] = item['category']
-        payload['price'] = item['price']
-        if('gender_affinity' in item):
-            if(item['gender_affinity'] == 'M'):
-                payload['gender_affinity'] = 'Male'
-            else:
-                if(item['gender_affinity'] == 'F'):
-                    payload['gender_affinity'] = 'Female'
+        try:
+            fileshort = "/home/ec2-user/SageMaker/images_retail/"+item["category"]+"/"+item["image"]
+            payload = {}
+            payload['image_url'] = fileshort
+            payload['product_description'] = item['description']
+            payload['caption'] = item['name']
+            payload['category'] = item['category']
+            payload['price'] = item['price']
+            if('gender_affinity' in item):
+                if(item['gender_affinity'] == 'M'):
+                    payload['gender_affinity'] = 'Male'
                 else:
-                    payload['gender_affinity'] = payload['gender_affinity']
-        else:
-            payload['gender_affinity'] = ""
-        if('style' in item):
-            payload['style'] = item['style']
-        else:
-            payload['style'] = ""
-        #resize the image and generate image binary
+                    if(item['gender_affinity'] == 'F'):
+                        payload['gender_affinity'] = 'Female'
+                    else:
+                        payload['gender_affinity'] = payload['gender_affinity']
+            else:
+                payload['gender_affinity'] = ""
+            if('style' in item):
+                payload['style'] = item['style']
+            else:
+                payload['style'] = ""
+            #resize the image and generate image binary
+            
+            file_type, path = resize_image(fileshort, 2048, 2048)
+            if(st.session_state.BEDROCK_MULTIMODAL_MODEL_ID != ""):
+                with open(fileshort.split(".")[0]+"-resized."+file_type, "rb") as image_file:
+                    input_image = base64.b64encode(image_file.read()).decode("utf8")
+            
+                os.remove(fileshort.split(".")[0]+"-resized."+file_type)
+                payload['product_image'] = input_image
+            
+            
+            body_ = body_ + action + "\n" + json.dumps(payload) + "\n"
+            count += 1  # Only increment count for successful items
         
-        file_type, path = resize_image(fileshort, 2048, 2048)
-        if(st.session_state.BEDROCK_MULTIMODAL_MODEL_ID != ""):
-            with open(fileshort.split(".")[0]+"-resized."+file_type, "rb") as image_file:
-                input_image = base64.b64encode(image_file.read()).decode("utf8")
+        except Exception as e:
+            status_text.text(f"❌ Error processing item: {str(e)}")
+            st.error(f"Failed to process item: {item.get('name', 'Unknown')} - {str(e)}")
+            continue  # Skip this item and continue with next
         
-            os.remove(fileshort.split(".")[0]+"-resized."+file_type)
-            payload['product_image'] = input_image
-        
-        
-        body_ = body_ + action + "\n" + json.dumps(payload) + "\n"
-        
+        # Check if we've reached batch size (outside try-except)
         if(count == batch_size):
-            response = aos_client.bulk(
-            index = 'demostore-search-index',
-            body = body_
-            )
+            try:
+                response = aos_client.bulk(
+                index = 'demostore-search-index',
+                body = body_,
+                timeout = 60,  # Set bulk operation timeout (seconds)
+                refresh = False  # Don't refresh immediately for better performance
+                )
+                
+                # Check for bulk operation errors
+                if response.get('errors'):
+                    st.error(f"Bulk operation had errors in batch {batch + 1}")
+                    
+            except Exception as e:
+                st.error(f"Bulk operation failed for batch {batch + 1}: {str(e)}")
+                break  # Stop processing if bulk operation fails
             batch += 1
             count = 0
             print("batch "+str(batch) + " ingestion done!")
             
-            if(batch != last_batch):
-                body_ = ""
+            # Update progress in UI
+            progress = batch / last_batch
+            progress_bar.progress(progress)
+            status_text.text(f"Processed batch {batch}/{last_batch} - {batch * batch_size} documents ingested")
+            
+            body_ = ""  # Always reset body after each batch
             
             
                 
             #ingest the remaining rows
-    response = aos_client.bulk(
-            index = 'demostore-search-index',
-            body = body_
+    if body_.strip():  # Only process if there's remaining data
+        try:
+            response = aos_client.bulk(
+                index = 'demostore-search-index',
+                body = body_,
+                timeout = 60,  # Set bulk operation timeout (seconds)
+                refresh = True  # Refresh after final batch
             )
+            
+            # Check for bulk operation errors
+            if response.get('errors'):
+                st.error("Final bulk operation had errors")
+                
+        except Exception as e:
+            st.error(f"Final bulk operation failed: {str(e)}")
                     
     print("All "+str(last_batch)+" batches ingested into index")
+    
+    # Final progress update
+    progress_bar.progress(1.0)
+    status_text.text(f"✅ Successfully ingested all {len(items_)} documents in {last_batch} batches!")
+    
     warning.empty()
     with col:
         st.write(":white_check_mark:")
@@ -841,7 +890,7 @@ input_host = "https://search-opensearchservi-75ucark0bqob-bzk6r6h2t33dlnpgx2pdeg
 input_index = "raw-retail-ml-search-index"
 url = input_host + input_index
 # get_fileds = st.button('Get field metadata')
-st.write("----",divider = "rainbow")
+st.divider()
 warning = st.empty()
 
 def on_reset():
