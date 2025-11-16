@@ -598,7 +598,7 @@ def create_ml_connectors():
         "parameters": {
             "region": st.session_state.REGION,
             "service_name": (remote_ml_key.split("_")[0]).lower(),
-            "input_docs_processed_step_size": "2"
+            "input_docs_processed_step_size": "50"
         },
         "actions": [
             {
@@ -818,7 +818,7 @@ def ingest_data(col,warning):
                     
             except Exception as e:
                 st.error(f"Bulk operation failed for batch {batch + 1}: {str(e)}")
-                break  # Stop processing if bulk operation fails
+                #break  # Stop processing if bulk operation fails
             batch += 1
             count = 0
             print("batch "+str(batch) + " ingestion done!")
