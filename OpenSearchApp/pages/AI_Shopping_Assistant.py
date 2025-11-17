@@ -185,6 +185,8 @@ def execute_opensearch_agent(question: str, agent_id: str, memory_id: str | None
 
 def delete_memory():
     # No-op to keep 'Clear' flow functional without Bedrock agent
+    if 'memory_id' in st.session_state:
+        del st.session_state['memory_id']
     return
 
 
