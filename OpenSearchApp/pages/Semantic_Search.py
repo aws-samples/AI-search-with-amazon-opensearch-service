@@ -738,6 +738,8 @@ st.markdown('---')
 
 def write_user_message(md,ans):
     #print(ans)
+    if not ans["answer"] or len(ans["answer"]) == 0:
+        return
     ans = ans["answer"][0]
     col1, col2, col3 = st.columns([3,40,20])
     
