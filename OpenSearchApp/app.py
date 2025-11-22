@@ -715,18 +715,21 @@ def ingest_data(col,warning):
     with warning:
         st.warning("Please wait while the data is ingested. Do not refresh the page !",icon = "⚠️")
     
-    aos_client = OpenSearch(
-    hosts = [{'host': OpenSearchDomainEndpoint, 'port': 443}],
-    http_auth = awsauth,
-    use_ssl = True,
-    connection_class = RequestsHttpConnection,
-    timeout = 60,  # Increase timeout to 60 seconds
-    max_retries = 3,  # Add retry logic
-    retry_on_timeout = True,  # Retry on timeout
-    http_compress = True,  # Enable compression for better performance
-    pool_maxsize = 20  # Increase connection pool size
-        )
-    
+    try:
+        aos_client = OpenSearch(
+        hosts = [{'host': OpenSearchDomainEndpoint, 'port': 443}],
+        http_auth = awsauth,
+        use_ssl = True,
+        connection_class = RequestsHttpConnection,
+        timeout = 60,  # Increase timeout to 60 seconds
+        max_retries = 3,  # Add retry logic
+        retry_on_timeout = True,  # Retry on timeout
+        http_compress = True,  # Enable compression for better performance
+        pool_maxsize = 20  # Increase connection pool size
+            )
+    except Exception as e:
+        st.error(f"Error connecting to OpenSearch domain: {str(e)}")   
+        print("Error connecting to OpenSearch domain "+str(e))
     
     yaml = YAML()
     items_ = yaml.load(open('/home/ec2-user/SageMaker/images_retail/products.yaml'))
@@ -809,7 +812,7 @@ def ingest_data(col,warning):
                 index = 'demostore-search-index',
                 body = body_,
                 timeout = 60,  # Set bulk operation timeout (seconds)
-                refresh = False  # Don't refresh immediately for better performance
+                refresh = True 
                 )
                 
                 # Check for bulk operation errors
@@ -829,9 +832,7 @@ def ingest_data(col,warning):
             status_text.text(f"Processed batch {batch}/{last_batch} - {batch * batch_size} documents ingested")
             
             body_ = ""  # Always reset body after each batch
-            
-            
-                
+                                        
             #ingest the remaining rows
     if body_.strip():  # Only process if there's remaining data
         try:
@@ -839,7 +840,7 @@ def ingest_data(col,warning):
                 index = 'demostore-search-index',
                 body = body_,
                 timeout = 60,  # Set bulk operation timeout (seconds)
-                refresh = True  # Refresh after final batch
+                refresh = True  
             )
             
             # Check for bulk operation errors
