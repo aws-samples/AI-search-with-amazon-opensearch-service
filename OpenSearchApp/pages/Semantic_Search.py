@@ -768,10 +768,13 @@ def write_user_message(md,ans):
             if(st.session_state.input_rad_1 is not None and st.session_state.input_rad_1!=""):
                 num_str = str(int(st.session_state.input_rad_1.strip())-1)
                 img_file = parent_dirname+"/gen_images/"+st.session_state.image_prompt+"_gen_"+num_str+"-resized_display.jpg"
-            else:
+            elif st.session_state.img_doc is not None:
                 img_file = parent_dirname+"/uploaded_images/"+st.session_state.img_doc.name.split(".")[0]+"-resized_display."+st.session_state.img_doc.name.split(".")[1]
-    
-            st.image(img_file, use_container_width=True)
+            else:
+                img_file = None
+                
+            if img_file:
+                st.image(img_file, use_container_width=True)
             if(st.session_state.input_rekog_label !=""):
                 with st.expander("Enriched Query Metadata:"):
                         st.markdown('<p>'+json.dumps(st.session_state.input_rekog_directoutput)+'<p>',unsafe_allow_html=True)

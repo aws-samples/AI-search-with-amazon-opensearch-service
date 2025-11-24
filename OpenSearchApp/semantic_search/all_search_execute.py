@@ -522,7 +522,7 @@ def handler(input_,session_id):
     print(url)
     r = requests.get(url, auth=awsauth, json=hybrid_payload, headers=headers)
     print(r.status_code)
-    #print(r.text)
+    print(r.text)
     response_ = json.loads(r.text)
     st.session_state.input_rewritten_query = ""
     if('profile' in hybrid_payload):
@@ -544,6 +544,11 @@ def handler(input_,session_id):
             
     print("-------------------------------------------------------------------")
     print(st.session_state.input_rewritten_query)
+    
+    if 'hits' not in response_ or 'hits' not in response_['hits']:
+        print(f"Error in OpenSearch response: {response_}")
+        return []
+    
     docs = response_['hits']['hits']
         
         
