@@ -153,7 +153,7 @@ service = 'es'
 def write_logo():
     col1, col2, col3 = st.columns([5, 1, 5])
     with col2:
-        st.image(AI_ICON, use_column_width='always') 
+        st.image(AI_ICON, use_container_width=True) 
 
 def write_top_bar():
     col1, col2 = st.columns([77,23])
@@ -161,7 +161,7 @@ def write_top_bar():
         st.write("")
         st.header("Chat with your data",divider='rainbow')
         
-        #st.image(AI_ICON, use_column_width='always')
+        #st.image(AI_ICON, use_container_width=True)
     
     with col2:
         st.write("")
@@ -245,7 +245,7 @@ def write_user_message(md):
     col1, col2 = st.columns([3,97])
     
     with col1:
-        st.image(USER_ICON, use_column_width='always')
+        st.image(USER_ICON, use_container_width=True)
     with col2:
         #st.warning(md['question'])
 
@@ -258,7 +258,7 @@ def render_answer(question,answer,index,res_img):
     
     col1, col2, col_3 = st.columns([4,74,22])
     with col1:
-        st.image(AI_ICON, use_column_width='always')
+        st.image(AI_ICON, use_container_width=True)
     with col2:
         ans_ = answer['answer']
         st.write(ans_)
@@ -329,7 +329,7 @@ def render_answer(question,answer,index,res_img):
                                 
                                 with cols[idx]:
                                     
-                                    st.image(parent_dirname+"/figures/"+st.session_state.input_index+"/"+img+".jpg")
+                                    st.image(parent_dirname+"/figures/"+st.session_state.input_index+"/"+img+".jpg", use_container_width=True)
                                     #st.write(caption)
                                 idx = idx+1
                 #st.markdown("<div style='color:#e28743';padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'><b>Sources from the document:</b></div>", unsafe_allow_html = True)

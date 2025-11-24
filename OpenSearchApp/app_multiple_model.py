@@ -28,7 +28,7 @@ st.set_page_config(
 
 col_0_1,col_0_2,col_0_3= st.columns([10,90,30])
 with col_0_1:
-    st.image("/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/opensearch_logo.png", use_column_width='always')
+    st.image("/home/ec2-user/SageMaker/AI-search-with-amazon-opensearch-service/OpenSearchApp/images/opensearch_logo.png", use_container_width=True)
 with col_0_2:
     st.header("Intelligent search with Amazon OpenSearch Service")
 st.write("")
@@ -167,7 +167,7 @@ with st.expander("Preview retail data samples",expanded = False):
             else:
                 st.subheader("")
 
-            st.image(fileshort,use_column_width="always")
+            st.image(fileshort,use_container_width=True)
             st.write(":orange["+payload['caption']+"]")
             st.json(payload,expanded = False)
         if(count == 4):

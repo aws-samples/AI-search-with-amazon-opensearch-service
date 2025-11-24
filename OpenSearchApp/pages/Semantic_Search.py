@@ -46,6 +46,7 @@ st.markdown("""
                     padding-bottom: 0rem;
                     padding-left: 5rem;
                     padding-right: 5rem;
+                    max-width: 800px;
                 }
         </style>
         """, unsafe_allow_html=True)
@@ -581,7 +582,7 @@ def write_top_bar():
     
     col1, col2,col3,col4  = st.columns([2.5,35,8,7])
     with col1:
-        st.image(TEXT_ICON, use_column_width='always')
+        st.image(TEXT_ICON, use_container_width=True)
     with col2:
         input = st.text_input( "Ask here",label_visibility = "collapsed",key="input_text",placeholder = "Type your query")
     with col3:
@@ -593,7 +594,7 @@ def write_top_bar():
     col5, col6  = st.columns([4.5,90])
 
     with col5:
-        st.image(IMAGE_ICON, use_column_width='always')
+        st.image(IMAGE_ICON, use_container_width=True)
     with col6:   
         with st.expander(':green[Search by using an image]'):
             tab2, tab1 = st.tabs(["Upload Image","Generate Image by AI"])
@@ -744,7 +745,7 @@ def write_user_message(md,ans):
     col1, col2, col3 = st.columns([3,40,20])
     
     with col1:
-        st.image(USER_ICON, use_column_width='always')
+        st.image(USER_ICON, use_container_width=True)
     with col2:
         st.markdown("<div style='fontSize:15px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Input Text: </div><div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;font-style: italic;color:#e28743'>"+st.session_state.input_text+"</div>", unsafe_allow_html = True)#replace with md['question']
         if('query_sparse' in ans):
@@ -770,7 +771,7 @@ def write_user_message(md,ans):
             else:
                 img_file = parent_dirname+"/uploaded_images/"+st.session_state.img_doc.name.split(".")[0]+"-resized_display."+st.session_state.img_doc.name.split(".")[1]
     
-            st.image(img_file)
+            st.image(img_file, use_container_width=True)
             if(st.session_state.input_rekog_label !=""):
                 with st.expander("Enriched Query Metadata:"):
                         st.markdown('<p>'+json.dumps(st.session_state.input_rekog_directoutput)+'<p>',unsafe_allow_html=True)
@@ -784,9 +785,9 @@ def write_user_message(md,ans):
         
 
 def render_answer(answer,index):
-    column1, column2 = st.columns([6,90])
+    column1, column2 = st.columns([6,70])
     with column1:
-        st.image(AI_ICON, use_column_width='always')
+        st.image(AI_ICON, use_container_width=True)
     with column2:
         st.markdown("<div style='fontSize:25px;padding:3px 7px 3px 7px;borderWidth: 0px;borderColor: red;borderStyle: solid;width: fit-content;height: fit-content;border-radius: 10px;'>Results </div>", unsafe_allow_html = True)
         if(st.session_state.input_evaluate == "enabled" and st.session_state.input_ndcg > 0):
@@ -818,7 +819,7 @@ def render_answer(answer,index):
             with col_1:
                 inner_col_1,inner_col_2 = st.columns([8,92])
                 with inner_col_2:
-                    st.image(ans['image_url'])
+                    st.image(ans['image_url'], width=width)
 
                     if("highlight" in ans and 'Keyword Search' in st.session_state.input_searchType):
                         test_strs = ans["highlight"]

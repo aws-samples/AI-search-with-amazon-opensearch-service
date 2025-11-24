@@ -209,7 +209,7 @@ def delete_memory():
 def write_logo():
     col1, col2, col3 = st.columns([5, 1, 5])
     with col2:
-        st.image(AI_ICON, use_column_width='always') 
+        st.image(AI_ICON, use_container_width=True) 
 
 def write_top_bar():
     col1, col2 = st.columns([77,23])
@@ -217,7 +217,7 @@ def write_top_bar():
         st.page_link("app.py", label=":orange[Home]", icon="🏠")
         st.header("AI Shopping assistant",divider='rainbow')
         
-        #st.image(AI_ICON, use_column_width='always')
+        #st.image(AI_ICON, use_container_width=True)
     
     with col2:
         st.write("")
@@ -312,7 +312,7 @@ def write_user_message(md):
     col1, col2 = st.columns([3,97])
     
     with col1:
-        st.image(USER_ICON, use_column_width='always')
+        st.image(USER_ICON, use_container_width=True)
     with col2:
         #st.warning(md['question'])
 
@@ -351,7 +351,7 @@ def render_text_with_images(text):
                             image_data = f.read()
                             img = Image.open(BytesIO(image_data))
                             resized_img = img.resize((230, 180), Image.Resampling.LANCZOS)
-                            st.image(resized_img, caption=caption, use_column_width=False)
+                            st.image(resized_img, caption=caption, use_container_width=False)
                     else:
                         st.write(f"Local file not found: {image_url}")
                 else:
@@ -360,7 +360,7 @@ def render_text_with_images(text):
                     if response_.status_code == 200:
                         img = Image.open(BytesIO(response_.content))
                         resized_img = img.resize((230, 180), Image.Resampling.LANCZOS)
-                        st.image(resized_img, caption=caption, use_column_width=False)
+                        st.image(resized_img, caption=caption, use_container_width=False)
                     else:
                         st.write(f"Could not load image: {image_url}")
             except Exception as e:
@@ -370,7 +370,7 @@ def render_text_with_images(text):
 def render_answer(question, answer, index):
     col1, col2, col_3 = st.columns([4,74,22])
     with col1:
-        st.image(AI_ICON, use_column_width='always')
+        st.image(AI_ICON, use_container_width=True)
     with col2:
         ans_ = answer['answer']
         
