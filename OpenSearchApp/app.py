@@ -635,7 +635,7 @@ def create_ml_connectors():
     
     
 
-connector_res = json.loads((requests.post(host+'/_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
+connector_res = json.loads((requests.post(host+'_plugins/_ml/connectors/_search',json = {"query": {"match_all": {}}}, auth=awsauth,headers=headers)).text) 
 
 print(connector_res)
 
