@@ -19,10 +19,15 @@ def get_region():
 
 dynamo_client = boto3.client('dynamodb',region_name=get_region())
 
+DYNAMO_TABLE_NAME = 'dynamo_store_key_value'
+
+def set_table_name(table_name):
+    global DYNAMO_TABLE_NAME
+    DYNAMO_TABLE_NAME = table_name
 
 def delete_from_dynamo(key):
     response = dynamo_client.delete_item(
-   Key = {'store_key': {'S': key}}, TableName='dynamo_store_key_value')
+   Key = {'store_key': {'S': key}}, TableName=DYNAMO_TABLE_NAME)
 
 def store_in_dynamo(key,val):
     response = dynamo_client.put_item(
@@ -33,18 +38,18 @@ def store_in_dynamo(key,val):
              'store_val': {
             'S': val,
     }},
-    TableName='dynamo_store_key_value',
+    TableName=DYNAMO_TABLE_NAME,
 )
     
 def get_from_dynamo(key):
-    res = dynamo_client.get_item( TableName='dynamo_store_key_value',Key = {'store_key': {'S': key}})
+    res = dynamo_client.get_item( TableName=DYNAMO_TABLE_NAME,Key = {'store_key': {'S': key}})
     if('Item' not in res):
         return ""
     else:
         return res['Item']['store_val']['S']
     
 def update_in_dynamo(key,attr_name,attr_val):
-    dynamo_client.update_item( TableName='dynamo_store_key_value',
+    dynamo_client.update_item( TableName=DYNAMO_TABLE_NAME,
                                           ExpressionAttributeNames={
                                                 '#Y': attr_name,
                                             },
