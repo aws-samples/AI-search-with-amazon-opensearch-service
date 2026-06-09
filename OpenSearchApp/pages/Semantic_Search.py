@@ -54,6 +54,21 @@ st.markdown("""
 
 st.session_state.REGION = ds.get_region()
 
+# Resolve DynamoDB table name from CFN outputs before any dynamo calls
+if "DynamoDBTableName" not in st.session_state:
+    _cfn = boto3.client('cloudformation', region_name=st.session_state.REGION)
+    _stacks = _cfn.list_stacks(StackStatusFilter=['CREATE_COMPLETE','UPDATE_COMPLETE'])
+    for _s in _stacks['StackSummaries']:
+        if 'TemplateDescription' in _s and 'NextGen ML search' in _s['TemplateDescription']:
+            _outputs = _cfn.describe_stacks(StackName=_s['StackName'])['Stacks'][0]['Outputs']
+            for _o in _outputs:
+                if 'DynamoDBTable' in _o['OutputKey']:
+                    st.session_state.DynamoDBTableName = _o['OutputValue']
+                    ds.set_table_name(_o['OutputValue'])
+            break
+else:
+    ds.set_table_name(st.session_state.DynamoDBTableName)
+
 
 #from langchain.callbacks.base import BaseCallbackHandler
 
