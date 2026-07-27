@@ -214,6 +214,7 @@ response = cfn.describe_stack_resources(
 
 cfn_outputs = cfn.describe_stacks(StackName=stackname)['Stacks'][0]['Outputs']
 
+BedrockAgentAlias = ""
 for output in cfn_outputs:
     if('OpenSearchDomainEndpoint' in output['OutputKey']):
         OpenSearchDomainEndpoint = output['OutputValue']
