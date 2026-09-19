@@ -1,0 +1,75 @@
+/*
+ * Copyright OpenSearch Contributors
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Standalone MUVERA FDE encoding plugin for OpenSearch.
+ * Registers the `muvera` ingest processor and `muvera_query` search request
+ * processor. Depends at runtime on the k-NN plugin (bundled in the standard
+ * OpenSearch distribution) for the knn_vector field type and the
+ * lateInteractionScore Painless function used for reranking.
+ */
+
+buildscript {
+    ext {
+        // Released OpenSearch line targeted by this build. lateInteractionScore
+        // requires 3.3+; we build against the latest release.
+        opensearch_version = System.getProperty("opensearch.version", "3.8.0")
+    }
+    repositories {
+        mavenCentral()
+        maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+    }
+    dependencies {
+        classpath "org.opensearch.gradle:build-tools:${opensearch_version}"
+    }
+}
+
+plugins {
+    id 'java'
+}
+
+version = "${opensearch_version}.0"
+
+apply plugin: 'opensearch.opensearchplugin'
+apply plugin: 'opensearch.java-agent'
+
+opensearchplugin {
+    name 'opensearch-muvera-plugin'
+    description 'MUVERA fixed-dimensional-encoding ingest and search processors'
+    classname 'org.opensearch.muvera.MuveraPlugin'
+    licenseFile rootProject.file('LICENSE.txt')
+    noticeFile rootProject.file('NOTICE.txt')
+}
+
+// This plugin has no dependency on the k-NN plugin at COMPILE time (the four
+// MUVERA sources use only core OpenSearch + Lucene). k-NN is only a RUNTIME
+// requirement for lateInteractionScore, which is invoked via Painless, not via
+// a compile-time symbol. So we intentionally do NOT declare extended.plugins,
+// to avoid coupling our release/load-order to k-NN.
+
+repositories {
+    mavenCentral()
+    maven { url "https://central.sonatype.com/repository/maven-snapshots/" }
+}
+
+dependencies {
+    // Lombok: the lifted sources use @Log4j2 / @NoArgsConstructor.
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+    // Lucene VectorUtil is provided transitively by the OpenSearch runtime; the
+    // opensearchplugin plugin puts the matching opensearch/lucene on the compile
+    // classpath. No explicit lucene dependency needed.
+}
+
+// Disable checks that aren't relevant to a feasibility build.
+validateNebulaPom.enabled = false
+loggerUsageCheck.enabled = false
+testingConventions.enabled = false
+dependencyLicenses.enabled = false
+thirdPartyAudit.enabled = false
+forbiddenApisMain.enabled = false
+forbiddenApisTest.enabled = false
+
+test {
+    // no unit tests in the feasibility scaffold yet
+}

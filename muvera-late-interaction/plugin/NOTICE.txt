@@ -1,0 +1,7 @@
+opensearch-muvera-plugin
+Copyright OpenSearch Contributors
+
+This product includes the MUVERA fixed-dimensional-encoding processors
+(MuveraEncoder, MuveraIngestProcessor, MuveraSearchRequestProcessor,
+MuveraProcessorUtils), originally authored for the OpenSearch k-NN plugin
+and licensed under the Apache License, Version 2.0.
