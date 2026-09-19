@@ -20,6 +20,21 @@ This gives near-exact late-interaction quality while keeping retrieval at ANN sp
 
 ---
 
+## Get the code
+
+Clone this branch and move into the plugin folder:
+
+```bash
+git clone --branch muvera-late-interaction --single-branch \
+  https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
+
+cd AI-search-with-amazon-opensearch-service/muvera-late-interaction
+```
+
+Everything referenced below is relative to this `muvera-late-interaction/` folder.
+
+---
+
 ## What's in this folder
 
 ```
