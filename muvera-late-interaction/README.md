@@ -22,16 +22,36 @@ This gives near-exact late-interaction quality while keeping retrieval at ANN sp
 
 ## Get the code
 
-Clone this branch and move into the plugin folder:
+Everything referenced below lives in the `muvera-late-interaction/` folder on this branch —
+the rest of the repository is unrelated. Two ways to grab it:
+
+**Simplest — shallow clone the branch** (the whole repo is small; unused parent files just sit there):
 
 ```bash
-git clone --branch muvera-late-interaction --single-branch \
+git clone --branch muvera-late-interaction --single-branch --depth 1 \
   https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
-
 cd AI-search-with-amazon-opensearch-service/muvera-late-interaction
 ```
 
-Everything referenced below is relative to this `muvera-late-interaction/` folder.
+**Only this folder — git sparse checkout** (materializes just `muvera-late-interaction/` on disk):
+
+```bash
+git clone --no-checkout --branch muvera-late-interaction --single-branch --depth 1 \
+  https://github.com/aws-samples/AI-search-with-amazon-opensearch-service.git
+cd AI-search-with-amazon-opensearch-service
+git sparse-checkout set muvera-late-interaction
+git checkout
+cd muvera-late-interaction
+```
+
+**No git — just the folder** (needs Node's `npx`):
+
+```bash
+npx degit aws-samples/AI-search-with-amazon-opensearch-service/muvera-late-interaction#muvera-late-interaction muvera-late-interaction
+cd muvera-late-interaction
+```
+
+Everything below is relative to this `muvera-late-interaction/` folder.
 
 ---
 
