@@ -164,8 +164,109 @@ POST muvera-index/_search?search_pipeline=muvera-search
 
 ---
 
+---
+
+## Amazon OpenSearch Service (managed): client-side FDE with FastEmbed
+
+Amazon OpenSearch Service does **not** allow installing this custom ingest-processor plugin, so
+the `muvera` / `muvera_query` processors are unavailable. Instead, compute the FDE **on the
+client** with [FastEmbed](https://github.com/qdrant/fastembed) (0.7.2+) and index it as a plain
+`knn_vector`. Everything else — the two-phase pattern, the `knn` retrieve, and the
+`lateInteractionScore` rerank — works unchanged, because the k-NN plugin ships with AOS.
+
+**What changes vs. the self-managed plugin path**
+
+| | Self-managed (plugin) | Amazon OpenSearch Service (client-side) |
+|---|---|---|
+| FDE for documents | `muvera` ingest processor (server-side) | FastEmbed `Muvera.process_document()` (client) |
+| FDE for queries | `muvera_query` search processor (server-side) | FastEmbed `Muvera.process_query()` (client) |
+| Index the FDE | `knn_vector` | `knn_vector` (same) |
+| Rerank | `lateInteractionScore` | `lateInteractionScore` (same) |
+
+> **Consistency rule:** documents and queries must be encoded with the **same** MUVERA
+> parameters (`k_sim`, `dim_proj`, `r_reps`) and the same FastEmbed model, so their FDEs are
+> comparable. FDE dimension = `r_reps × 2^k_sim × dim_proj`.
+
+### 1) Install FastEmbed
+
+```bash
+pip install --upgrade "fastembed>=0.7.2"
+```
+
+### 2) Encode documents client-side (index time)
+
+```python
+import numpy as np
+from fastembed import LateInteractionTextEmbedding
+from fastembed.postprocess import Muvera
+
+# Create a multi-vector model (ColBERT here) and wrap it with MUVERA
+model = LateInteractionTextEmbedding(model_name="colbert-ir/colbertv2.0")
+muvera = Muvera.from_multivector_model(
+    model=model,
+    k_sim=6,
+    dim_proj=32,
+    r_reps=20,
+)  # FDE dim = 20 * 2^6 * 32 = 40960  (keep <= 16000 for a knn_vector; lower the params if needed)
+
+# Multi-vectors + FDE for a document
+doc_text = "sample document text"
+doc_multivectors = np.array(list(model.embed([doc_text])))[0]   # shape [num_tokens, dim]
+doc_fde = muvera.process_document(doc_multivectors)             # shape [FDE dim]
+```
+
+> Note: the example params above give a 40,960-dim FDE, which exceeds the 16,000 `knn_vector`
+> cap. For a directly-indexable FDE use e.g. `k_sim=4, dim_proj=16, r_reps=20` → 5,120, or
+> `k_sim=5, dim_proj=16, r_reps=20` → 10,240.
+
+### 3) Create the index (plain `knn_vector`, no ingest pipeline)
+
+```json
+PUT muvera-index
+{ "settings": { "index.knn": true },
+  "mappings": { "properties": {
+    "colbert_vectors": { "type": "object", "enabled": false },
+    "muvera_fde": { "type": "knn_vector", "dimension": 10240,
+      "method": { "name": "hnsw", "engine": "lucene", "space_type": "innerproduct" } }
+}}}
+```
+
+Index each document with **both** the client-computed FDE and its raw multi-vectors:
+
+```json
+PUT muvera-index/_doc/1
+{ "muvera_fde": [/* doc_fde ... */],
+  "colbert_vectors": [[/* token 1 ... */], [/* token 2 ... */]] }
+```
+
+### 4) Encode the query client-side and search (retrieve + rerank)
+
+```python
+query_text = "sample query"
+q_multivectors = np.array(list(model.query_embed([query_text])))[0]
+q_fde = muvera.process_query(q_multivectors)   # use process_query (sum, no empty-cluster fill)
+```
+
+```json
+POST muvera-index/_search
+{ "query": { "script_score": {
+    "query": { "knn": { "muvera_fde": { "vector": [/* q_fde ... */], "k": 40 } } },
+    "script": { "source":
+      "lateInteractionScore(params.query_vectors,'colbert_vectors',params._source,params.space_type)",
+      "params": { "query_vectors": [[/* query token vectors */]], "space_type": "innerproduct" } }
+}},
+  "size": 10, "_source": { "excludes": ["colbert_vectors","muvera_fde"] } }
+```
+
+Use `process_document()` for documents and `process_query()` for queries — they aggregate
+clusters differently (documents average and fill empty clusters; queries sum and leave them
+empty), matching the MUVERA paper. A worked, end-to-end example is in
+[`docs/MUVERA-late-interaction-AOS-tutorial.md`](docs/MUVERA-late-interaction-AOS-tutorial.md).
+
+---
+
 ## Credits & license
 
-MUVERA: Dhulipala et al., Google Research (2024). FDE parameter intuition:
-[qdrant.tech/articles/muvera-embeddings](https://qdrant.tech/articles/muvera-embeddings).
+MUVERA: Dhulipala et al., Google Research (2024). FDE parameter intuition and the FastEmbed
+snippet: [qdrant.tech/articles/muvera-embeddings](https://qdrant.tech/articles/muvera-embeddings).
 Plugin licensed Apache-2.0 (see `plugin/LICENSE.txt`, `plugin/NOTICE.txt`).
