@@ -66,9 +66,18 @@ muvera-late-interaction/
 │   └── LICENSE.txt, NOTICE.txt
 ├── dist/
 │   └── opensearch-muvera-plugin-3.8.0.0.zip   ← prebuilt, for OpenSearch 3.8.0 ONLY
+├── benchmarks/               ← reproduce the talk's numbers
+│   ├── BENCHMARK_RESULTS.md  ← all results + how to reproduce each
+│   ├── scripts/              ← Python harnesses
+│   └── results/              ← our raw JSON outputs
 └── docs/
     └── MUVERA-late-interaction-AOS-tutorial.md
 ```
+
+> **Benchmarks & reproducibility:** every number from the OpenSearchCon talk — the quality
+> comparison, the latency breakdown, and the three optimization experiments (rescore depth, FDE
+> compensation, quantization) — is documented with reproduction steps in
+> [`benchmarks/BENCHMARK_RESULTS.md`](benchmarks/BENCHMARK_RESULTS.md).
 
 **Which do I use — the prebuilt zip or the source?**
 
