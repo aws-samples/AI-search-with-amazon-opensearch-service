@@ -215,6 +215,40 @@ stored `colbert_vectors` precision varies (float32 / fp16 round-trip / int8 symm
 python quant_multivector_test.py data_scifact 0    # 0 = all docs; builds 3 indices, measures each
 ```
 
+### The real fix: score off `_source` — native `LateInteractionField` (Lucene 10.5)
+
+The `_source`-bound rerank is exactly what [k-NN RFC #3439](https://github.com/opensearch-project/k-NN/issues/3439)
+targets, using **Lucene 10.5's `LateInteractionField`** (multi-vectors as compact
+**BinaryDocValues**) + a SIMD `LateInteractionRescorer`. OpenSearch 3.8 already ships Lucene
+10.5, so the building blocks are present — it needs a native field type + rescore query (core
+work), not the `_source` + Painless path.
+
+We measured the *scoring kernel* directly in Lucene (standalone JVM, not OpenSearch), on SciFact:
+
+| Rerank scoring path (40 candidates × 32 query tokens) | Latency / query |
+|---|---:|
+| `_source` (deserialize float arrays + manual MaxSim loop) | **440.9 ms** |
+| native `LateInteractionField` (binary doc-values + SIMD MaxSim) | **13.1 ms** |
+| **Speedup** | **~34×** |
+
+Scores were identical (762.591 vs 762.591) — same MaxSim, faster read+compute path. This
+confirms the RFC's 5–20× estimate (we see more because our `_source` path also pays JSON-text
+parsing). **Takeaway:** quantization only pays off *once scoring moves off `_source`* — and the
+native path is the bigger latency win regardless.
+
+> Caveat: Lucene-kernel microbenchmark, **not** end-to-end OpenSearch latency. It isolates the
+> rerank scoring kernel (the ~97%-of-latency component). A true OpenSearch number needs the
+> native field type + rescore query (RFC #3439), which is not yet shipped.
+
+### Reproduce (native vs _source kernel)
+```bash
+# needs Lucene 10.5 jars (bundled with OpenSearch 3.8) on the classpath
+CP=$(ls $OPENSEARCH_HOME/lib/lucene-*.jar | tr '\n' ':'):.
+javac -cp "$CP" LateInteractionBench.java
+java --add-modules jdk.incubator.vector -cp "$CP" \
+     LateInteractionBench data_scifact/doc_embeddings.json 2000 40 32 300
+```
+
 ---
 
 ## 9. Scripts index

@@ -1,0 +1,15 @@
+WARNING: Using incubator modules: jdk.incubator.vector
+LateInteractionBench: docs<=2000, candidates=40, queryTokens=32, iters=300
+loaded 2000 docs, avg vecs=236
+WARNING: A restricted method in java.lang.foreign.Linker has been called
+WARNING: java.lang.foreign.Linker::downcallHandle has been called by the unnamed module
+WARNING: Use --enable-native-access=ALL-UNNAMED to avoid a warning for this module
+
+Sep 21, 2026 11:18:57 AM org.apache.lucene.internal.vectorization.PanamaVectorizationProvider <init>
+INFO: Java vector incubator API enabled; uses preferredBitSize=512; FMA enabled
+
+=== RESULT (rerank 40 candidates x 32 query tokens, per query) ===
+native  (LateInteractionField, binary DV + SIMD): 13.053 ms/query
+_source (deserialize + manual MaxSim loop)      : 440.918 ms/query
+SPEEDUP native vs _source: 33.8x
+(score check native=762.591 source=762.591)
