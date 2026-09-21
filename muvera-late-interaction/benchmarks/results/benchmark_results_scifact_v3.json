@@ -1,0 +1,46 @@
+[
+  {
+    "config": "Exact MaxSim (brute-force)",
+    "num_queries": 300,
+    "ndcg@1": 0.5966666666666667,
+    "ndcg@5": 0.6742234988943469,
+    "ndcg@10": 0.6916734126981495,
+    "avg_latency_ms": 0,
+    "p50_latency_ms": 0,
+    "p95_latency_ms": 0,
+    "p99_latency_ms": 0
+  },
+  {
+    "config": "Mean pool + MaxSim rerank",
+    "num_queries": 300,
+    "ndcg@1": 0.35,
+    "ndcg@5": 0.35938214505607396,
+    "ndcg@10": 0.3628679707479052,
+    "avg_latency_ms": 545.1515372594198,
+    "p50_latency_ms": 526.442289352417,
+    "p95_latency_ms": 680.3486824035645,
+    "p99_latency_ms": 774.2217063903807
+  },
+  {
+    "config": "MUVERA FDE-only (no rerank)",
+    "num_queries": 300,
+    "ndcg@1": 0.41333333333333333,
+    "ndcg@5": 0.49931797459004645,
+    "ndcg@10": 0.527651554179746,
+    "avg_latency_ms": 107.12231159210205,
+    "p50_latency_ms": 100.0523567199707,
+    "p95_latency_ms": 149.8299241065979,
+    "p99_latency_ms": 167.3910069465637
+  },
+  {
+    "config": "MUVERA + MaxSim rerank (4x)",
+    "num_queries": 300,
+    "ndcg@1": 0.59,
+    "ndcg@5": 0.6550432040159033,
+    "ndcg@10": 0.6714922660308056,
+    "avg_latency_ms": 1391.9953680038452,
+    "p50_latency_ms": 1378.5290718078613,
+    "p95_latency_ms": 1605.1568627357483,
+    "p99_latency_ms": 1706.401925086975
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "total_ms": 317.5,
+  "encode_prefetch_ms": 10.0,
+  "rerank_ms": 307.5
+}

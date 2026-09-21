@@ -1,0 +1,43 @@
+{
+  "index": "muvera-sf_base",
+  "data": "data_scifact",
+  "fde": 10240,
+  "by_oversample": {
+    "8": {
+      "ndcg@1": 0.5967,
+      "ndcg@5": 0.6647,
+      "ndcg@10": 0.6794,
+      "lat_avg_ms": 663.8,
+      "lat_p95_ms": 778.0,
+      "rescore_depth": 80,
+      "n": 300
+    },
+    "4": {
+      "ndcg@1": 0.5833,
+      "ndcg@5": 0.6448,
+      "ndcg@10": 0.6593,
+      "lat_avg_ms": 353.2,
+      "lat_p95_ms": 442.0,
+      "rescore_depth": 40,
+      "n": 300
+    },
+    "2": {
+      "ndcg@1": 0.57,
+      "ndcg@5": 0.6252,
+      "ndcg@10": 0.6426,
+      "lat_avg_ms": 200.5,
+      "lat_p95_ms": 258.1,
+      "rescore_depth": 20,
+      "n": 300
+    },
+    "1": {
+      "ndcg@1": 0.55,
+      "ndcg@5": 0.6064,
+      "ndcg@10": 0.6185,
+      "lat_avg_ms": 120.6,
+      "lat_p95_ms": 169.1,
+      "rescore_depth": 10,
+      "n": 300
+    }
+  }
+}

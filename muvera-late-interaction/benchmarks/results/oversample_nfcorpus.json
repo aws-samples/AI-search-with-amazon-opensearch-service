@@ -1,0 +1,25 @@
+{
+  "index": "muvera-nfcorpus",
+  "data": "data",
+  "fde": 10240,
+  "by_oversample": {
+    "4": {
+      "ndcg@1": 0.4252,
+      "ndcg@5": 0.3362,
+      "ndcg@10": 0.3036,
+      "lat_avg_ms": 368.7,
+      "lat_p95_ms": 516.3,
+      "rescore_depth": 40,
+      "n": 323
+    },
+    "2": {
+      "ndcg@1": 0.4035,
+      "ndcg@5": 0.317,
+      "ndcg@10": 0.2812,
+      "lat_avg_ms": 212.6,
+      "lat_p95_ms": 314.9,
+      "rescore_depth": 20,
+      "n": 323
+    }
+  }
+}

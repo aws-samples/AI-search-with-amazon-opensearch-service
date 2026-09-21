@@ -1,0 +1,23 @@
+{
+  "MUVERA + MaxSim rerank (4x)": {
+    "ndcg@1": 0.4252,
+    "ndcg@5": 0.3362,
+    "ndcg@10": 0.3036,
+    "n": 323,
+    "s": 114.6
+  },
+  "Mean pool + MaxSim rerank": {
+    "ndcg@1": 0.3323,
+    "ndcg@5": 0.2514,
+    "ndcg@10": 0.2132,
+    "n": 323,
+    "s": 0.8
+  },
+  "Exact MaxSim (brute-force)": {
+    "ndcg@1": 0.4747,
+    "ndcg@5": 0.3851,
+    "ndcg@10": 0.3458,
+    "n": 323,
+    "s": 45.5
+  }
+}

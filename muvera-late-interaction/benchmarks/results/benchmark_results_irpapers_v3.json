@@ -1,0 +1,68 @@
+[
+  {
+    "config": "Exact MaxSim (brute-force)",
+    "num_queries": 180,
+    "recall@1": 0.40555555555555556,
+    "recall@5": 0.7666666666666667,
+    "recall@10": 0.8388888888888889,
+    "recall@20": 0.8944444444444445,
+    "avg_latency_ms": 0,
+    "p50_latency_ms": 0,
+    "p95_latency_ms": 0
+  },
+  {
+    "config": "BM25 (text only)",
+    "num_queries": 180,
+    "recall@1": 0.4777777777777778,
+    "recall@5": 0.8055555555555556,
+    "recall@10": 0.8833333333333333,
+    "recall@20": 0.9333333333333333,
+    "avg_latency_ms": 8.590298228793674,
+    "p50_latency_ms": 8.244991302490234,
+    "p95_latency_ms": 11.23782396316528
+  },
+  {
+    "config": "MUVERA FDE-only (no rerank)",
+    "num_queries": 180,
+    "recall@1": 0.011111111111111112,
+    "recall@5": 0.05555555555555555,
+    "recall@10": 0.08333333333333333,
+    "recall@20": 0.12222222222222222,
+    "avg_latency_ms": 85.56029796600342,
+    "p50_latency_ms": 85.23392677307129,
+    "p95_latency_ms": 89.44945335388184
+  },
+  {
+    "config": "MUVERA + client rerank (4x)",
+    "num_queries": 180,
+    "recall@1": 0.22777777777777777,
+    "recall@5": 0.35555555555555557,
+    "recall@10": 0.35555555555555557,
+    "recall@20": 0.35555555555555557,
+    "avg_latency_ms": 8089.891310532888,
+    "p50_latency_ms": 7861.225366592407,
+    "p95_latency_ms": 11254.884803295135
+  },
+  {
+    "config": "MUVERA + client rerank (k=100, ef=1024)",
+    "num_queries": 180,
+    "recall@1": 0.2388888888888889,
+    "recall@5": 0.37222222222222223,
+    "recall@10": 0.38333333333333336,
+    "recall@20": 0.38333333333333336,
+    "avg_latency_ms": 10104.42021952735,
+    "p50_latency_ms": 9774.030804634094,
+    "p95_latency_ms": 13370.03743648529
+  },
+  {
+    "config": "MUVERA + server rerank (4x)",
+    "num_queries": 180,
+    "recall@1": 0.37222222222222223,
+    "recall@5": 0.6666666666666666,
+    "recall@10": 0.7333333333333333,
+    "recall@20": 0.7833333333333333,
+    "avg_latency_ms": 34431.0903204812,
+    "p50_latency_ms": 34092.44656562805,
+    "p95_latency_ms": 38001.30366086959
+  }
+]

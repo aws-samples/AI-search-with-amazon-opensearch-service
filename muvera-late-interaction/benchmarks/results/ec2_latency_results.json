@@ -1,0 +1,32 @@
+{
+  "MUVERA + MaxSim rerank (4x)": {
+    "n": 323,
+    "server_took_ms": {
+      "avg": 340.1,
+      "p50": 325.0,
+      "p95": 471.7,
+      "p99": 552.8
+    },
+    "client_wall_ms": {
+      "avg": 346.2,
+      "p50": 330.7,
+      "p95": 477.6,
+      "p99": 558.9
+    }
+  },
+  "MUVERA FDE-only (no rerank)": {
+    "n": 323,
+    "server_took_ms": {
+      "avg": 9.7,
+      "p50": 9.0,
+      "p95": 11.0,
+      "p99": 13.8
+    },
+    "client_wall_ms": {
+      "avg": 14.9,
+      "p50": 14.6,
+      "p95": 16.6,
+      "p99": 22.3
+    }
+  }
+}

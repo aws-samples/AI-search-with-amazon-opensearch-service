@@ -1,0 +1,12 @@
+{
+  "dataset": "irpapers",
+  "size": 20,
+  "oversample": 4,
+  "n": 180,
+  "mean_pool_rerank": {
+    "recall@1": 0.1667,
+    "recall@5": 0.2333,
+    "recall@10": 0.2333,
+    "recall@20": 0.2389
+  }
+}

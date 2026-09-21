@@ -1,0 +1,42 @@
+{
+  "variant": "ksim4",
+  "k_sim": 4,
+  "dim_proj": 16,
+  "r_reps": 10,
+  "fde": 2560,
+  "ef_search": 1024,
+  "fde_only": {
+    "recall@1": 0.0111,
+    "recall@5": 0.0333,
+    "recall@10": 0.0611,
+    "recall@20": 0.1278,
+    "lat_avg_ms": 9.0,
+    "lat_p95_ms": 13.0
+  },
+  "rerank": {
+    "40": {
+      "recall@1": 0.1611,
+      "recall@5": 0.2222,
+      "recall@10": 0.2222,
+      "recall@20": 0.2222,
+      "lat_avg_ms": 1553.6,
+      "lat_p95_ms": 2056.2
+    },
+    "256": {
+      "recall@1": 0.3,
+      "recall@5": 0.5111,
+      "recall@10": 0.5444,
+      "recall@20": 0.5556,
+      "lat_avg_ms": 7463.1,
+      "lat_p95_ms": 8671.9
+    },
+    "1024": {
+      "recall@1": 0.3778,
+      "recall@5": 0.6944,
+      "recall@10": 0.75,
+      "recall@20": 0.8111,
+      "lat_avg_ms": 27445.9,
+      "lat_p95_ms": 30590.9
+    }
+  }
+}

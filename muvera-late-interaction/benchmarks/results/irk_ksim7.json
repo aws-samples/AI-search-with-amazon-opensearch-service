@@ -1,0 +1,16 @@
+{
+  "variant": "ksim7",
+  "k_sim": 7,
+  "dim_proj": 8,
+  "r_reps": 10,
+  "fde": 10240,
+  "ef_search": 1024,
+  "fde_only": {
+    "recall@1": 0.0167,
+    "recall@5": 0.0722,
+    "recall@10": 0.1167,
+    "recall@20": 0.1722,
+    "lat_avg_ms": 11.0,
+    "lat_p95_ms": 13.0
+  }
+}

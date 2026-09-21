@@ -1,0 +1,24 @@
+{
+  "variant": "sf_base",
+  "data": "data_scifact",
+  "k_sim": 5,
+  "dim_proj": 16,
+  "r_reps": 20,
+  "fde": 10240,
+  "muvera_rerank": {
+    "ndcg@1": 0.5833,
+    "ndcg@5": 0.6448,
+    "ndcg@10": 0.6593,
+    "lat_avg_ms": 345.0,
+    "lat_p95_ms": 430.0,
+    "n": 300
+  },
+  "fde_only": {
+    "ndcg@1": 0.4433,
+    "ndcg@5": 0.5249,
+    "ndcg@10": 0.5533,
+    "lat_avg_ms": 9.9,
+    "lat_p95_ms": 11.0,
+    "n": 300
+  }
+}

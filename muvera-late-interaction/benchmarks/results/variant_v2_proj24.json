@@ -1,0 +1,21 @@
+{
+  "variant": "v2_proj24",
+  "k_sim": 5,
+  "dim_proj": 24,
+  "r_reps": 20,
+  "fde": 15360,
+  "muvera_rerank": {
+    "ndcg@1": 0.4345,
+    "ndcg@5": 0.3444,
+    "ndcg@10": 0.3099,
+    "lat_avg_ms": 406.8,
+    "lat_p95_ms": 559.8
+  },
+  "fde_only": {
+    "ndcg@1": 0.3189,
+    "ndcg@5": 0.2716,
+    "ndcg@10": 0.2487,
+    "lat_avg_ms": 12.3,
+    "lat_p95_ms": 14.0
+  }
+}

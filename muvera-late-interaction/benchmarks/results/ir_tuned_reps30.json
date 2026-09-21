@@ -1,0 +1,26 @@
+{
+  "variant": "tuned_reps30",
+  "dataset": "irpapers",
+  "k_sim": 5,
+  "dim_proj": 16,
+  "r_reps": 30,
+  "fde": 15360,
+  "fde_only": {
+    "recall@1": 0.0167,
+    "recall@5": 0.0667,
+    "recall@10": 0.1,
+    "recall@20": 0.15,
+    "lat_avg_ms": 17.1,
+    "lat_p95_ms": 19.0,
+    "n": 180
+  },
+  "muvera_rerank": {
+    "recall@1": 0.2389,
+    "recall@5": 0.35,
+    "recall@10": 0.3611,
+    "recall@20": 0.3611,
+    "lat_avg_ms": 5917.9,
+    "lat_p95_ms": 7183.2,
+    "n": 180
+  }
+}

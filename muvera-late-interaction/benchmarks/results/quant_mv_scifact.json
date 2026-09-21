@@ -1,0 +1,73 @@
+{
+  "data": "data_scifact",
+  "fde": 10240,
+  "num_docs": 5183,
+  "variants": {
+    "float32": {
+      "muvera_rerank": {
+        "ndcg@1": 0.5867,
+        "ndcg@5": 0.6524,
+        "ndcg@10": 0.6682,
+        "lat_avg_ms": 364.7,
+        "lat_p95_ms": 465.5,
+        "n": 300
+      },
+      "fde_only": {
+        "ndcg@1": 0.3833,
+        "ndcg@5": 0.4701,
+        "ndcg@10": 0.505,
+        "lat_avg_ms": 5.8,
+        "lat_p95_ms": 7.0,
+        "n": 300
+      },
+      "store_bytes": 1456199339,
+      "store_mb": 1388.7,
+      "true_mv_bytes": 625350656,
+      "true_mv_mb": 596.4
+    },
+    "fp16": {
+      "muvera_rerank": {
+        "ndcg@1": 0.5867,
+        "ndcg@5": 0.6524,
+        "ndcg@10": 0.6682,
+        "lat_avg_ms": 370.2,
+        "lat_p95_ms": 469.1,
+        "n": 300
+      },
+      "fde_only": {
+        "ndcg@1": 0.3833,
+        "ndcg@5": 0.4701,
+        "ndcg@10": 0.505,
+        "lat_avg_ms": 5.9,
+        "lat_p95_ms": 7.0,
+        "n": 300
+      },
+      "store_bytes": 1456225947,
+      "store_mb": 1388.8,
+      "true_mv_bytes": 312675328,
+      "true_mv_mb": 298.2
+    },
+    "int8": {
+      "muvera_rerank": {
+        "ndcg@1": 0.5867,
+        "ndcg@5": 0.6509,
+        "ndcg@10": 0.6667,
+        "lat_avg_ms": 375.1,
+        "lat_p95_ms": 469.1,
+        "n": 300
+      },
+      "fde_only": {
+        "ndcg@1": 0.3833,
+        "ndcg@5": 0.4704,
+        "ndcg@10": 0.5054,
+        "lat_avg_ms": 6.2,
+        "lat_p95_ms": 7.0,
+        "n": 300
+      },
+      "store_bytes": 1931740353,
+      "store_mb": 1842.3,
+      "true_mv_bytes": 156337664,
+      "true_mv_mb": 149.1
+    }
+  }
+}

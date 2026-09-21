@@ -1,0 +1,34 @@
+{
+  "index": "muvera-nf-v1_reps30",
+  "data": "data",
+  "fde": 15360,
+  "by_oversample": {
+    "4": {
+      "ndcg@1": 0.4438,
+      "ndcg@5": 0.3526,
+      "ndcg@10": 0.3152,
+      "lat_avg_ms": 392.6,
+      "lat_p95_ms": 527.9,
+      "rescore_depth": 40,
+      "n": 323
+    },
+    "2": {
+      "ndcg@1": 0.4355,
+      "ndcg@5": 0.3418,
+      "ndcg@10": 0.302,
+      "lat_avg_ms": 229.4,
+      "lat_p95_ms": 319.0,
+      "rescore_depth": 20,
+      "n": 323
+    },
+    "1": {
+      "ndcg@1": 0.4334,
+      "ndcg@5": 0.3384,
+      "ndcg@10": 0.2892,
+      "lat_avg_ms": 136.3,
+      "lat_p95_ms": 200.0,
+      "rescore_depth": 10,
+      "n": 323
+    }
+  }
+}
