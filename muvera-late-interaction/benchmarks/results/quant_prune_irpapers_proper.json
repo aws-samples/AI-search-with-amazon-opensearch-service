@@ -1,0 +1,33 @@
+{
+  "data": "data_irpapers",
+  "fde": 10240,
+  "num_docs": 3230,
+  "cells": {
+    "float32_100": {
+      "variant": "float32",
+      "retain_pct": 100,
+      "avg_doc_tokens_kept": 1011.2,
+      "ndcg@10": 0.1564,
+      "mrr@10": 0.1472,
+      "recall@1": 0.1222,
+      "recall@10": 0.1833,
+      "lat_avg_ms": 1816.6,
+      "lat_p95_ms": 2264.5,
+      "true_mv_mb": 1594.8,
+      "n": 180
+    },
+    "int8_25": {
+      "variant": "int8",
+      "retain_pct": 25,
+      "avg_doc_tokens_kept": 252.5,
+      "ndcg@10": 0.1482,
+      "mrr@10": 0.138,
+      "recall@1": 0.1056,
+      "recall@10": 0.1778,
+      "lat_avg_ms": 544.1,
+      "lat_p95_ms": 715.5,
+      "true_mv_mb": 99.6,
+      "n": 180
+    }
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "data": "data_scifact",
+  "fde": 10240,
+  "num_docs": 5183,
+  "cells": {
+    "int8_100": {
+      "variant": "int8",
+      "retain_pct": 100,
+      "avg_doc_tokens_kept": 235.7,
+      "ndcg@10": 0.6667,
+      "lat_avg_ms": 446.8,
+      "lat_p95_ms": 541.2,
+      "true_mv_mb": 149.1,
+      "n": 300
+    },
+    "int8_75": {
+      "variant": "int8",
+      "retain_pct": 75,
+      "avg_doc_tokens_kept": 176.7,
+      "ndcg@10": 0.6511,
+      "lat_avg_ms": 347.0,
+      "lat_p95_ms": 427.1,
+      "true_mv_mb": 111.8,
+      "n": 300
+    },
+    "int8_50": {
+      "variant": "int8",
+      "retain_pct": 50,
+      "avg_doc_tokens_kept": 117.8,
+      "ndcg@10": 0.6215,
+      "lat_avg_ms": 241.2,
+      "lat_p95_ms": 290.0,
+      "true_mv_mb": 74.5,
+      "n": 300
+    },
+    "int8_25": {
+      "variant": "int8",
+      "retain_pct": 25,
+      "avg_doc_tokens_kept": 58.9,
+      "ndcg@10": 0.5704,
+      "lat_avg_ms": 165.6,
+      "lat_p95_ms": 210.0,
+      "true_mv_mb": 37.3,
+      "n": 300
+    }
+  }
+}

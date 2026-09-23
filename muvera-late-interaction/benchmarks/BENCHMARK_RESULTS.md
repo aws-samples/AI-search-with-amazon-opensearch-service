@@ -5,7 +5,7 @@ Everything needed to reproduce the numbers in the OpenSearchCon talk
 
 This documents **what we ran, the exact results, and the code to regenerate them** — the
 quality comparison (exact / mean-pool / FDE-only / MUVERA+rerank), the latency breakdown, and
-the three optimization experiments (rescore depth, FDE compensation, multivector quantization).
+the optimization experiments (rescore depth, FDE compensation, multivector quantization + doc pruning).
 
 > **TL;DR of findings**
 > - MUVERA FDE + rerank recovers **90–97% of exact MaxSim**, ~**3× the quality of mean-pooling**.
@@ -14,8 +14,11 @@ the three optimization experiments (rescore depth, FDE compensation, multivector
 >   **~40% less latency at equal quality**.
 > - **H2 (conditional):** FDE-only (skip rerank) is **~35× faster** but only viable for
 >   low-density text (~72–76% of exact); dense pages collapse to ~10%.
-> - **H3 (rejected for latency):** int8/fp16 quantization is **flat on latency** (cuts bytes,
->   not MaxSim FLOPs) — a memory lever only.
+> - **H3 (confirmed — compress the doc side):** int8 quantization = **4× storage at ~0 quality**
+>   (flat latency — cuts bytes, not FLOPs), and **doc-token pruning** adds the latency it can't.
+>   Combined int8 + pruning: **8–16× smaller and 1.6–3.3× faster for ~4–7% quality**, measured vs
+>   each dataset's float32 baseline (SciFact/NFCorpus @50% tokens, dense IRPAPERS @25%). They
+>   compose because quantization shrinks each value while pruning drops whole tokens.
 
 ---
 
@@ -192,6 +195,13 @@ python ir_ksim.py ksim7 7 8  10 fdeonly
 
 ## 8. H3 — Quantize the multivectors?  (slides 18–19)
 
+**H3 asks: can we shrink the doc side?** There are two independent knobs — **quantize** each
+stored value (fewer bytes per number) and **prune** doc tokens (fewer vectors per doc). We tested
+each alone, then combined. Key result: they act on **orthogonal axes** — quantization buys
+*storage*, pruning buys *latency* — so they compose.
+
+### 8a. Quantization alone — storage, not latency
+
 Client-side test: FDE held identical across variants (isolates the rerank effect); only the
 stored `colbert_vectors` precision varies (float32 / fp16 round-trip / int8 symmetric round-trip).
 
@@ -206,13 +216,47 @@ stored `colbert_vectors` precision varies (float32 / fp16 round-trip / int8 symm
   stored precision; quantization cuts *bytes*, not MaxSim *FLOPs*.
 - **Memory:** the 2×/4× is the **potential** compact size — realized only if stored as **binary
   doc-values** (a plugin code change), *not* through `_source` (JSON text doesn't shrink).
-  **Verdict: rejected for latency; memory lever only.**
 
 *Source: `quant_mv_scifact.json`.*
 
+### 8b. Quantization + pruning — the latency int8 can't buy
+
+Pruning drops the lowest-L2-norm doc tokens (query-agnostic), keeping the top-R%. It reduces the
+number of vectors deserialized and MaxSim'd, so it **does** cut latency — near-linearly with tokens
+kept. Combined with int8, the two stack. Each dataset is measured against **its own float32,
+full-token baseline** (same run, same 40-candidate FDE prefetch; nDCG@10):
+
+| Dataset (~vec/doc) | float32 baseline nDCG@10 | int8 + prune | Quality kept | Faster | Smaller |
+|---|---:|---|---:|---:|---:|
+| SciFact (236)   | 0.6682 | int8 + 50% tokens | **93%** | 1.8× | 8× |
+| NFCorpus (236)  | 0.3079 | int8 + 50% tokens | **96%** | 1.6× | 8× |
+| IRPAPERS (1011) | 0.1564 | int8 + 25% tokens | **95%** | 3.3× | 16× |
+
+- **Compose on orthogonal axes:** int8 = 4× storage at ~0 quality; pruning adds the latency
+  (−45% at 50% tokens; more when denser). Together: **8–16× smaller and 1.6–3.3× faster for
+  ~4–7% quality.**
+- **Density helps pruning:** dense pages (~1000 vec/doc) carry more redundant tokens, so IRPAPERS
+  keeps 95% even at **25%** retention — a more aggressive prune than the 50% used for short text.
+- **Sweet spot ~50% for text, lower for dense.** Past the knee, quality falls off faster than
+  latency improves.
+- **Caveats (honest):** norm-based pruning, **out-of-domain** (worst case; in-domain with a
+  trained head is cheaper). Query vectors are **not** quantized — doc side only (standard
+  asymmetric setup). IRPAPERS uses a shallow 40-candidate prefetch, so its **absolute** nDCG is low
+  (FDE-only barely surfaces relevant dense docs); the **ratio** vs its own float32 baseline holds,
+  but recall@1 pays more there (−14%).
+
+*Source: `quant_prune_combined_scifact.json`, `quant_prune_nfcorpus_withf32.json`,
+`quant_prune_irpapers_proper.json`.*
+
 ### Reproduce
 ```bash
-python quant_multivector_test.py data_scifact 0    # 0 = all docs; builds 3 indices, measures each
+# 8a — quantization alone (float32 / fp16 / int8), SciFact
+python quant_multivector_test.py data_scifact 0
+
+# 8b — combined int8 + norm-pruning, measured vs a float32 full-token baseline
+python quant_prune_combined.py 0 data_scifact    # SciFact: float32+int8 × {100,50}% (edit VARIANTS/RETAIN)
+python quant_prune_combined.py 0 data             # NFCorpus (data/ dir)
+python quant_prune_irpapers.py 0                  # IRPAPERS: float32@100 baseline + int8@25 (recall + nDCG)
 ```
 
 ### The real fix: score off `_source` — native `LateInteractionField` (Lucene 10.5)
@@ -262,7 +306,9 @@ java --add-modules jdk.incubator.vector -cp "$CP" \
 | `oversample_sweep.py` | Rescore-depth sweep on an existing index (warmup + `_source` excludes) |
 | `ir_ksim.py` | IRPAPERS FDE-only / rerank recall across k_sim and rescore depth (ef_search=1024) |
 | `ir_meanpool.py` | IRPAPERS mean-pool + rerank baseline (client-side), recall@k |
-| `quant_multivector_test.py` | Client-side float32/fp16/int8 multivector quantization test |
+| `quant_multivector_test.py` | Client-side float32/fp16/int8 multivector quantization test (8a) |
+| `quant_prune_combined.py` | Combined int8 + norm doc-pruning vs float32 baseline, SciFact/NFCorpus (8b) |
+| `quant_prune_irpapers.py` | Combined int8 + pruning on dense IRPAPERS, float32 baseline + nDCG/MRR/recall (8b) |
 | `ec2_fdeonly_ndcg.py` | FDE-only nDCG helper |
 
 Scripts live in [`scripts/`](scripts/) (see [`scripts/README.md`](scripts/README.md) for
@@ -287,4 +333,9 @@ benchmarks/
    multi-shard cluster would be faster. The *relative* lever effects are shard-invariant.
 3. **Exact is a model ceiling,** not a perfect oracle; absolute values reflect dataset/metric difficulty.
 4. **Quantization compact size is potential** (binary doc-values), not what `_source` realizes today.
-5. **IRPAPERS metric is recall@10** (binary qrels), not nDCG — don't mix it under an nDCG header.
+5. **IRPAPERS has 1 relevant doc/query** — recall@10 is coarse (near-blind to rerank reordering),
+   so for the H3 pruning test we report **nDCG@10 / MRR@10 / recall@1** (rank-sensitive). Its
+   H3 prefetch is a shallow 40-candidate net, so **absolute** IRPAPERS nDCG is low (FDE-only barely
+   surfaces relevant dense docs); the pruning **ratio** vs its own float32 baseline is what holds.
+6. **H3 pruning is norm-based, out-of-domain, doc-side only** (query vectors not quantized) — the
+   conservative/worst case; in-domain with a trained token-importance head prunes cheaper.
